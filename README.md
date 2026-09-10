@@ -1,6 +1,6 @@
-# LDIAG
+# EPIC2
 
-`LDIAG` is the LD-aware workflow described in`Fetal_Tissue.Rmd` before section 6. It integrates aligned GWAS summary statistics, a reference genotype panel, and a Seurat/Signac single-nucleus ATAC-seq object at SNP and peak resolution.
+`EPIC2` is the LD-aware workflow described in`Fetal_Tissue.Rmd` before section 6. It integrates aligned GWAS summary statistics, a reference genotype panel, and a Seurat/Signac single-nucleus ATAC-seq object at SNP and peak resolution.
 
 The package implements these manuscript stages:
 
@@ -17,9 +17,9 @@ The plot stage can import a merged S-LDSC summary and produce the manuscript com
 
 The numerical core and the complete workflow are tested with generated ATAC, GWAS, genotype, fragment, and S-LDSC inputs, including a real hg19-to-hg38 UCSC chain. 
 
-`LDIAG` intentionally preserves its fitting convention: the response and complete raw design are transformed with the inverse-square-root covariance, the transformed intercept column is discarded, and the model is fit with an ordinary untransformed intercept plus the transformed focal and baseline predictors.
+`EPIC2` intentionally preserves its fitting convention: the response and complete raw design are transformed with the inverse-square-root covariance, the transformed intercept column is discarded, and the model is fit with an ordinary untransformed intercept plus the transformed focal and baseline predictors.
 
-`LDIAG` calculates the reference MAF as `min(mean(dosage) / 2, 1 - mean(dosage) / 2)`. 
+`EPIC2` calculates the reference MAF as `min(mean(dosage) / 2, 1 - mean(dosage) / 2)`. 
 
 ## Installation
 
@@ -67,7 +67,7 @@ Start from the installed example:
 
 ```r
 file.copy(
-  system.file("extdata/config.example.yml", package = "LDIAG"),
+  system.file("extdata/config.example.yml", package = "EPIC2"),
   "config.yml"
 )
 ```
@@ -76,7 +76,7 @@ All relative paths are resolved relative to `config.yml`. Validate it before a
 large run:
 
 ```bash
-Rscript exec/ldiag validate config.yml --check-files
+Rscript exec/EPIC2 validate config.yml --check-files
 ```
 
 Cell QC, peak QC, reference missingness, MAF, and every SNPRelate pruning threshold used are configurable. Any GWAS-level setting can be overridden inside `gwas.traits.<name>`, and the effective values are saved with the per-GWAS QC counts. Figure formats, resolution, UMAP sampling, heatmap size, top-feature count, and S-LDSC input are also configurable. See `CONFIGURATION.md` for the complete key list.
@@ -84,37 +84,37 @@ Cell QC, peak QC, reference missingness, MAF, and every SNPRelate pruning thresh
 `ld_prune_tool` is the backend selector, not a token. This release integrates `snprelate`; its `method`, missing-rate, MAF, window, start-position, and thread arguments are explicit YAML settings. For LD pruning done beforehand with PLINK or another program, provide matching pre-pruned inputs and set
 `ld_prune: false`.
 
-Harmonized GWAS files retain `ldiag_reference_maf` and `ldiag_reference_missing_rate`, input coordinates/build, and target build for variant-level QC auditing. Genome conversion summaries are written beside the GWAS and accessibility outputs.
+Harmonized GWAS files retain `EPIC2_reference_maf` and `EPIC2_reference_missing_rate`, input coordinates/build, and target build for variant-level QC auditing. Genome conversion summaries are written beside the GWAS and accessibility outputs.
 
 ## Running
 
 Run all stages through publication figures:
 
 ```bash
-Rscript exec/ldiag run config.yml
+Rscript exec/EPIC2 run config.yml
 ```
 
 Run one stage or selected GWAS datasets:
 
 ```bash
-Rscript exec/ldiag stage config.yml gwas --gwas=HDL
-Rscript exec/ldiag stage config.yml ld --gwas=HDL,LDL
-Rscript exec/ldiag run config.yml --stages=wrs,model --gwas=HDL
-Rscript exec/ldiag stage config.yml plot --gwas=HDL,LDL
+Rscript exec/EPIC2 stage config.yml gwas --gwas=HDL
+Rscript exec/EPIC2 stage config.yml ld --gwas=HDL,LDL
+Rscript exec/EPIC2 run config.yml --stages=wrs,model --gwas=HDL
+Rscript exec/EPIC2 stage config.yml plot --gwas=HDL,LDL
 ```
 
 The equivalent R call for one configured GWAS is:
 
 ```r
-config <- read_ldiag_config("config.yml")
+config <- read_EPIC2_config("config.yml")
 run_gwas_stage(config, gwas_name = "HDL")
 ```
 
 Run the generated hg19-ATAC/GWAS to hg38 seven-stage integration test after installing all suggested packages and downloading the directional UCSC chain:
 
 ```bash
-LDIAG_RUN_MIXED_BUILD_TEST=true \
-LDIAG_HG19_TO_HG38_CHAIN=/path/to/hg19ToHg38.over.chain.gz \
+EPIC2_RUN_MIXED_BUILD_TEST=true \
+EPIC2_HG19_TO_HG38_CHAIN=/path/to/hg19ToHg38.over.chain.gz \
 Rscript tests/test-mixed-build-integration.R
 ```
 
@@ -160,7 +160,7 @@ Run `Rscript scripts/benchmark_hotspots.R` after installation to verify numerica
 
 - Keep the YAML used for the manuscript under version control without private paths.
 - Record the Git commit, package version, R `sessionInfo()`, and Slurm resources.
-- Run `R CMD check LDIAG_0.1.0.tar.gz` on a clean environment.
+- Run `R CMD check EPIC2_0.1.0.tar.gz` on a clean environment.
 - Add a small synthetic example that completes every stage in minutes.
 - Tag the verified manuscript release and archive that tag and test data on Zenodo.
 
