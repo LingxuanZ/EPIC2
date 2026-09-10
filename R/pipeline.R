@@ -3,7 +3,7 @@ available_stages <- function() c("atac", "gwas", "accessibility", "ld", "wrs", "
 write_run_manifest <- function(config, stages, traits) {
   ensure_dir(config$output_dir)
   manifest <- c(
-    paste0("software: LDIAG ", utils::packageVersion("LDIAG")),
+    paste0("software: EPIC2 ", utils::packageVersion("EPIC2")),
     paste0("started: ", format(Sys.time(), tz = "UTC", usetz = TRUE)),
     paste0("R: ", R.version.string),
     paste0("platform: ", R.version$platform),
@@ -32,7 +32,7 @@ write_run_manifest <- function(config, stages, traits) {
   invisible(TRUE)
 }
 
-#' Run the LDIAG analysis and publication-figure workflow
+#' Run the EPIC2 analysis and publication-figure workflow
 #'
 #' @param config YAML path or parsed configuration list.
 #' @param stages Ordered stage subset. Defaults to the full workflow.
@@ -40,9 +40,9 @@ write_run_manifest <- function(config, stages, traits) {
 #' @param gwas_name Optional name or names under `gwas.traits` to process.
 #' @return Named list of stage return values.
 #' @export
-run_ldiag <- function(config, stages = available_stages(), traits = NULL, gwas_name = NULL) {
-  if (is.character(config) && length(config) == 1L) config <- read_ldiag_config(config)
-  validate_ldiag_config(config)
+run_EPIC2 <- function(config, stages = available_stages(), traits = NULL, gwas_name = NULL) {
+  if (is.character(config) && length(config) == 1L) config <- read_EPIC2_config(config)
+  validate_EPIC2_config(config)
   valid <- available_stages()
   unknown <- setdiff(stages, valid)
   if (length(unknown)) stop("Unknown stage(s): ", paste(unknown, collapse = ", "), call. = FALSE)
@@ -62,11 +62,11 @@ run_ldiag <- function(config, stages = available_stages(), traits = NULL, gwas_n
   )
   result <- list()
   for (stage in stages) {
-    message("\n[LDIAG] Starting stage: ", stage)
+    message("\n[EPIC2] Starting stage: ", stage)
     started <- Sys.time()
     result[[stage]] <- runners[[stage]]()
     message(
-      "[LDIAG] Finished stage: ", stage, " in ",
+      "[EPIC2] Finished stage: ", stage, " in ",
       round(as.numeric(difftime(Sys.time(), started, units = "mins")), 2), " minutes"
     )
   }
@@ -75,12 +75,12 @@ run_ldiag <- function(config, stages = available_stages(), traits = NULL, gwas_n
 
 cli_usage <- function() {
   paste(
-    "LDIAG: LD-aware scATAC-seq/GWAS integration",
+    "EPIC2: LD-aware scATAC-seq/GWAS integration",
     "",
     "Usage:",
-    "  ldiag validate CONFIG.yml [--check-files]",
-    "  ldiag run CONFIG.yml [--stages=atac,gwas,accessibility,ld,wrs,model,plot] [--gwas=HDL,LDL]",
-    "  ldiag stage CONFIG.yml STAGE [--gwas=HDL,LDL]",
+    "  EPIC2 validate CONFIG.yml [--check-files]",
+    "  EPIC2 run CONFIG.yml [--stages=atac,gwas,accessibility,ld,wrs,model,plot] [--gwas=HDL,LDL]",
+    "  EPIC2 stage CONFIG.yml STAGE [--gwas=HDL,LDL]",
     "",
     "Stages: atac, gwas, accessibility, ld, wrs, model, plot",
     sep = "\n"
@@ -99,7 +99,7 @@ parse_cli_value <- function(args, option) {
 #' @param args Command-line arguments, excluding the R executable.
 #' @return Invisible workflow result; exits with an error for invalid commands.
 #' @export
-ldiag_cli <- function(args = commandArgs(trailingOnly = TRUE)) {
+EPIC2_cli <- function(args = commandArgs(trailingOnly = TRUE)) {
   if (length(args) == 0L || args[[1L]] %in% c("-h", "--help", "help")) {
     cat(cli_usage(), "\n")
     return(invisible(NULL))
@@ -109,7 +109,7 @@ ldiag_cli <- function(args = commandArgs(trailingOnly = TRUE)) {
   if (length(args) < 2L) stop("A configuration path is required.\n\n", cli_usage(), call. = FALSE)
   config_path <- args[[2L]]
   if (command == "validate") {
-    config <- read_ldiag_config(config_path, check_files = "--check-files" %in% args)
+    config <- read_EPIC2_config(config_path, check_files = "--check-files" %in% args)
     cat("Configuration is valid.\nOutput directory: ", config$output_dir, "\n", sep = "")
     return(invisible(config))
   }
@@ -125,5 +125,5 @@ ldiag_cli <- function(args = commandArgs(trailingOnly = TRUE)) {
   } else {
     stages <- parse_cli_value(args, "stages") %||% available_stages()
   }
-  run_ldiag(config_path, stages = stages, traits = traits, gwas_name = gwas_name)
+  run_EPIC2(config_path, stages = stages, traits = traits, gwas_name = gwas_name)
 }

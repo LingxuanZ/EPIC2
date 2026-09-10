@@ -1,4 +1,4 @@
-library(LDIAG)
+library(EPIC2)
 
 run_mixed_build_integration <- function() {
   required <- c(
@@ -9,13 +9,13 @@ run_mixed_build_integration <- function() {
   if (length(missing)) {
     stop("Mixed-build integration test is missing: ", paste(missing, collapse = ", "))
   }
-  chain <- Sys.getenv("LDIAG_HG19_TO_HG38_CHAIN")
+  chain <- Sys.getenv("EPIC2_HG19_TO_HG38_CHAIN")
   if (!nzchar(chain) || !file.exists(chain)) {
-    stop("Set LDIAG_HG19_TO_HG38_CHAIN to a readable directional UCSC chain file.")
+    stop("Set EPIC2_HG19_TO_HG38_CHAIN to a readable directional UCSC chain file.")
   }
 
-  root_override <- Sys.getenv("LDIAG_INTEGRATION_OUTPUT")
-  root <- if (nzchar(root_override)) root_override else tempfile("ldiag-mixed-build-")
+  root_override <- Sys.getenv("EPIC2_INTEGRATION_OUTPUT")
+  root <- if (nzchar(root_override)) root_override else tempfile("EPIC2-mixed-build-")
   dir.create(root, recursive = TRUE, showWarnings = FALSE)
   if (!nzchar(root_override)) on.exit(unlink(root, recursive = TRUE), add = TRUE)
   cells <- paste0("cell", seq_len(8L))
@@ -126,7 +126,7 @@ run_mixed_build_integration <- function() {
     sldsc_path, sep = "\t", quote = FALSE, row.names = FALSE
   )
 
-  config <- LDIAG:::ldiag_defaults()
+  config <- EPIC2:::EPIC2_defaults()
   config$.config_dir <- root
   config$output_dir <- file.path(root, "results")
   config$genome$target <- "hg38"
@@ -158,17 +158,17 @@ run_mixed_build_integration <- function() {
   config$parameters$workers <- 1L
   config$model$groupings <- c("tissue_cell_type", "tissue")
   config$plots$sldsc_summary <- sldsc_path
-  validate_ldiag_config(config, check_files = TRUE)
-  run_ldiag(config)
+  validate_EPIC2_config(config, check_files = TRUE)
+  run_EPIC2(config)
 
   harmonized <- readRDS(file.path(config$output_dir, "02_gwas", "SYNTHETIC.gwas.rds"))
   peak_matrix <- readRDS(file.path(
     config$output_dir, "02_accessibility", "SYNTHETIC.peak_by_cell.rds"
   ))
   stopifnot(
-    all(harmonized$ldiag_input_genome == "hg19"),
-    all(harmonized$ldiag_target_genome == "hg38"),
-    all(harmonized$pos != harmonized$ldiag_input_pos),
+    all(harmonized$EPIC2_input_genome == "hg19"),
+    all(harmonized$EPIC2_target_genome == "hg38"),
+    all(harmonized$pos != harmonized$EPIC2_input_pos),
     all(grepl("^chr1-", rownames(peak_matrix))),
     file.exists(file.path(
       config$output_dir, "05_models", "tissue_cell_type.cauchy_results.tsv"
@@ -206,7 +206,7 @@ run_mixed_build_integration <- function() {
   invisible(TRUE)
 }
 
-if (identical(tolower(Sys.getenv("LDIAG_RUN_MIXED_BUILD_TEST")), "true")) {
+if (identical(tolower(Sys.getenv("EPIC2_RUN_MIXED_BUILD_TEST")), "true")) {
   run_mixed_build_integration()
 } else {
   message("Skipping optional mixed-build integration test.")

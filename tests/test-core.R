@@ -1,4 +1,4 @@
-library(LDIAG)
+library(EPIC2)
 
 expect_error_message <- function(expression, pattern) {
   message <- tryCatch({
@@ -68,14 +68,14 @@ expect_error_message(
   normalize_genotype(logical_genotype, format = "carrier"),
   "do not contain enough information"
 )
-stopifnot(all(LDIAG:::as_snprelate_hard_calls(expected_dosage, 2) == expected_dosage))
+stopifnot(all(EPIC2:::as_snprelate_hard_calls(expected_dosage, 2) == expected_dosage))
 haploid <- expected_dosage
 haploid[haploid == 2] <- 1
-stopifnot(all(LDIAG:::as_snprelate_hard_calls(haploid, 1) == 2 * haploid))
+stopifnot(all(EPIC2:::as_snprelate_hard_calls(haploid, 1) == 2 * haploid))
 continuous <- expected_dosage
 continuous[continuous == 1] <- 0.8
-expect_error_message(LDIAG:::as_snprelate_hard_calls(continuous, 2), "requires diploid")
-stopifnot(all(LDIAG:::as_snprelate_hard_calls(continuous, 2, "round") == expected_dosage))
+expect_error_message(EPIC2:::as_snprelate_hard_calls(continuous, 2), "requires diploid")
+stopifnot(all(EPIC2:::as_snprelate_hard_calls(continuous, 2, "round") == expected_dosage))
 
 # Genome names are explicit and coordinate bounds can catch some bad declarations.
 stopifnot(
@@ -95,7 +95,7 @@ utils::write.table(
   data.frame(variant_id = rownames(expected_dosage), expected_dosage, check.names = FALSE),
   genotype_tsv, sep = "\t", quote = FALSE, row.names = FALSE
 )
-loaded_genotype <- LDIAG:::load_analysis_input(genotype_tsv, label = "test genotype")
+loaded_genotype <- EPIC2:::load_analysis_input(genotype_tsv, label = "test genotype")
 loaded_dosage <- normalize_genotype(
   loaded_genotype, variant_ids = rownames(expected_dosage), format = "dosage",
   variant_id_column = "variant_id"
@@ -103,7 +103,7 @@ loaded_dosage <- normalize_genotype(
 stopifnot(all(loaded_dosage == expected_dosage))
 
 # Every SNPRelate pruning option is explicit rather than inherited silently.
-pruning_options <- LDIAG:::snprelate_pruning_options(
+pruning_options <- EPIC2:::snprelate_pruning_options(
   threshold = 0.7,
   window_bp = 250000,
   method = "corr",
@@ -148,12 +148,12 @@ colnames(genotype) <- paste0("sample", 1:4)
 harmonized <- harmonize_gwas(gwas, genotype, ld_prune = FALSE)
 stopifnot(identical(harmonized$gwas$rsid, c("rs1", "rs4")))
 stopifnot(identical(rownames(harmonized$genotype), c("rs1", "rs4")))
-stopifnot(all.equal(harmonized$gwas$ldiag_reference_maf, c(0.375, 0.25)))
-stopifnot(all(harmonized$gwas$ldiag_reference_missing_rate == 0))
+stopifnot(all.equal(harmonized$gwas$EPIC2_reference_maf, c(0.375, 0.25)))
+stopifnot(all(harmonized$gwas$EPIC2_reference_missing_rate == 0))
 stopifnot(
   identical(harmonized$summary$source_genome, "hg19"),
   identical(harmonized$summary$target_genome, "hg19"),
-  all(harmonized$gwas$ldiag_input_pos == harmonized$gwas$pos)
+  all(harmonized$gwas$EPIC2_input_pos == harmonized$gwas$pos)
 )
 
 gwas_with_build <- gwas
@@ -182,14 +182,14 @@ stopifnot(identical(strict_missing$gwas$rsid, "rs4"))
 stopifnot(identical(relaxed_missing$gwas$rsid, c("rs1", "rs4")))
 
 # Each configured GWAS can run independently by name without erasing prior QC rows.
-stage_dir <- tempfile("ldiag-gwas-stage-")
+stage_dir <- tempfile("EPIC2-gwas-stage-")
 dir.create(stage_dir)
 saveRDS(gwas, file.path(stage_dir, "HDL.rds"))
 saveRDS(gwas, file.path(stage_dir, "LDL.rds"))
 saveRDS(genotype, file.path(stage_dir, "dosage.rds"))
 saveRDS(apply(genotype, c(1, 2), function(value) c("0/0", "0/1", "1/1")[[value + 1L]]),
         file.path(stage_dir, "gt.rds"))
-config <- LDIAG:::ldiag_defaults()
+config <- EPIC2:::EPIC2_defaults()
 config$atac$input <- "unused.rds"
 config$.config_dir <- stage_dir
 config$output_dir <- file.path(stage_dir, "results")
@@ -201,7 +201,7 @@ config$gwas$traits <- list(
   ),
   LDL = list(summary = "LDL.rds", genotype = "gt.rds", genotype_format = "gt")
 )
-validate_ldiag_config(config)
+validate_EPIC2_config(config)
 hdl_output <- run_gwas_stage(config, gwas_name = "HDL")
 stopifnot(identical(names(hdl_output), "HDL"))
 stopifnot(file.exists(file.path(config$output_dir, "02_gwas", "HDL.gwas_qc.tsv")))
@@ -223,20 +223,20 @@ expect_error_message(run_gwas_stage(config, gwas_name = "UNKNOWN"), "Unknown GWA
 
 invalid_config <- config
 invalid_config$gwas$traits$HDL$ld_method <- "not-a-method"
-expect_error_message(validate_ldiag_config(invalid_config), "ld_method")
+expect_error_message(validate_EPIC2_config(invalid_config), "ld_method")
 invalid_config <- config
 invalid_config$atac$qc$frip_min <- 1.1
-expect_error_message(validate_ldiag_config(invalid_config), "frip_min")
+expect_error_message(validate_EPIC2_config(invalid_config), "frip_min")
 
 hg38_config <- config
 hg38_config$genome$target <- "GRCh38"
 hg38_config$atac$genome <- "hg38"
 hg38_config$gwas$genome <- "GRCh38"
-validate_ldiag_config(hg38_config)
+validate_EPIC2_config(hg38_config)
 
 mixed_config <- config
 mixed_config$genome$target <- "hg38"
-expect_error_message(validate_ldiag_config(mixed_config), "genome.chains.hg19_to_hg38")
+expect_error_message(validate_EPIC2_config(mixed_config), "genome.chains.hg19_to_hg38")
 
 # Ridge inverse square root whitens matrix + ridge * I.
 sigma <- matrix(c(1, 0.3, 0.3, 1), 2, 2, dimnames = list(c("a", "b"), c("a", "b")))
@@ -353,7 +353,7 @@ stopifnot(nrow(stability$feature) == 3L)
 stopifnot(stability$feature$selected_frequency[stability$feature$feature == "a"] == 1)
 stopifnot(stability$feature$stable[stability$feature$feature == "a"])
 stopifnot(!stability$feature$stable[stability$feature$feature == "c"])
-balanced_summary <- LDIAG:::summarize_balanced_wrs(repeated, auc_cutoff = 0.60)
+balanced_summary <- EPIC2:::summarize_balanced_wrs(repeated, auc_cutoff = 0.60)
 stopifnot(all(balanced_summary$auc_cutoff == 0.60))
 stopifnot(
   balanced_summary$proportion_auc_ge_cutoff[balanced_summary$feature == "a"] == 1,
@@ -362,4 +362,4 @@ stopifnot(
 
 invalid_plot_config <- config
 invalid_plot_config$plots$formats <- "jpg"
-expect_error_message(validate_ldiag_config(invalid_plot_config), "plots.formats")
+expect_error_message(validate_EPIC2_config(invalid_plot_config), "plots.formats")

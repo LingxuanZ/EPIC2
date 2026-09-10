@@ -182,7 +182,7 @@ add_component_adjustment <- function(table) {
 
 #' LD-adjusted models and Cauchy combination
 #'
-#' @param config Parsed LDIAG configuration.
+#' @param config Parsed EPIC2 configuration.
 #' @param traits Optional trait subset.
 #' @return Named list of output tables by grouping.
 #' @export

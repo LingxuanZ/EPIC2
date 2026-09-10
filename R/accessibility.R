@@ -9,7 +9,7 @@ make_bpparam <- function(workers) {
   }
 }
 
-gwas_ranges <- function(gwas, columns = ldiag_defaults()$gwas$columns) {
+gwas_ranges <- function(gwas, columns = EPIC2_defaults()$gwas$columns) {
   require_namespaces(c("GenomicRanges", "IRanges"), "GWAS genomic ranges")
   coord <- gwas$coord_id %||% coordinate_id(gwas[[columns$chr]], gwas[[columns$pos]])
   ranges <- GenomicRanges::GRanges(
@@ -29,16 +29,16 @@ prepare_gwas_ranges_for_atac <- function(gwas, columns, gwas_genome, atac_genome
                                          unmapped_action = "drop",
                                          multimapping_action = "drop",
                                          duplicate_action = "drop") {
-  input_builds <- unique(as.character(gwas$ldiag_input_genome %||% character()))
+  input_builds <- unique(as.character(gwas$EPIC2_input_genome %||% character()))
   input_builds <- input_builds[!is.na(input_builds) & nzchar(input_builds)]
-  use_original <- all(c("ldiag_input_chr", "ldiag_input_pos") %in% colnames(gwas)) &&
+  use_original <- all(c("EPIC2_input_chr", "EPIC2_input_pos") %in% colnames(gwas)) &&
     length(input_builds) == 1L && normalize_genome_build(input_builds) == normalize_genome_build(atac_genome)
   if (use_original) {
     ranges <- GenomicRanges::GRanges(
-      seqnames = canonical_chr(gwas$ldiag_input_chr),
+      seqnames = canonical_chr(gwas$EPIC2_input_chr),
       ranges = IRanges::IRanges(
-        start = as.integer(gwas$ldiag_input_pos),
-        end = as.integer(gwas$ldiag_input_pos)
+        start = as.integer(gwas$EPIC2_input_pos),
+        end = as.integer(gwas$EPIC2_input_pos)
       ),
       strand = "*"
     )
@@ -80,7 +80,7 @@ prepare_gwas_ranges_for_atac <- function(gwas, columns, gwas_genome, atac_genome
 #' @param duplicate_action Drop or reject duplicate target ranges.
 #' @return Sparse SNP-by-cell matrix containing nonzero SNPs in ATAC peaks.
 #' @export
-build_snp_accessibility <- function(atac, gwas, columns = ldiag_defaults()$gwas$columns,
+build_snp_accessibility <- function(atac, gwas, columns = EPIC2_defaults()$gwas$columns,
                                     assay = "ATAC", workers = 1L, chunks = 20L,
                                     gwas_genome = "hg19", atac_genome = gwas_genome,
                                     chain_file = NULL, unmapped_action = "drop",
@@ -142,7 +142,7 @@ build_snp_accessibility <- function(atac, gwas, columns = ldiag_defaults()$gwas$
 #' @param duplicate_action Drop or reject duplicate target ranges.
 #' @return A list with a sparse peak matrix and SNP-to-peak overlap table.
 #' @export
-build_peak_accessibility <- function(atac, gwas, columns = ldiag_defaults()$gwas$columns,
+build_peak_accessibility <- function(atac, gwas, columns = EPIC2_defaults()$gwas$columns,
                                      assay = "ATAC", gwas_genome = "hg19",
                                      atac_genome = gwas_genome,
                                      gwas_to_atac_chain = NULL, atac_to_gwas_chain = NULL,
@@ -256,7 +256,7 @@ compute_cell_scale <- function(atac, assay = "ATAC") {
 
 #' Construct SNP and peak accessibility matrices
 #'
-#' @param config Parsed LDIAG configuration.
+#' @param config Parsed EPIC2 configuration.
 #' @param traits Optional trait subset.
 #' @return Named list of generated files.
 #' @export
@@ -272,7 +272,7 @@ run_accessibility_stage <- function(config, traits = names(config$gwas$traits)) 
     columns <- deep_merge(config$gwas$columns, trait_config(config, trait)$columns %||% list())
     target_genome <- normalize_genome_build(config$genome$target)
     atac_genome <- normalize_genome_build(config$atac$genome)
-    input_builds <- unique(as.character(gwas$ldiag_input_genome %||% character()))
+    input_builds <- unique(as.character(gwas$EPIC2_input_genome %||% character()))
     input_builds <- input_builds[!is.na(input_builds) & nzchar(input_builds)]
     original_matches_atac <- length(input_builds) == 1L &&
       normalize_genome_build(input_builds) == atac_genome

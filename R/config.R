@@ -11,9 +11,9 @@ deep_merge <- function(default, override) {
   out
 }
 
-ldiag_defaults <- function() {
+EPIC2_defaults <- function() {
   list(
-    project = list(name = "LDIAG analysis", output_dir = "results"),
+    project = list(name = "EPIC2 analysis", output_dir = "results"),
     parameters = list(seed = 1000L, workers = 1L),
     genome = list(
       target = "hg19",
@@ -212,31 +212,31 @@ gwas_setting_errors <- function(settings, prefix = "gwas") {
   errors
 }
 
-#' Read a LDIAG YAML configuration
+#' Read a EPIC2 YAML configuration
 #'
 #' @param path Path to a YAML configuration file.
 #' @param check_files Whether to verify configured input files immediately.
 #' @return A validated configuration list with defaults filled in.
 #' @export
-read_ldiag_config <- function(path, check_files = FALSE) {
+read_EPIC2_config <- function(path, check_files = FALSE) {
   require_namespaces("yaml", "configuration parsing")
   path <- assert_file(path, "Configuration file")
   user_config <- yaml::read_yaml(path)
-  config <- deep_merge(ldiag_defaults(), user_config)
+  config <- deep_merge(EPIC2_defaults(), user_config)
   config$.config_file <- path
   config$.config_dir <- dirname(path)
   config$output_dir <- resolve_config_path(config, config$project$output_dir)
-  validate_ldiag_config(config, check_files = check_files)
+  validate_EPIC2_config(config, check_files = check_files)
   config
 }
 
-#' Validate a LDIAG configuration
+#' Validate a EPIC2 configuration
 #'
-#' @param config Configuration list returned by [read_ldiag_config()].
+#' @param config Configuration list returned by [read_EPIC2_config()].
 #' @param check_files Whether configured input files must already exist.
 #' @return The configuration, invisibly.
 #' @export
-validate_ldiag_config <- function(config, check_files = FALSE) {
+validate_EPIC2_config <- function(config, check_files = FALSE) {
   errors <- character()
   if (is.null(config$atac$input)) errors <- c(errors, "atac.input is required")
   if (length(config$gwas$traits) == 0L) errors <- c(errors, "gwas.traits must contain at least one trait")
@@ -457,7 +457,7 @@ validate_ldiag_config <- function(config, check_files = FALSE) {
   }
 
   if (length(errors)) {
-    stop("Invalid LDIAG configuration:\n- ", paste(errors, collapse = "\n- "), call. = FALSE)
+    stop("Invalid EPIC2 configuration:\n- ", paste(errors, collapse = "\n- "), call. = FALSE)
   }
   invisible(config)
 }

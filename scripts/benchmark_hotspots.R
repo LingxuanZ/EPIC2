@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
-if (!requireNamespace("LDIAG", quietly = TRUE)) {
-  stop("Install LDIAG before running this benchmark.", call. = FALSE)
+if (!requireNamespace("EPIC2", quietly = TRUE)) {
+  stop("Install EPIC2 before running this benchmark.", call. = FALSE)
 }
 if (!requireNamespace("Matrix", quietly = TRUE)) {
   stop("Install Matrix before running this benchmark.", call. = FALSE)
@@ -41,27 +41,27 @@ reference_scale_genotype <- function() {
 }
 
 reference_scaled <- reference_scale_genotype()
-optimized_scaled <- LDIAG:::scale_genotype_for_ld(genotype)
+optimized_scaled <- EPIC2:::scale_genotype_for_ld(genotype)
 stopifnot(isTRUE(all.equal(reference_scaled, optimized_scaled, tolerance = 1e-12)))
 scale_reference_seconds <- median_elapsed(reference_scale_genotype)
 scale_optimized_seconds <- median_elapsed(function() {
-  LDIAG:::scale_genotype_for_ld(genotype)
+  EPIC2:::scale_genotype_for_ld(genotype)
 })
 
-ld_scalar <- LDIAG::compute_snp_ld_covariance(
+ld_scalar <- EPIC2::compute_snp_ld_covariance(
   genotype, gwas, window_bp = 500000L, correlation_block_size = 1L
 )
-ld_block <- LDIAG::compute_snp_ld_covariance(
+ld_block <- EPIC2::compute_snp_ld_covariance(
   genotype, gwas, window_bp = 500000L, correlation_block_size = 256L
 )
 stopifnot(max(abs(ld_scalar - ld_block)) < 1e-12)
 ld_scalar_seconds <- median_elapsed(function() {
-  LDIAG::compute_snp_ld_covariance(
+  EPIC2::compute_snp_ld_covariance(
     genotype, gwas, window_bp = 500000L, correlation_block_size = 1L
   )
 })
 ld_block_seconds <- median_elapsed(function() {
-  LDIAG::compute_snp_ld_covariance(
+  EPIC2::compute_snp_ld_covariance(
     genotype, gwas, window_bp = 500000L, correlation_block_size = 256L
   )
 })

@@ -1,9 +1,9 @@
-#' Generate publication figures from completed LDIAG stages
+#' Generate publication figures from completed EPIC2 stages
 #'
 #' Plotting is isolated from statistical computation: this stage reads frozen
 #' pipeline outputs and writes PNG/PDF figures plus a machine-readable manifest.
 #'
-#' @param config Parsed LDIAG configuration.
+#' @param config Parsed EPIC2 configuration.
 #' @param traits Optional GWAS-name subset.
 #' @return The figure manifest, invisibly.
 #' @export

@@ -44,7 +44,7 @@ ld_prune_snprelate <- function(gwas, genotype, columns, threshold, window_bp, se
   require_namespaces("SNPRelate", "GWAS LD pruning")
   noninteger <- match.arg(noninteger)
   pruning_genotype <- as_snprelate_hard_calls(genotype, ploidy, noninteger)
-  gds_path <- tempfile(pattern = "ldiag-pruning-", tmpdir = output_dir, fileext = ".gds")
+  gds_path <- tempfile(pattern = "EPIC2-pruning-", tmpdir = output_dir, fileext = ".gds")
   on.exit(unlink(gds_path), add = TRUE)
 
   rsid <- as.character(gwas[[columns$rsid]])
@@ -113,7 +113,7 @@ ld_prune_snprelate <- function(gwas, genotype, columns, threshold, window_bp, se
 #' @param ld_num_threads Number of SNPRelate pruning threads.
 #' @return A list containing aligned `gwas`, `genotype`, and a QC summary.
 #' @export
-harmonize_gwas <- function(gwas, genotype, columns = ldiag_defaults()$gwas$columns,
+harmonize_gwas <- function(gwas, genotype, columns = EPIC2_defaults()$gwas$columns,
                            maf_min = 0.05, remove_ambiguous = TRUE, ld_prune = TRUE,
                            ld_threshold = 0.8, ld_window_bp = 500000L, seed = 1000L,
                            genotype_ploidy = 2, genotype_format = "auto",
@@ -196,7 +196,7 @@ harmonize_gwas <- function(gwas, genotype, columns = ldiag_defaults()$gwas$colum
   gwas <- gwas[keep, , drop = FALSE]
   genotype <- genotype[keep, , drop = FALSE]
   reference_missing_rate <- reference_missing_rate[keep]
-  gwas$ldiag_reference_missing_rate <- reference_missing_rate
+  gwas$EPIC2_reference_missing_rate <- reference_missing_rate
   after_reference_missing <- nrow(gwas)
 
   gwas_maf <- suppressWarnings(as.numeric(gwas[[columns$maf]]))
@@ -210,7 +210,7 @@ harmonize_gwas <- function(gwas, genotype, columns = ldiag_defaults()$gwas$colum
     )
   }
   ref_maf <- reference_maf(genotype, genotype_ploidy)
-  gwas$ldiag_reference_maf <- ref_maf
+  gwas$EPIC2_reference_maf <- ref_maf
   keep <- is.finite(gwas_maf) & is.finite(ref_maf) & gwas_maf >= maf_min & ref_maf >= maf_min
   gwas <- gwas[keep, , drop = FALSE]
   genotype <- genotype[keep, , drop = FALSE]
@@ -329,7 +329,7 @@ harmonize_gwas <- function(gwas, genotype, columns = ldiag_defaults()$gwas$colum
 
 #' GWAS harmonization and LD pruning
 #'
-#' @param config Parsed LDIAG configuration.
+#' @param config Parsed EPIC2 configuration.
 #' @param traits Optional GWAS-name subset retained for backward compatibility.
 #' @param gwas_name Optional name or names under `gwas.traits` to process.
 #' @return Named list of output paths.

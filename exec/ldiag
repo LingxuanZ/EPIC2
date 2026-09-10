@@ -1,4 +1,0 @@
-#!/usr/bin/env Rscript
-
-suppressPackageStartupMessages(library(LDIAG))
-ldiag_cli(commandArgs(trailingOnly = TRUE))

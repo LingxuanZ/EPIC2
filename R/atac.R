@@ -117,7 +117,7 @@ atac_count_cutoff <- function(metadata, count_quantile_min) {
 #' @return The filtered object.
 #' @export
 filter_atac_cells <- function(atac, thresholds = list(), group_column = "tissue_cell_type") {
-  defaults <- ldiag_defaults()$atac$qc
+  defaults <- EPIC2_defaults()$atac$qc
   thresholds <- deep_merge(defaults, thresholds)
   metadata <- get_atac_metadata(atac)
   required <- c("TSS.enrichment", "FRIP", "nCount_ATAC", "BlacklistRatio", "nucleosome_signal", group_column)
@@ -153,7 +153,7 @@ filter_atac_cells <- function(atac, thresholds = list(), group_column = "tissue_
 filter_atac_peaks <- function(atac, thresholds = list(), assay = "ATAC", blacklist = NULL,
                               genome = "hg19") {
   require_namespaces(c("Signac", "GenomicRanges", "Matrix"), "peak QC")
-  thresholds <- deep_merge(ldiag_defaults()$atac$qc, thresholds)
+  thresholds <- deep_merge(EPIC2_defaults()$atac$qc, thresholds)
   counts <- get_atac_counts(atac, assay)
   peaks <- Signac::StringToGRanges(rownames(counts), sep = c("-", "-"))
   peaks <- normalize_granges_seqnames(peaks)
@@ -186,7 +186,7 @@ recompute_atac_reductions <- function(atac, assay = "ATAC") {
 
 #' ATAC preparation and QC
 #'
-#' @param config Parsed LDIAG configuration.
+#' @param config Parsed EPIC2 configuration.
 #' @return Path to the filtered ATAC object.
 #' @export
 run_atac_stage <- function(config) {

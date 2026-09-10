@@ -1,4 +1,4 @@
-Package: LDIAG
+Package: EPIC2
 Type: Package
 Title: LD-Aware Integration of Single-Cell Chromatin Accessibility and GWAS
 Version: 0.1.0

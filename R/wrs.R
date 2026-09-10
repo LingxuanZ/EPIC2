@@ -190,7 +190,7 @@ wrs_to_group_list <- function(result, z_column = "z_one_sided_enriched_trunc") {
 
 #' Run section 4: SNP- and peak-level Wilcoxon analyses
 #'
-#' @param config Parsed LDIAG configuration.
+#' @param config Parsed EPIC2 configuration.
 #' @param traits Optional trait subset.
 #' @return Named list of generated files.
 #' @export

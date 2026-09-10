@@ -1,0 +1,5 @@
+#!/usr/bin/env Rscript
+
+suppressPackageStartupMessages(library(EPIC2))
+
+EPIC2::EPIC2_cli(commandArgs(trailingOnly = TRUE))

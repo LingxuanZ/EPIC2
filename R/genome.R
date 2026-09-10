@@ -243,7 +243,7 @@ liftover_qc_row <- function(source_genome, target_genome, n_input, n_mapped_once
 import_liftover_chain <- function(path) {
   require_namespaces("rtracklayer", "hg19/hg38 liftOver")
   if (!grepl("\\.gz$", path, ignore.case = TRUE)) return(rtracklayer::import.chain(path))
-  unpacked <- tempfile(pattern = "ldiag-chain-", fileext = ".chain")
+  unpacked <- tempfile(pattern = "EPIC2-chain-", fileext = ".chain")
   input <- gzfile(path, open = "rb")
   output <- file(unpacked, open = "wb")
   on.exit({
@@ -374,10 +374,10 @@ harmonize_gwas_coordinates <- function(gwas, columns, source_genome, target_geno
     input_index <- if (n_duplicate) which(!duplicate) else seq_len(nrow(gwas))
     if (!length(input_index)) stop(label, " has no unique coordinates after genome validation.", call. = FALSE)
     result <- gwas[input_index, , drop = FALSE]
-    result$ldiag_input_chr <- as.character(gwas[[columns$chr]][input_index])
-    result$ldiag_input_pos <- position[input_index]
-    result$ldiag_input_genome <- source_genome
-    result$ldiag_target_genome <- target_genome
+    result$EPIC2_input_chr <- as.character(gwas[[columns$chr]][input_index])
+    result$EPIC2_input_pos <- position[input_index]
+    result$EPIC2_input_genome <- source_genome
+    result$EPIC2_target_genome <- target_genome
     result[[columns$chr]] <- sub("^chr", "", chromosome[input_index], ignore.case = TRUE)
     result[[columns$pos]] <- position[input_index]
     qc <- liftover_qc_row(
@@ -402,10 +402,10 @@ harmonize_gwas_coordinates <- function(gwas, columns, source_genome, target_geno
     unmapped_action, multimapping_action, duplicate_action, label
   )
   result <- gwas[lifted$input_index, , drop = FALSE]
-  result$ldiag_input_chr <- as.character(gwas[[columns$chr]][lifted$input_index])
-  result$ldiag_input_pos <- suppressWarnings(as.integer(gwas[[columns$pos]][lifted$input_index]))
-  result$ldiag_input_genome <- source_genome
-  result$ldiag_target_genome <- target_genome
+  result$EPIC2_input_chr <- as.character(gwas[[columns$chr]][lifted$input_index])
+  result$EPIC2_input_pos <- suppressWarnings(as.integer(gwas[[columns$pos]][lifted$input_index]))
+  result$EPIC2_input_genome <- source_genome
+  result$EPIC2_target_genome <- target_genome
   result[[columns$chr]] <- sub("^chr", "", canonical_chr(
     as.character(GenomicRanges::seqnames(lifted$ranges))
   ), ignore.case = TRUE)
