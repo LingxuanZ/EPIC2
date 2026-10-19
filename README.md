@@ -45,12 +45,15 @@ dependencies and `presto`.
 
 ### Install from a local checkout
 
-From the root of a cloned EPIC2 repository, run:
+First clone the repository (or download and extract the ZIP archive). Then, from the EPIC2 package root—the directory containing `DESCRIPTION`—run:
 
 ```bash
+git clone https://github.com/LingxuanZ/EPIC2.git
+cd EPIC2
 Rscript scripts/install_dependencies.R
 R CMD INSTALL .
 ```
+
 The workflow requires R 4.3 or newer. The GitHub installation command installs EPIC2 and its required package dependencies. To install the additional dependencies needed for the full workflow, clone the repository and run `Rscript scripts/install_dependencies.R`. This script installs the Bioconductor dependencies and `presto` from its upstream GitHub repository. `rtracklayer` is used for hg19/hg38 liftOver. A Conda environment specification is also included.
 
 ## Inputs
