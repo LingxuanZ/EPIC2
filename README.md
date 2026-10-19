@@ -23,12 +23,35 @@ The numerical core and the complete workflow are tested with generated ATAC, GWA
 
 ## Installation
 
+### Install from GitHub
+
+```r
+if (!requireNamespace("devtools", quietly = TRUE)) {
+  install.packages("devtools")
+}
+
+devtools::install_github(
+  "LingxuanZ/EPIC2",
+  ref = "main",
+  dependencies = NA,
+  upgrade = "never",
+  build_vignettes = FALSE
+)
+```
+
+For the full workflow dependencies, clone the repository and run
+`Rscript scripts/install_dependencies.R`. This installs the Bioconductor
+dependencies and `presto`.
+
+### Install from a local checkout
+
+From the root of a cloned EPIC2 repository, run:
+
 ```bash
 Rscript scripts/install_dependencies.R
 R CMD INSTALL .
 ```
-
-The workflow requires R 4.3 or newer. Bioconductor dependencies are installed by the supplied script; `presto` is installed from its upstream GitHub repository. `rtracklayer` performs hg19/hg38 liftOver. A Conda environment specification is also included.
+The workflow requires R 4.3 or newer. The GitHub installation command installs EPIC2 and its required package dependencies. To install the additional dependencies needed for the full workflow, clone the repository and run `Rscript scripts/install_dependencies.R`. This script installs the Bioconductor dependencies and `presto` from its upstream GitHub repository. `rtracklayer` is used for hg19/hg38 liftOver. A Conda environment specification is also included.
 
 ## Inputs
 
