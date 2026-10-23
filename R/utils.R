@@ -119,7 +119,7 @@ chr_to_order <- function(chr) {
 }
 
 coordinate_id <- function(chr, pos, width = 1L) {
-  paste0(normalize_chr(chr), "-", as.integer(pos), "-", as.integer(pos) + width)
+  paste0(normalize_chr(chr), "-", as.integer(pos), "-", as.integer(pos) + width - 1L)
 }
 
 find_column <- function(x, candidates, label) {
