@@ -1,51 +1,46 @@
 # EPIC2
 
-`EPIC2` is the LD-aware workflow described in`Fetal_Tissue.Rmd` before section 6. It integrates aligned GWAS summary statistics, a reference genotype panel, and a Seurat/Signac single-nucleus ATAC-seq object at SNP and peak resolution.
+**LD-aware integration of GWAS and single-cell chromatin accessibility**
 
-The package implements these manuscript stages:
+EPIC2 is an R package that integrates GWAS summary statistics, a reference genotype panel, and single-cell or single-nucleus ATAC-seq data. It constructs SNP- and peak-level accessibility features, models local linkage disequilibrium (LD), and evaluates trait associations with annotated cell groups using four component models and the aggregated Cauchy association test (ACAT).
 
-1. ATAC cell and peak quality control.
-2. GWAS/reference matching, MAF filtering, LD pruning, and ambiguous-SNP removal.
-3. SNP-by-cell and GWAS-overlapping peak-by-cell accessibility matrices.
-4. Local SNP and peak LD covariance, Wilcoxon rank sum test scores, and balanced repeats.
-5. Four LD-adjusted association models and an aggregated Cauchy combination.
-6. Deterministic publication and QC figures in PNG/PDF with a figure manifest.
+EPIC2 provides a configurable workflow for ATAC quality control, GWAS/reference matching, accessibility matrix construction, LD calculation, Wilcoxon rank-sum (WRS) scoring, association modeling, and visualization. Individual stages can also be run separately when their required inputs have already been prepared.
 
-The plot stage can import a merged S-LDSC summary and produce the manuscript comparison panels.
+[Installation](#installation) · [Quick start](#quick-start) · [Required inputs](#required-inputs) · [Tutorial](#tutorial) · [Outputs](#outputs) · [Configuration reference](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md)
 
-## Important status
+## Workflow
 
-The numerical core and the complete workflow are tested with generated ATAC, GWAS, genotype, fragment, and S-LDSC inputs, including a real hg19-to-hg38 UCSC chain. 
+```text
+Input: ATAC-seq object + GWAS summary statistics + reference genotypes
+                              |
+                     ATAC and GWAS QC
+                              |
+              SNP- and peak-level accessibility
+                              |
+                  Local LD and WRS scores
+                              |
+              Four LD-adjusted association models
+                              |
+                  ACAT results and figures
+```
 
-`EPIC2` intentionally preserves its fitting convention: the response and complete raw design are transformed with the inverse-square-root covariance, the transformed intercept column is discarded, and the model is fit with an ordinary untransformed intercept plus the transformed focal and baseline predictors.
-
-`EPIC2` calculates the reference MAF as `min(mean(dosage) / 2, 1 - mean(dosage) / 2)`. 
+| Stage           | Purpose                                                      |
+| --------------- | ------------------------------------------------------------ |
+| `atac`          | Filter ATAC cells and peaks; optionally compute QC metrics and embeddings. |
+| `gwas`          | Match variants to reference genotypes, apply configured GWAS/reference QC, and optionally perform LD pruning. |
+| `accessibility` | Construct SNP-by-cell and GWAS-overlapping peak-by-cell matrices. |
+| `ld`            | Construct local SNP- and peak-level LD models and inverse-square-root covariance representations. |
+| `wrs`           | Calculate group-specific WRS scores, with optional balanced subsampling and stability summaries. |
+| `model`         | Fit SNP accessibility, SNP WRS, peak accessibility, and peak WRS models; combine their P-values with ACAT. |
+| `plot`          | Generate figures and a figure manifest from available analysis outputs. |
 
 ## Installation
 
-### Install from GitHub
+EPIC2 requires **R 4.3 or later**. The full workflow also uses CRAN and Bioconductor packages, including Seurat, Signac, GenomicRanges, SNPRelate, BiocParallel, and `presto`.
 
-```r
-if (!requireNamespace("devtools", quietly = TRUE)) {
-  install.packages("devtools")
-}
+### Install the full workflow
 
-devtools::install_github(
-  "LingxuanZ/EPIC2",
-  ref = "main",
-  dependencies = NA,
-  upgrade = "never",
-  build_vignettes = FALSE
-)
-```
-
-For the full workflow dependencies, clone the repository and run
-`Rscript scripts/install_dependencies.R`. This installs the Bioconductor
-dependencies and `presto`.
-
-### Install from a local checkout
-
-First clone the repository (or download and extract the ZIP archive). Then, from the EPIC2 package root—the directory containing `DESCRIPTION`—run:
+Clone the repository, then run the following commands from its root directory, which contains `DESCRIPTION`:
 
 ```bash
 git clone https://github.com/LingxuanZ/EPIC2.git
@@ -54,143 +49,217 @@ Rscript scripts/install_dependencies.R
 R CMD INSTALL .
 ```
 
-The workflow requires R 4.3 or newer. The GitHub installation command installs EPIC2 and its required package dependencies. To install the additional dependencies needed for the full workflow, clone the repository and run `Rscript scripts/install_dependencies.R`. This script installs the Bioconductor dependencies and `presto` from its upstream GitHub repository. `rtracklayer` is used for hg19/hg38 liftOver. A Conda environment specification is also included.
+Alternatively, download and extract the repository ZIP, open a terminal in the extracted package directory, and run the last two commands.
 
-## Inputs
+The dependency script installs missing CRAN/Bioconductor packages and installs `presto` from its upstream GitHub repository. It also installs `knitr` and `rmarkdown` for tutorial documents. Additional system libraries or compilers may be required by these dependencies on your operating system.
 
-The ATAC input must be a Seurat/Signac object with:
-
-- an `ATAC` count assay whose rows are `chr-start-end` peaks;
-- attached fragment objects when SNP-level coverage or QC metrics are computed;
-- `tissue` and `tissue_cell_type` metadata;
-- `TSS.enrichment`, `FRIP`, `nCount_ATAC`, `BlacklistRatio`, and `nucleosome_signal` metadata if `compute_qc_metrics: false`.
-
-Each GWAS table must already be allele-aligned to the reference panel and must contain rsID, chromosome, position, effect allele, other allele, MAF, effect estimate, standard error, and P-value columns. Genotypes are normalized to a variant-by-sample numeric dosage matrix. Supported in-memory encodings include:
-
-- numeric hard calls or continuous dosage;
-- allele-index GT calls such as `0/0`, `0/1`, and phased `0|1`;
-- biallelic labels such as `AA`, `AB`, `BB`, `A/G`, and `A|G`;
-- GP, GL, or PL values supplied as comma-delimited cells, a three-dimensional variant-by-sample-by-state array, or a list of state matrices;
-- variants in rows or columns, with orientation inferred from GWAS rsIDs.
-
-GWAS tables and genotype matrices can be supplied as `.rds`, `.rda/.RData`, `.csv[.gz]`, `.tsv[.gz]`, or `.txt[.gz]`. For a text genotype matrix, set `genotype_variant_id_column` to the column containing rsIDs or other stable IDs; the remaining columns are samples. Coordinates are taken from the matching GWAS rows, while dosage values are never changed by liftOver.
-
-Set `genotype_format` explicitly whenever `auto` cannot distinguish the encoding. Carrier-only presence/absence data cannot yield exact MAF and are rejected. PLINK, VCF, and GDS containers must first be read into one of the supported R objects; the package does not guess file-level schemas.
-
-Numeric `0/1` data with diploid ploidy are also intentionally ambiguous under `auto`: use `genotype_format: dosage` only when the values are allele counts, or use `genotype_ploidy: 1` for haploid calls.
-
-## Genome builds
-
-Both hg19/GRCh37 and hg38/GRCh38 are supported. Set `atac.genome` to the build of the ATAC peak and fragment coordinates, set `gwas.genome` or a per-GWAS `genome` to each summary-statistics build, and choose the common output build with `genome.target`.
-
-When builds differ, provide the required directional UCSC chain files under `genome.chains`. ATAC-to-target maps retained peaks for downstream LD and models. For a GWAS that began in the ATAC build, its preserved input coordinates are reused for fragment queries; otherwise target-to-ATAC is also required. The original ATAC object and tabix fragment files remain in their input build; all saved GWAS, SNP IDs, peak IDs, LD objects, and model inputs use `genome.target`.
-
-Only unique one-to-one mappings are retained by default. Every stage records unmapped, multimapped, duplicate-target, chain-path, and chain-MD5 information. The conversion changes coordinates only; users must still align GWAS alleles and genotype dosage coding before input.
-
-## Configuration
-
-Start from the installed example:
+### Install the package directly from GitHub
 
 ```r
-file.copy(
-  system.file("extdata/config.example.yml", package = "EPIC2"),
-  "config.yml"
+if (!requireNamespace("remotes", quietly = TRUE)) {
+  install.packages("remotes")
+}
+
+remotes::install_github(
+  "LingxuanZ/EPIC2",
+  dependencies = NA,
+  upgrade = "never",
+  build_vignettes = FALSE
 )
 ```
 
-All relative paths are resolved relative to `config.yml`. Validate it before a
-large run:
+This installs EPIC2 and its required package dependencies. Additional packages used by particular analysis stages are listed under `Suggests` in [DESCRIPTION](https://github.com/LingxuanZ/EPIC2/blob/main/DESCRIPTION); use the repository dependency script to prepare the full workflow.
+
+## Quick start
+
+This example runs one configured GWAS dataset using your own inputs. The example YAML is a configuration template; it does not download or prepare analysis data.
+
+### 1. Create a configuration file
+
+```r
+library(EPIC2)
+
+example_config <- system.file(
+  "extdata", "config.example.yml", package = "EPIC2"
+)
+file.copy(example_config, "config.yml")
+```
+
+Edit `config.yml` before continuing:
+
+- Set the ATAC object, GWAS summary statistics, and reference genotype paths.
+- Choose an output directory for this analysis.
+- Declare the genome builds and confirm that the GWAS alleles match the reference panel.
+- Set the GWAS column mapping, genotype encoding, grouping columns, and QC options for your data.
+- Keep only the entries you intend to configure under `gwas.traits`; the installed template includes more than one example name.
+
+Relative input and output paths are resolved relative to `config.yml`.
+
+### 2. Validate and run one GWAS dataset
+
+```r
+config <- read_EPIC2_config("config.yml", check_files = TRUE)
+run_EPIC2(config, gwas_name = "HDL")
+```
+
+Replace `HDL` with a name defined under `gwas.traits`. The call runs all seven stages for the selected dataset. Configuration validation checks settings and configured file paths; it does not establish allele alignment or prove that a declared genome assembly is correct.
+
+### 3. Inspect the main results
+
+With `project.output_dir: results` and the default `tissue_cell_type` grouping:
+
+```r
+results_dir <- config$output_dir
+
+component_results <- read.delim(file.path(
+  results_dir, "05_models", "tissue_cell_type.component_results.tsv"
+))
+combined_results <- read.delim(file.path(
+  results_dir, "05_models", "tissue_cell_type.cauchy_results.tsv"
+))
+
+head(combined_results[order(combined_results$p_cauchy), ])
+```
+
+The combined table contains the component P-values, `p_cauchy`, the number of tests combined, and within-trait BH and Bonferroni adjustments. By default, ACAT requires all four component P-values to be valid. Adjustments are within each trait across tested groups; they are not a single correction across all traits.
+
+### Command-line usage
+
+From the source repository root, after installing EPIC2:
 
 ```bash
 Rscript exec/EPIC2 validate config.yml --check-files
+Rscript exec/EPIC2 run config.yml --gwas=HDL
 ```
 
-Cell QC, peak QC, reference missingness, MAF, and every SNPRelate pruning threshold used are configurable. Any GWAS-level setting can be overridden inside `gwas.traits.<name>`, and the effective values are saved with the per-GWAS QC counts. Figure formats, resolution, UMAP sampling, heatmap size, top-feature count, and S-LDSC input are also configurable. See `CONFIGURATION.md` for the complete key list.
-
-`ld_prune_tool` is the backend selector, not a token. This release integrates `snprelate`; its `method`, missing-rate, MAF, window, start-position, and thread arguments are explicit YAML settings. For LD pruning done beforehand with PLINK or another program, provide matching pre-pruned inputs and set
-`ld_prune: false`.
-
-Harmonized GWAS files retain `EPIC2_reference_maf` and `EPIC2_reference_missing_rate`, input coordinates/build, and target build for variant-level QC auditing. Genome conversion summaries are written beside the GWAS and accessibility outputs.
-
-## Running
-
-Run all stages through publication figures:
+To run a single stage after its prerequisite outputs exist:
 
 ```bash
-Rscript exec/EPIC2 run config.yml
+Rscript exec/EPIC2 stage config.yml ld --gwas=HDL
+Rscript exec/EPIC2 run config.yml --stages=wrs,model,plot --gwas=HDL
 ```
 
-Run one stage or selected GWAS datasets:
+The relative `exec/EPIC2` path refers to a file in the source checkout. For R sessions outside the checkout, use the exported R functions shown above.
 
-```bash
-Rscript exec/EPIC2 stage config.yml gwas --gwas=HDL
-Rscript exec/EPIC2 stage config.yml ld --gwas=HDL,LDL
-Rscript exec/EPIC2 run config.yml --stages=wrs,model --gwas=HDL
-Rscript exec/EPIC2 stage config.yml plot --gwas=HDL,LDL
+## Required inputs
+
+| Input                   | Requirements                                                 |
+| ----------------------- | ------------------------------------------------------------ |
+| ATAC object             | A Seurat/Signac object with a chromatin count assay, genomic peak ranges, and annotation columns used for grouping. The default assay is `ATAC`; default metadata names are `tissue` and `tissue_cell_type`. |
+| Fragment files          | Fragment objects attached to the chromatin assay, or configured fragment files that can be attached. SNP coverage requires accessible fragment files and their tabix indexes, with barcode mappings matching the ATAC cells. |
+| GWAS summary statistics | Variant IDs, chromosome, position, effect and other alleles, MAF, effect estimate, standard error, and P-value columns. Column names are configurable. Alleles must already be aligned to the reference panel. |
+| Reference genotypes     | A user-supplied variant-by-sample genotype/dosage matrix, or another supported encoding, with unique variant identifiers that match the GWAS data. A specific reference panel or hg19-only panel is not required. |
+
+GWAS and genotype files can be supplied as `.rds`, `.rda`/`.RData`, `.csv[.gz]`, `.tsv[.gz]`, or `.txt[.gz]`. PLINK, VCF, BGEN, and GDS containers must first be read or exported to a supported matrix/table representation.
+
+Genotype normalization supports hard calls, dosage, GT strings, biallelic allele labels, and genotype probability representations. Set `genotype_format` and `genotype_orientation` explicitly when automatic detection is ambiguous. Carrier-only presence/absence data do not contain enough information for exact MAF calculation and are rejected. See the [configuration reference](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md) for encoding and ploidy requirements.
+
+Variants are matched by identifier and reordered to the GWAS rows. Coordinates used for matching ATAC features and defining LD windows come from the GWAS table; genotype dosage values themselves are not lifted between assemblies. Matching identifiers alone does not verify allele coding.
+
+### ATAC QC and preprocessed inputs
+
+When `atac.compute_qc_metrics: false`, the input object must contain the QC metadata required by the configured filters, including `TSS.enrichment`, `FRIP`, `nCount_ATAC`, `BlacklistRatio`, and `nucleosome_signal` under the default settings.
+
+**Disabling QC metric calculation does not disable ATAC filtering.** Running the `atac` stage applies the configured cell and peak filters, even when the object has already been filtered elsewhere.
+
+To start from post-QC data without filtering again, prepare the expected `01_atac/atac.qc.rds` stage input in the analysis output directory before omitting the `atac` stage. Keep the full retained ATAC peak background for the selected cells: library-size normalization uses the autosomal ATAC counts, not only the peaks overlapping a particular GWAS.
+
+### Genome builds
+
+The current implementation supports **hg19/GRCh37** and **hg38/GRCh38**. Explicitly set:
+
+- `atac.genome` for the ATAC peak and fragment coordinates;
+- `gwas.genome`, or a per-dataset override, for the GWAS coordinates;
+- `genome.target` for saved downstream coordinates.
+
+For inputs already harmonized to hg38, the relevant configuration excerpt is:
+
+```yaml
+genome:
+  target: hg38
+atac:
+  genome: hg38
+gwas:
+  genome: hg38
 ```
 
-The equivalent R call for one configured GWAS is:
+Use the corresponding hg19 values for hg19 inputs, and ensure that per-dataset overrides agree. No liftOver is performed when the relevant source and target builds match.
 
-```r
-config <- read_EPIC2_config("config.yml")
-run_gwas_stage(config, gwas_name = "HDL")
-```
+The current release also supports conversion between these builds when the required directional UCSC chain files are supplied under `genome.chains`. The original ATAC object and fragment files remain in their input build; downstream GWAS and retained peak coordinates use the target build. By default, unmapped, multiply mapped, and duplicate target ranges are excluded and recorded in QC outputs. See [Genome harmonization](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md#genome-harmonization) for details.
 
-Run the generated hg19-ATAC/GWAS to hg38 seven-stage integration test after installing all suggested packages and downloading the directional UCSC chain:
+Genome declarations are checked against available metadata and coordinate bounds. These checks cannot reliably identify an assembly from coordinates alone or replace allele harmonization.
 
-```bash
-EPIC2_RUN_MIXED_BUILD_TEST=true \
-EPIC2_HG19_TO_HG38_CHAIN=/path/to/hg19ToHg38.over.chain.gz \
-Rscript tests/test-mixed-build-integration.R
-```
+## Tutorial
 
-The test creates its own tabix fragment file, Signac object, GWAS table, user-style TSV genotype matrix, balanced WRS runs, and S-LDSC summary. It then verifies target-build GWAS/peak outputs, the final model table, and every publication-figure family.
+A small-data vignette is being prepared as an R Markdown document with an HTML report. It walks through GWAS/reference matching, SNP and peak accessibility, LD, WRS, association models, and result inspection using post-QC ATAC inputs. The default example uses one trait, HDL.
 
-Every name under `gwas.traits` is processed independently and writes its own GWAS, genotype, and QC files. Running names separately updates rather than erases rows already present in `02_gwas/gwas_qc_summary.tsv`.
+**Current status: draft.** The draft defaults to inspecting available outputs without executing the analysis (`run_analysis: false`). Its prepared inputs still depend on the original HPC fragment files; a standalone public example dataset and hosted HTML tutorial are not yet provided here.
 
-For Slurm, submit `ld`, `wrs`, and `model` as per-trait jobs after the shared ATAC and accessibility stages. Every stage writes only beneath the configured output directory.
+The tutorial begins after ATAC QC and therefore omits the `atac` stage. The full workflow in the quick start includes that stage. Tutorial results from a randomly selected subset are intended for demonstrating the software and do not replace a full-data analysis.
 
-## Output contract
+## Outputs
+
+All pipeline outputs are written beneath `project.output_dir`.
 
 ```text
 results/
-├── 01_atac/             # filtered object and QC summaries
-├── 02_gwas/             # per-GWAS harmonized data, genotype, and QC files
-├── 02_accessibility/    # section 2 SNP/peak matrices and overlap tables
-├── 03_ld/               # section 3 local covariance and inverse square roots
-├── 04_wrs/              # section 4 full/balanced Wilcoxon and stability
-├── 05_models/           # section 5 component models and Cauchy tables
-└── figures/
-    ├── 00_atac_qc/      # ATAC retention, metrics, and annotation diagnostics
-    ├── 01_gwas_qc/      # per-GWAS filtering and liftOver diagnostics
-    ├── 02_accessibility/ # SNP/peak count and coverage diagnostics
-    ├── 03_ld/            # block sizes and bounded LD heatmaps
-    ├── 04_wrs/           # WRS distributions, dotplots, and stability
-    ├── 05_models/        # component and Cauchy model panels
-    ├── 06_sldsc/         # optional S-LDSC and method-comparison panels
-    ├── tables/           # data used to draw publication figures
-    └── figure_manifest.tsv
+├── 01_atac/             # ATAC object, QC summaries, group counts
+├── 02_gwas/             # Per-dataset GWAS, genotypes, QC records
+├── 02_accessibility/    # SNP/peak matrices and overlap tables
+├── 03_ld/               # Local LD models and covariance representations
+├── 04_wrs/              # WRS scores and optional stability summaries
+├── 05_models/           # Component and ACAT result tables
+├── figures/             # Figures, plotting tables, figure_manifest.tsv
+├── run_manifest.txt
+└── config.used.yml      # Written when a YAML configuration file is available
 ```
 
-The primary submission outputs are `05_models/tissue_cell_type.component_results.tsv` and
-`05_models/tissue_cell_type.cauchy_results.tsv`. The six manuscript-facing figures are written at the root of `figures/` with the filenames referenced by the LaTeX manuscript. Each is saved as a 300-dpi PNG and a vector PDF by default. The full manuscript wrapper is in `../publication/`.
+| Main output                                  | Contents                                                     |
+| -------------------------------------------- | ------------------------------------------------------------ |
+| `05_models/<grouping>.component_results.tsv` | Group-specific estimates and P-values for the four component models. |
+| `05_models/<grouping>.cauchy_results.tsv`    | Component P-values, ACAT P-values, and within-trait adjusted P-values. |
+| `figures/figure_manifest.tsv`                | Figure paths and `generated`, `skipped`, or `error` status.  |
+| `run_manifest.txt`                           | Software/environment information, selected stages and traits, genome declarations, seed, and worker setting for the invocation. |
 
-## Performance notes
+Default grouping names include `tissue_cell_type` and `tissue`; configure `model.groupings` for your annotations. The plotting stage can also import an externally generated S-LDSC summary when `plots.sldsc_summary` is provided.
 
-Genotype imputation and standardization are vectorized, and local LD correlations are calculated in configurable BLAS blocks (`ld.correlation_block_size`) while retaining the same distance mask and
-covariance definition. Group accessibility stays sparse and uses the column-wise aggregation that benchmarks faster for the study's roughly two dozen groups. Plotting uses deterministic UMAP downsampling and bounded LD heatmaps so diagnostics do not materialize unbounded dense objects.
+Review model statistics and figure statuses alongside the main P-value tables. Small or uninformative feature sets can yield unavailable component tests; a successfully completed command does not guarantee that every model or optional figure has a valid result.
 
-Run `Rscript scripts/benchmark_hotspots.R` after installation to verify numerical equivalence and measure machine-specific speedups for genotype scaling and local LD construction.
+## Configuration and performance
 
-## Reproducibility checklist
+See the [example configuration](https://github.com/LingxuanZ/EPIC2/blob/main/inst/extdata/config.example.yml) and [complete configuration reference](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md) for QC thresholds, column mappings, genotype formats, LD settings, balanced WRS, and plotting options.
 
-- Keep the YAML used for the manuscript under version control without private paths.
-- Record the Git commit, package version, R `sessionInfo()`, and Slurm resources.
-- Run `R CMD check EPIC2_0.1.0.tar.gz` on a clean environment.
-- Add a small synthetic example that completes every stage in minutes.
-- Tag the verified manuscript release and archive that tag and test data on Zenodo.
+- If GWAS variants have already been LD-pruned, provide matching inputs and set `gwas.ld_prune: false` to avoid repeating pruning.
+- `parameters.workers` controls workers for SNP accessibility feature chunks. It does not automatically run different traits in parallel.
+- Local LD calculations use configurable blocks (`ld.correlation_block_size`); LD loops are serial, with BLAS threading determined by the R environment. SNPRelate pruning has a separate `gwas.ld_num_threads` setting.
+- Balanced WRS repeats are optional and can substantially increase work. Enable them when the analysis requires these diagnostics.
+- Stage selection explicitly reruns the requested stages. It is not an automatic resume or cache-validation mechanism.
+
+For concurrent per-trait jobs, use a separate output directory for each independent run. Model tables and figure manifests use shared filenames within an output directory and must not be written concurrently by separate trait jobs. A single run with multiple selected traits produces combined model tables for those traits.
+
+Runtime and memory depend on the number of cells and features, reference sample size, LD connectivity, WRS repeats, and available resources. The repository includes [benchmark_hotspots.R](https://github.com/LingxuanZ/EPIC2/blob/main/scripts/benchmark_hotspots.R) for comparing numerical results and timings of selected numerical routines on your system.
+
+## Reproducibility and testing
+
+Record the installed EPIC2 version, repository commit or release, input provenance, configuration, and R session information for each analysis. Keep separate output directories when comparing configurations, and retain manifests from runs that need to be compared.
+
+```r
+packageVersion("EPIC2")
+sessionInfo()
+```
+
+The repository contains [core tests](https://github.com/LingxuanZ/EPIC2/blob/main/tests/test-core.R), [LD comparison tests](https://github.com/LingxuanZ/EPIC2/blob/main/tests/test-ld-rmd.R), and a [generated mixed-build integration test](https://github.com/LingxuanZ/EPIC2/blob/main/tests/test-mixed-build-integration.R). The mixed-build test requires its documented dependencies and an external directional chain file. Test execution and required environment settings are described in the test scripts; configuration validation alone is not an end-to-end analysis test.
+
+## Support
+
+Please use [GitHub Issues](https://github.com/LingxuanZ/EPIC2/issues) for questions, bug reports, and feature requests. For a reproducible report, include the EPIC2 version and commit, relevant configuration settings, error messages, and a minimal example or input dimensions, while excluding private data and credentials.
+
+## Citation
+
+If you use EPIC2, cite the software repository and report the version or commit used:
+
+> Zhu, L. and Jiang, Y. *EPIC2: LD-aware integration of single-cell chromatin accessibility and GWAS.* [Software repository](https://github.com/LingxuanZ/EPIC2).
 
 ## License
 
-MIT. Confirm dependency licenses and institutional approval before the public
-release.
+EPIC2 is distributed under the [MIT License](https://github.com/LingxuanZ/EPIC2/blob/main/LICENSE.md).
