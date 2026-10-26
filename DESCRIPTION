@@ -1,7 +1,7 @@
 Package: EPIC2
 Type: Package
 Title: LD-Aware Integration of Single-Cell Chromatin Accessibility and GWAS
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: c(
     person("Lingxuan", "Zhu", role = c("aut", "cre"),
            email = "zhulx@tamu.edu",
