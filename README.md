@@ -89,7 +89,7 @@ Edit `config.yml` before continuing:
 
 - Set the ATAC object, GWAS summary statistics, and reference genotype paths.
 - Choose an output directory for this analysis.
-- Declare the genome builds and confirm that the GWAS alleles match the reference panel.
+- Set the required common `genome.build` and confirm that the GWAS alleles match the reference panel.
 - Set the GWAS column mapping, genotype encoding, grouping columns, and QC options for your data.
 - Keep only the entries you intend to configure under `gwas.traits`; the installed template includes more than one example name.
 
@@ -166,28 +166,24 @@ To start from post-QC data without filtering again, prepare the expected `01_ata
 
 ### Genome builds
 
-The current implementation supports **hg19/GRCh37** and **hg38/GRCh38**. Explicitly set:
-
-- `atac.genome` for the ATAC peak and fragment coordinates;
-- `gwas.genome`, or a per-dataset override, for the GWAS coordinates;
-- `genome.target` for saved downstream coordinates.
-
-For inputs already harmonized to hg38, the relevant configuration excerpt is:
+The analysis requires one explicitly declared common assembly. Set the required
+`genome.build` to `hg19`/`GRCh37` or `hg38`/`GRCh38`; there is no default genome
+build. GWAS, ATAC peaks, and fragment coordinates must already be harmonized.
 
 ```yaml
 genome:
-  target: hg38
-atac:
-  genome: hg38
-gwas:
-  genome: hg38
+  build: hg38
 ```
 
-Use the corresponding hg19 values for hg19 inputs, and ensure that per-dataset overrides agree. No liftOver is performed when the relevant source and target builds match.
+Legacy `genome.target`, `atac.genome`, `gwas.genome`, and per-dataset `genome`
+fields may be omitted. Any explicitly supplied value must match `genome.build`.
+Nonempty pipeline `genome.chains` settings are rejected. The analysis pipeline
+validates the current coordinates and does not call liftOver. The standalone
+`lift_genomic_ranges()` utility remains available for separate preprocessing.
 
-The current release also supports conversion between these builds when the required directional UCSC chain files are supplied under `genome.chains`. The original ATAC object and fragment files remain in their input build; downstream GWAS and retained peak coordinates use the target build. By default, unmapped, multiply mapped, and duplicate target ranges are excluded and recorded in QC outputs. See [Genome harmonization](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md#genome-harmonization) for details.
-
-Genome declarations are checked against available metadata and coordinate bounds. These checks cannot reliably identify an assembly from coordinates alone or replace allele harmonization.
+Available build metadata and coordinate bounds are checked, but cannot prove
+the true assembly or replace allele alignment. See the [common assembly
+configuration reference](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md#common-genome-assembly).
 
 ## Tutorial
 
@@ -248,7 +244,7 @@ packageVersion("EPIC2")
 sessionInfo()
 ```
 
-The repository contains [core tests](https://github.com/LingxuanZ/EPIC2/blob/main/tests/test-core.R), [LD comparison tests](https://github.com/LingxuanZ/EPIC2/blob/main/tests/test-ld-rmd.R), and a [generated mixed-build integration test](https://github.com/LingxuanZ/EPIC2/blob/main/tests/test-mixed-build-integration.R). The mixed-build test requires its documented dependencies and an external directional chain file. Test execution and required environment settings are described in the test scripts; configuration validation alone is not an end-to-end analysis test.
+The repository contains [core tests](https://github.com/LingxuanZ/EPIC2/blob/main/tests/test-core.R), [LD comparison tests](https://github.com/LingxuanZ/EPIC2/blob/main/tests/test-ld-rmd.R), common-build configuration and accessibility tests, and an optional [same-build integration test](https://github.com/LingxuanZ/EPIC2/blob/main/tests/test-common-build-integration.R). The integration fixture tests hg19 and hg38 separately and fails on accidental pipeline liftOver calls; the [mixed-build test](https://github.com/LingxuanZ/EPIC2/blob/main/tests/test-mixed-build-integration.R) verifies early rejection. Full integration requires the complete workflow dependencies and `EPIC2_RUN_COMMON_BUILD_TEST=true`. Configuration validation alone is not an end-to-end analysis test.
 
 ## Support
 
