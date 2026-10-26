@@ -16,18 +16,16 @@ EPIC2_defaults <- function() {
     project = list(name = "EPIC2 analysis", output_dir = "results"),
     parameters = list(seed = 1000L, workers = 1L),
     genome = list(
-      target = "hg19",
-      chains = list(
-        hg19_to_hg38 = NULL,
-        hg38_to_hg19 = NULL
-      ),
-      unmapped_action = "drop",
-      multimapping_action = "drop",
+      build = NULL,
+      target = NULL,
+      chains = NULL,
+      unmapped_action = NULL,
+      multimapping_action = NULL,
       duplicate_action = "drop"
     ),
     atac = list(
       assay = "ATAC",
-      genome = "hg19",
+      genome = NULL,
       tissue_column = "tissue",
       group_column = "tissue_cell_type",
       attach_fragments = FALSE,
@@ -61,7 +59,7 @@ EPIC2_defaults <- function() {
       genotype_ploidy = 2L,
       genotype_missing_values = -9,
       genotype_variant_id_column = NULL,
-      genome = "hg19",
+      genome = NULL,
       genome_column = NULL,
       reference_missing_rate_max = 0.01,
       remove_ambiguous = TRUE,
@@ -128,6 +126,86 @@ is_scalar_logical <- function(x) {
 
 is_scalar_choice <- function(x, choices) {
   is.character(x) && length(x) == 1L && !is.na(x) && x %in% choices
+}
+
+# Require the user's common build before defaults or compatibility aliases can
+# supply any genome setting. Coordinate bounds cannot establish the true build.
+require_explicit_genome_build <- function(config) {
+  if (!is.list(config) || is.data.frame(config)) {
+    stop("Configuration must be a mapping with an explicit genome.build.", call. = FALSE)
+  }
+  genome <- config[["genome"]]
+  if (is.null(genome) || !is.list(genome) || is.data.frame(genome)) {
+    stop("genome.build is required; genome must be a mapping declaring hg19/GRCh37 or hg38/GRCh38.",
+         call. = FALSE)
+  }
+  value <- genome[["build"]]
+  if (is.null(value)) {
+    stop("genome.build is required explicitly; there is no default genome build. ",
+         "Legacy genome fields do not replace genome.build.", call. = FALSE)
+  }
+  tryCatch(
+    normalize_genome_build(value),
+    error = function(e) stop("Invalid genome.build: ", conditionMessage(e), call. = FALSE)
+  )
+}
+
+# Return a copy with one canonical build and compatibility aliases for existing
+# stage implementations. This function is deliberately free of file I/O and
+# caller-environment mutation, and applying it twice has the same result.
+normalize_common_genome_config <- function(config) {
+  build <- require_explicit_genome_build(config)
+  normalize_alias <- function(value, path) {
+    if (is.null(value)) return(build)
+    alias <- tryCatch(
+      normalize_genome_build(value),
+      error = function(e) stop("Invalid ", path, ": ", conditionMessage(e), call. = FALSE)
+    )
+    if (!identical(alias, build)) {
+      stop(path, " declares ", alias, " but genome.build is ", build, ". ",
+           "EPIC2 performs no automatic genome conversion; harmonize inputs before running.",
+           call. = FALSE)
+    }
+    alias
+  }
+  config$genome$build <- build
+  config$genome$target <- normalize_alias(config$genome[["target"]], "genome.target")
+  for (section in c("atac", "gwas")) {
+    value <- config[[section]]
+    if (is.null(value)) value <- list()
+    if (!is.list(value) || is.data.frame(value)) {
+      stop(section, " must be a mapping.", call. = FALSE)
+    }
+    value$genome <- normalize_alias(value[["genome"]], paste0(section, ".genome"))
+    config[[section]] <- value
+  }
+  traits <- config$gwas[["traits"]]
+  if (!is.null(traits)) {
+    if (!is.list(traits) || is.data.frame(traits)) {
+      stop("gwas.traits must be a named mapping.", call. = FALSE)
+    }
+    for (index in seq_along(traits)) {
+      trait <- names(traits)[index]
+      label <- if (is.null(trait) || is.na(trait) || !nzchar(trait)) {
+        paste0("gwas.traits[[", index, "]]")
+      } else paste0("gwas.traits.", trait)
+      spec <- traits[[index]]
+      if (!is.list(spec) || is.data.frame(spec)) {
+        stop(label, " must be a mapping.", call. = FALSE)
+      }
+      spec$genome <- normalize_alias(spec[["genome"]], paste0(label, ".genome"))
+      traits[[index]] <- spec
+    }
+    config$gwas$traits <- traits
+  }
+  chains <- config$genome[["chains"]]
+  if (!is.null(chains) &&
+      (!is.list(chains) || any(!vapply(chains, is.null, logical(1))))) {
+    stop("EPIC2 performs no automatic genome conversion; remove genome.chains ",
+         "and harmonize inputs before running. Empty or null legacy chain mappings are allowed.",
+         call. = FALSE)
+  }
+  config
 }
 
 gwas_setting_errors <- function(settings, prefix = "gwas") {
@@ -222,11 +300,12 @@ read_EPIC2_config <- function(path, check_files = FALSE) {
   require_namespaces("yaml", "configuration parsing")
   path <- assert_file(path, "Configuration file")
   user_config <- yaml::read_yaml(path)
+  require_explicit_genome_build(user_config)
   config <- deep_merge(EPIC2_defaults(), user_config)
   config$.config_file <- path
   config$.config_dir <- dirname(path)
   config$output_dir <- resolve_config_path(config, config$project$output_dir)
-  validate_EPIC2_config(config, check_files = check_files)
+  config <- validate_EPIC2_config(config, check_files = check_files)
   config
 }
 
@@ -234,36 +313,26 @@ read_EPIC2_config <- function(path, check_files = FALSE) {
 #'
 #' @param config Configuration list returned by [read_EPIC2_config()].
 #' @param check_files Whether configured input files must already exist.
-#' @return The configuration, invisibly.
+#' @return A normalized configuration copy, invisibly, with one canonical
+#'   `genome.build` and matching compatibility aliases. Callers must retain the
+#'   returned value; the supplied configuration is not modified in place.
 #' @export
 validate_EPIC2_config <- function(config, check_files = FALSE) {
+  config <- normalize_common_genome_config(config)
   errors <- character()
   if (is.null(config$atac$input)) errors <- c(errors, "atac.input is required")
   if (length(config$gwas$traits) == 0L) errors <- c(errors, "gwas.traits must contain at least one trait")
   if (is.null(names(config$gwas$traits)) || any(!nzchar(names(config$gwas$traits)))) {
     errors <- c(errors, "every gwas.traits entry must have a trait name")
   }
-  if (!is_genome_build(config$atac$genome)) {
-    errors <- c(errors, "atac.genome must be hg19/GRCh37 or hg38/GRCh38")
-  }
-  if (!is_genome_build(config$genome$target)) {
-    errors <- c(errors, "genome.target must be hg19/GRCh37 or hg38/GRCh38")
-  }
-  for (name in c("unmapped_action", "multimapping_action", "duplicate_action")) {
-    if (!is_scalar_choice(config$genome[[name]], c("drop", "error"))) {
+  for (name in c("unmapped_action", "multimapping_action")) {
+    if (!is.null(config$genome[[name]]) &&
+        !is_scalar_choice(config$genome[[name]], c("drop", "error"))) {
       errors <- c(errors, paste0("genome.", name, " must be drop or error"))
     }
   }
-  chains <- config$genome$chains
-  if (!is.list(chains)) {
-    errors <- c(errors, "genome.chains must be a mapping containing hg19_to_hg38 and hg38_to_hg19")
-    chains <- list()
-  }
-  for (key in c("hg19_to_hg38", "hg38_to_hg19")) {
-    value <- chains[[key]] %||% NULL
-    if (!is.null(value) && (!is.character(value) || length(value) != 1L || is.na(value) || !nzchar(value))) {
-      errors <- c(errors, paste0("genome.chains.", key, " must be null or one non-empty path"))
-    }
+  if (!is_scalar_choice(config$genome$duplicate_action, c("drop", "error"))) {
+    errors <- c(errors, "genome.duplicate_action must be drop or error")
   }
   logical_atac <- c(
     "attach_fragments", "validate_fragments", "compute_qc_metrics", "recompute_embedding"
@@ -415,41 +484,11 @@ validate_EPIC2_config <- function(config, check_files = FALSE) {
     errors <- c(errors, gwas_setting_errors(effective, paste0("gwas.traits.", trait)))
   }
 
-  if (is_genome_build(config$genome$target) && is_genome_build(config$atac$genome)) {
-    target_genome <- normalize_genome_build(config$genome$target)
-    atac_genome <- normalize_genome_build(config$atac$genome)
-    needed_pairs <- character()
-    if (target_genome != atac_genome) {
-      needed_pairs <- c(needed_pairs, chain_config_key(atac_genome, target_genome))
-    }
-    for (trait in names(config$gwas$traits)) {
-      effective <- deep_merge(config$gwas, config$gwas$traits[[trait]])
-      if (is_genome_build(effective$genome)) {
-        source_genome <- normalize_genome_build(effective$genome)
-        if (source_genome != target_genome) {
-          needed_pairs <- c(needed_pairs, chain_config_key(source_genome, target_genome))
-        }
-        if (target_genome != atac_genome && source_genome != atac_genome) {
-          needed_pairs <- c(needed_pairs, chain_config_key(target_genome, atac_genome))
-        }
-      }
-    }
-    needed_pairs <- unique(needed_pairs)
-    for (key in needed_pairs) {
-      if (is.null(chains[[key]]) || !nzchar(chains[[key]])) {
-        errors <- c(errors, paste0("genome.chains.", key, " is required by the configured genome conversion"))
-      }
-    }
-  }
-
   if (check_files) {
     inputs <- c(config$atac$input, unlist(lapply(config$gwas$traits, `[`, required_trait_keys)))
     if (isTRUE(config$atac$attach_fragments)) {
       inputs <- c(inputs, unlist(config$atac$fragment_files, use.names = FALSE))
     }
-    chain_paths <- unlist(chains, use.names = FALSE)
-    chain_paths <- chain_paths[!is.na(chain_paths) & nzchar(chain_paths)]
-    inputs <- c(inputs, chain_paths)
     if (!is.null(config$plots$sldsc_summary)) inputs <- c(inputs, config$plots$sldsc_summary)
     inputs <- vapply(inputs, function(x) resolve_config_path(config, x), character(1))
     missing <- inputs[!file.exists(inputs)]
