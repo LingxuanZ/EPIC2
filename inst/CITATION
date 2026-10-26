@@ -1,0 +1,8 @@
+bibentry(
+  bibtype = "Manual",
+  title = "EPIC2: LD-Aware Integration of Single-Cell Chromatin Accessibility and GWAS",
+  author = c(person("Lingxuan", "Zhu"), person("Yuchao", "Jiang")),
+  year = "2026",
+  note = paste("R package version", meta$Version),
+  url = "https://github.com/LingxuanZ/EPIC2"
+)

@@ -154,7 +154,7 @@ GWAS and genotype files can be supplied as `.rds`, `.rda`/`.RData`, `.csv[.gz]`,
 
 Genotype normalization supports hard calls, dosage, GT strings, biallelic allele labels, and genotype probability representations. Set `genotype_format` and `genotype_orientation` explicitly when automatic detection is ambiguous. Carrier-only presence/absence data do not contain enough information for exact MAF calculation and are rejected. See the [configuration reference](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md) for encoding and ploidy requirements.
 
-Variants are matched by identifier and reordered to the GWAS rows. Coordinates used for matching ATAC features and defining LD windows come from the GWAS table; genotype dosage values themselves are not lifted between assemblies. Matching identifiers alone does not verify allele coding.
+Variants are matched by identifier and reordered to the GWAS rows; variants genuinely absent from the reference are skipped. Genotype variant IDs must be supplied as unique row names (column names for transposed input) or through `genotype_variant_id_column`. Matching dimensions or setting `genotype_orientation` does not establish correspondence, and GWAS IDs are never assigned automatically to unnamed genotype rows. Coordinates used for matching ATAC features and defining LD windows come from the GWAS table; genotype dosage values themselves are not lifted between assemblies. Matching identifiers alone does not verify allele coding.
 
 ### ATAC QC and preprocessed inputs
 

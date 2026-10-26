@@ -108,9 +108,16 @@ effective settings and variant counts are written to each
 GWAS and genotype inputs may be `.rds`, `.rda/.RData`, `.csv[.gz]`,
 `.tsv[.gz]`, or `.txt[.gz]`. A text genotype table should place stable variant
 IDs in the configured `genotype_variant_id_column` and samples in the remaining
-columns. Genotype matrices are joined by those IDs; coordinates come from the
-already harmonized GWAS table, and dosage values are not converted. Native PLINK/VCF/BGEN/GDS containers still need
-to be read or exported to a supported matrix first.
+columns. Genotype matrices require unique, nonmissing variant IDs in row names
+(or column names for transposed input) or the configured ID column. Anonymous
+variants are rejected even when dimensions match the GWAS or orientation is
+specified; GWAS IDs are orientation hints, not replacement reference IDs. If an
+upstream format omits names, assign the actual reference variant IDs only after
+verifying their order. Genotypes are joined by ID, genuinely absent variants are
+skipped, and retained rows are reordered together with the GWAS. Coordinates come
+from the already harmonized GWAS table, and dosage values are not converted.
+Native PLINK/VCF/BGEN/GDS containers still need to be read or exported to a
+supported matrix first.
 
 `auto` accepts numeric allele dosage, biallelic GT strings, allele labels, and
 well-formed GP probabilities. GL and PL must be declared explicitly because

@@ -1,5 +1,6 @@
 # Run with Rscript tests/test-common-build-config.R from any working directory,
-# or source this file. No installed EPIC2 package or real analysis is required.
+# or source this file. R CMD check uses the installed namespace when source R/
+# is unavailable. No real analysis is required.
 test_source_file <- tryCatch(sys.frame(1)$ofile, error = function(e) NULL)
 if (is.null(test_source_file)) {
   script_argument <- grep("^--file=", commandArgs(FALSE), value = TRUE)
@@ -7,8 +8,11 @@ if (is.null(test_source_file)) {
 }
 test_package_dir <- Sys.getenv("EPIC2_TEST_SOURCE_DIR", unset = "")
 if (!nzchar(test_package_dir)) {
-  if (is.null(test_source_file)) stop("Cannot locate the EPIC2 source; set EPIC2_TEST_SOURCE_DIR.")
-  test_package_dir <- file.path(dirname(test_source_file), "..")
+  test_package_dir <- if (is.null(test_source_file)) {
+    "."
+  } else {
+    file.path(dirname(test_source_file), "..")
+  }
 }
 test_package_dir <- normalizePath(test_package_dir, mustWork = TRUE)
 

@@ -112,7 +112,11 @@ build_snp_accessibility <- function(atac, gwas, columns = EPIC2_defaults()$gwas$
   if (length(snps) == 0L) stop("No harmonized GWAS variants overlap retained ATAC peaks.", call. = FALSE)
 
   n_chunks <- min(max(1L, as.integer(chunks)), length(snps))
-  split_id <- cut(seq_along(snps), breaks = n_chunks, labels = FALSE)
+  split_id <- if (n_chunks == 1L) {
+    rep.int(1L, length(snps))
+  } else {
+    cut(seq_along(snps), breaks = n_chunks, labels = FALSE)
+  }
   feature_chunks <- split(snps, split_id)
   param <- make_bpparam(workers)
   matrices <- BiocParallel::bplapply(feature_chunks, function(features) {

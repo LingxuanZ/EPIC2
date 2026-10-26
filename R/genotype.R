@@ -79,11 +79,12 @@ as_genotype_matrix <- function(x, variant_id_column = NULL) {
 
 ensure_genotype_dimnames <- function(x, variant_ids = NULL) {
   if (is.null(rownames(x))) {
-    if (!is.null(variant_ids) && nrow(x) == length(variant_ids)) {
-      rownames(x) <- as.character(variant_ids)
-    } else {
-      stop("Genotype variants must have row names or an explicit variant ID column.", call. = FALSE)
-    }
+    stop(
+      "Genotype variants must have row names or an explicit variant ID column. ",
+      "GWAS variant_ids are orientation hints and cannot identify unnamed genotype rows. ",
+      "Assign verified genotype variant IDs before input; matching dimensions are not sufficient.",
+      call. = FALSE
+    )
   }
   if (anyNA(rownames(x)) || any(!nzchar(rownames(x))) || anyDuplicated(rownames(x))) {
     stop("Genotype variant row names must be non-missing and unique.", call. = FALSE)
@@ -362,7 +363,9 @@ probability_to_dosage <- function(probability, format, ploidy, missing_values) {
 #'
 #' @param genotype Matrix-like genotype input, a three-dimensional probability
 #'   array, or a list of probability-state matrices.
-#' @param variant_ids Optional GWAS variant IDs used to infer orientation.
+#' @param variant_ids Optional GWAS variant IDs used only to infer orientation.
+#'   They never supply missing genotype identifiers; provide verified variant
+#'   names on the input or an explicit `variant_id_column`.
 #' @param format One of `auto`, `dosage`, `hard_call`, `gt`, `allele`, `gp`,
 #'   `gl`, `pl`, or `carrier`.
 #' @param ploidy Positive integer copy number.
@@ -385,6 +388,12 @@ normalize_genotype <- function(genotype, variant_ids = NULL, format = "auto", pl
       "Carrier-only 0/1 data do not contain enough information to recover allele frequency or MAF. ",
       "Provide allele counts, GT calls, or genotype probabilities.", call. = FALSE
     )
+  }
+  # An ID column is metadata, not an encoded sample. Remove it before format
+  # detection so numeric dosage and GP tables are detected from sample values.
+  if (is.data.frame(genotype) && !is.null(variant_id_column)) {
+    genotype <- as_genotype_matrix(genotype, variant_id_column)
+    variant_id_column <- NULL
   }
   if (format == "auto") format <- detect_genotype_format(genotype, ploidy, missing_values)
 

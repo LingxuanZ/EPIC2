@@ -4,11 +4,14 @@ if (file.exists(file.path("R", "genome.R"))) {
   sys.source(file.path("R", "utils.R"), envir = validation_env)
   sys.source(file.path("R", "genome.R"), envir = validation_env)
 } else {
-  validation_env <- new.env(parent = asNamespace("EPIC2"))
-  for (name in c("assert_common_genome_build", "validate_genomic_ranges", "validate_gwas_coordinates")) {
-    fun <- getFromNamespace(name, "EPIC2")
-    environment(fun) <- validation_env
-    assign(name, fun, envir = validation_env)
+  namespace <- asNamespace("EPIC2")
+  validation_env <- new.env(parent = namespace)
+  for (name in ls(namespace, all.names = TRUE)) {
+    value <- get(name, envir = namespace, inherits = FALSE)
+    if (is.function(value) && identical(environment(value), namespace)) {
+      environment(value) <- validation_env
+      assign(name, value, envir = validation_env)
+    }
   }
 }
 expect_error_message <- function(expression, pattern) {

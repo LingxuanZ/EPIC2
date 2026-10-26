@@ -1,4 +1,4 @@
-name: ldiag
+name: epic2
 channels:
   - conda-forge
   - bioconda

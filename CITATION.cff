@@ -1,9 +1,10 @@
 cff-version: 1.2.0
-message: "If you use LDIAG, please cite this software and the associated article."
-title: "LDIAG: LD-aware integration of single-cell chromatin accessibility and GWAS"
+message: "If you use EPIC2, please cite this software."
+title: "EPIC2: LD-aware integration of single-cell chromatin accessibility and GWAS"
 type: software
-version: 0.1.0
-date-released: 2026-08-18
+version: 0.2.1
+repository-code: "https://github.com/LingxuanZ/EPIC2"
+url: "https://github.com/LingxuanZ/EPIC2"
 authors:
   - given-names: Lingxuan
     family-names: Zhu

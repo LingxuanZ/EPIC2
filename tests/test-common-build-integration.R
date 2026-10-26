@@ -36,15 +36,21 @@ run_common_build_integration <- function(genome_build = "hg19") {
   colnames(counts) <- cells
   counts <- Matrix::Matrix(counts, sparse = TRUE)
 
+  # FeatureMatrix counts fragment records, not the fifth-column read count.
+  # Emit the intended number of distinct fragments for each cell and locus so
+  # SNP coverage varies and all four association components are exercised.
   fragment_rows <- do.call(rbind, lapply(seq_along(peaks), function(peak) {
-    data.frame(
-      chr = "chr1",
-      start = snp_position[[peak]] - 50L,
-      end = snp_position[[peak]] + 50L,
-      cell = cells,
-      count = as.integer(counts[peak, ]),
-      stringsAsFactors = FALSE
-    )
+    do.call(rbind, lapply(seq_along(cells), function(cell) {
+      offsets <- seq_len(as.integer(counts[peak, cell])) - 1L
+      data.frame(
+        chr = "chr1",
+        start = snp_position[[peak]] - 50L + offsets,
+        end = snp_position[[peak]] + 50L + offsets,
+        cell = cells[[cell]],
+        count = 1L,
+        stringsAsFactors = FALSE
+      )
+    }))
   }))
   fragment_rows <- fragment_rows[order(fragment_rows$chr, fragment_rows$start), ]
   fragment_path <- file.path(root, "fragments.tsv")
@@ -200,6 +206,21 @@ run_common_build_integration <- function(genome_build = "hg19") {
     !any(figure_manifest$status == "error"),
     !any(figure_manifest$status == "skipped")
   )
+  for (grouping in config$model$groupings) {
+    combined <- utils::read.delim(file.path(
+      config$output_dir, "05_models", paste0(grouping, ".cauchy_results.tsv")
+    ))
+    component_columns <- c("p_snp_accessibility", "p_snp_wrs",
+                           "p_peak_accessibility", "p_peak_wrs")
+    component_p <- as.matrix(combined[, component_columns])
+    stopifnot(
+      nrow(combined) == 2L, all(is.finite(component_p)),
+      all(component_p >= 0 & component_p <= 1),
+      all(combined$n_tests_combined == 4L),
+      all(is.finite(combined$p_cauchy)),
+      all(combined$p_cauchy >= 0 & combined$p_cauchy <= 1)
+    )
+  }
   message("Common-build pipeline and figure integration test completed: ", config$output_dir)
   invisible(TRUE)
 }

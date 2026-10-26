@@ -1,7 +1,7 @@
 Package: EPIC2
 Type: Package
 Title: LD-Aware Integration of Single-Cell Chromatin Accessibility and GWAS
-Version: 0.2.0
+Version: 0.2.1
 Authors@R: c(
     person("Lingxuan", "Zhu", role = c("aut", "cre"),
            email = "zhulx@tamu.edu",
@@ -17,6 +17,8 @@ Description: A configurable workflow for harmonizing genome-wide association
     aggregated Cauchy association test.
 License: MIT + file LICENSE
 Encoding: UTF-8
+URL: https://github.com/LingxuanZ/EPIC2
+BugReports: https://github.com/LingxuanZ/EPIC2/issues
 Depends: R (>= 4.3.0)
 Imports:
     Matrix,
