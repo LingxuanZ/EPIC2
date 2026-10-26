@@ -1,5 +1,5 @@
 project:
-  name: fetal chromatin accessibility
+  name: EPIC2 analysis
   output_dir: results
 
 parameters:
@@ -7,20 +7,15 @@ parameters:
   workers: 4
 
 genome:
-  # All GWAS, SNP, peak, LD, and model outputs use this build.
-  target: hg19
-  # Directional UCSC chain files are required only when configured builds differ.
-  chains:
-    hg19_to_hg38: null
-    hg38_to_hg19: null
-  unmapped_action: drop
-  multimapping_action: drop
+  # REQUIRED: set to the assembly already shared by GWAS, peaks, and fragments.
+  # Supported values: hg19/GRCh37 or hg38/GRCh38. There is no default.
+  build: hg19
+  # Drop all rows at duplicated coordinates, or use error to reject them.
   duplicate_action: drop
 
 atac:
   input: data/atac.with_fragments.rds
   assay: ATAC
-  genome: hg19
   tissue_column: tissue
   group_column: tissue_cell_type
   attach_fragments: false
@@ -41,8 +36,6 @@ atac:
     peak_remove_blacklist: true
 
 gwas:
-  # Default input build; each named GWAS may override it below.
-  genome: hg19
   # Optional column whose hg19/GRCh37 or hg38/GRCh38 values are checked.
   genome_column: null
   maf_min: 0.05
@@ -76,7 +69,6 @@ gwas:
   traits:
     HDL:
       summary: data/gwas/HDL_aligned.rds
-      genome: hg19
       genotype: data/reference_genotype.rds
     LDL:
       summary: data/gwas/LDL_aligned.rds
