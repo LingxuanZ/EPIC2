@@ -76,12 +76,12 @@ add_frip <- function(atac, assay = "ATAC", genome_sep = c("-", "-")) {
 #' Add blacklist-overlap ratios
 #'
 #' @param atac A Seurat object with fragment objects and total fragment metadata.
-#' @param blacklist A `GRanges` blacklist. Defaults to Signac's hg19 blacklist.
+#' @param blacklist A `GRanges` blacklist. Defaults to the Signac blacklist for the explicitly declared genome.
 #' @param assay ATAC assay name.
 #' @param genome ATAC genome build used to select the default blacklist.
 #' @return The input object with blacklist count and ratio metadata columns.
 #' @export
-add_blacklist_ratio <- function(atac, blacklist = NULL, assay = "ATAC", genome = "hg19") {
+add_blacklist_ratio <- function(atac, blacklist = NULL, assay = "ATAC", genome = NULL) {
   require_namespaces(c("Signac", "GenomicRanges", "Matrix"), "blacklist ratio calculation")
   metadata <- get_atac_metadata(atac)
   if (!"total_unique_fragments" %in% colnames(metadata)) {
@@ -146,12 +146,12 @@ filter_atac_cells <- function(atac, thresholds = list(), group_column = "tissue_
 #' @param atac A Seurat/Signac object.
 #' @param thresholds Named list containing peak width thresholds.
 #' @param assay ATAC assay name.
-#' @param blacklist A `GRanges` blacklist. Defaults to Signac's hg19 blacklist.
+#' @param blacklist A `GRanges` blacklist. Defaults to the Signac blacklist for the explicitly declared genome.
 #' @param genome ATAC genome build used to select the default blacklist.
 #' @return The filtered object.
 #' @export
 filter_atac_peaks <- function(atac, thresholds = list(), assay = "ATAC", blacklist = NULL,
-                              genome = "hg19") {
+                              genome = NULL) {
   require_namespaces(c("Signac", "GenomicRanges", "Matrix"), "peak QC")
   thresholds <- deep_merge(EPIC2_defaults()$atac$qc, thresholds)
   counts <- get_atac_counts(atac, assay)
@@ -190,6 +190,7 @@ recompute_atac_reductions <- function(atac, assay = "ATAC") {
 #' @return Path to the filtered ATAC object.
 #' @export
 run_atac_stage <- function(config) {
+  config <- normalize_common_genome_config(config)
   output_dir <- stage_output_dir(config, "01_atac")
   input <- resolve_config_path(config, config$atac$input)
   atac <- load_serialized(input, config$atac$object_name %||% NULL)
@@ -197,8 +198,7 @@ run_atac_stage <- function(config) {
   if (!assay %in% names(atac)) stop("ATAC assay not found in input object: ", assay, call. = FALSE)
   require_namespaces(c("Seurat", "Signac", "GenomicRanges"), "ATAC assay selection")
   Seurat::DefaultAssay(atac) <- assay
-  atac_genome <- normalize_genome_build(config$atac$genome)
-  target_genome <- normalize_genome_build(config$genome$target)
+  atac_genome <- config$genome$build
   input_ranges <- tryCatch(
     GenomicRanges::granges(atac[[assay]]),
     error = function(e) Signac::StringToGRanges(rownames(get_atac_counts(atac, assay)), sep = c("-", "-"))
@@ -244,12 +244,10 @@ run_atac_stage <- function(config) {
   output <- file.path(output_dir, "atac.qc.rds")
   save_rds_atomic(atac, output)
   write_table(rbind(before, after), file.path(output_dir, "qc_dimensions.tsv"))
-  genome_metadata_qc$target_genome <- target_genome
-  genome_metadata_qc$coordinate_output <- if (atac_genome == target_genome) {
-    "ATAC and downstream outputs use the same build"
-  } else {
-    "ATAC fragments remain in the input build; downstream SNP/peak IDs are lifted"
-  }
+  genome_metadata_qc$genome_build <- atac_genome
+  genome_metadata_qc$operation <- "validation_only"
+  genome_metadata_qc$conversion_performed <- FALSE
+  genome_metadata_qc$coordinate_output <- "Input coordinates retained; all inputs must already use genome.build"
   write_table(genome_metadata_qc, file.path(output_dir, "genome_qc.tsv"))
   qc_values <- vapply(config$atac$qc, function(value) {
     if (length(value) == 0L) "null" else paste(as.character(value), collapse = ",")

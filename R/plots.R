@@ -8,6 +8,7 @@
 #' @return The figure manifest, invisibly.
 #' @export
 run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
+  config <- normalize_common_genome_config(config)
   require_namespaces(c("ggplot2", "Matrix"), "publication plot stage")
   output_dir <- stage_output_dir(config, "figures")
   table_dir <- ensure_dir(file.path(output_dir, "tables"))
@@ -18,6 +19,7 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
 
   atac_path <- file.path(config$output_dir, "01_atac", "atac.qc.rds")
   atac <- if (file.exists(atac_path)) load_serialized(atac_path) else NULL
+  if (!is.null(atac)) check_atac_build(atac, config$atac$assay, config$genome$build)
   qc_dimensions_path <- file.path(config$output_dir, "01_atac", "qc_dimensions.tsv")
   if (file.exists(qc_dimensions_path)) {
     registry$run(
@@ -84,12 +86,12 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
       function() as_figure(plot_gwas_filtering_waterfall(gwas_qc, config$plots$base_size), 11, 7)
     )
     registry$run(
-      "gwas_liftover_exclusions", "GWAS QC", "01_gwas_qc", gwas_qc_path,
-      function() as_figure(plot_liftover_qc(gwas_qc, config$plots$base_size), 9, 6)
+      "gwas_coordinate_validation", "GWAS QC", "01_gwas_qc", gwas_qc_path,
+      function() as_figure(plot_genome_validation_qc(gwas_qc, config$plots$base_size), 9, 6)
     )
   } else {
     registry$skip("gwas_filtering_waterfall", "GWAS QC", gwas_qc_path, "GWAS QC summary not found")
-    registry$skip("gwas_liftover_exclusions", "GWAS QC", gwas_qc_path, "GWAS QC summary not found")
+    registry$skip("gwas_coordinate_validation", "GWAS QC", gwas_qc_path, "GWAS QC summary not found")
   }
 
   accessibility <- collect_accessibility_plot_data(config, traits)

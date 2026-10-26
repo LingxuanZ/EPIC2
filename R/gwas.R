@@ -96,13 +96,15 @@ ld_prune_snprelate <- function(gwas, genotype, columns, threshold, window_bp, se
 #' @param genotype_variant_id_column Optional variant ID column for data-frame genotypes.
 #' @param ld_prune_noninteger How SNPRelate pruning handles non-integer dosage.
 #' @param gwas_name Optional GWAS name used in diagnostics and the QC summary.
-#' @param source_genome Declared GWAS coordinate build.
-#' @param target_genome Requested output coordinate build.
-#' @param chain_file Directional UCSC chain file when builds differ.
+#' @param source_genome Legacy build declaration; if supplied, must match `genome_build`.
+#' @param target_genome Legacy build declaration; if supplied, must match `genome_build`.
+#' @param chain_file Legacy conversion argument. Must be `NULL`; the pipeline never lifts coordinates.
 #' @param genome_column Optional GWAS column containing build metadata to verify.
-#' @param liftover_unmapped_action Drop or reject variants without a target mapping.
-#' @param liftover_multimapping_action Drop or reject variants with multiple mappings.
-#' @param liftover_duplicate_action Drop or reject duplicated target coordinates.
+#' @param liftover_unmapped_action Legacy argument, unused in validation-only analysis.
+#' @param liftover_multimapping_action Legacy argument, unused in validation-only analysis.
+#' @param liftover_duplicate_action Legacy default for `duplicate_action`.
+#' @param genome_build Required common input assembly, hg19/GRCh37 or hg38/GRCh38.
+#' @param duplicate_action Drop or reject every row at a duplicated coordinate.
 #' @param reference_missing_rate_max Maximum missing-genotype rate per reference variant.
 #' @param ld_prune_tool LD-pruning implementation; currently `"snprelate"`.
 #' @param ld_method SNPRelate LD statistic: `"composite"`, `"r"`, `"dprime"`, or `"corr"`.
@@ -120,7 +122,7 @@ harmonize_gwas <- function(gwas, genotype, columns = EPIC2_defaults()$gwas$colum
                            genotype_orientation = "auto", genotype_missing_values = -9,
                            genotype_variant_id_column = NULL,
                            ld_prune_noninteger = "error", gwas_name = NULL,
-                           source_genome = "hg19", target_genome = source_genome,
+                           source_genome = NULL, target_genome = NULL,
                            chain_file = NULL, genome_column = NULL,
                            liftover_unmapped_action = "drop",
                            liftover_multimapping_action = "drop",
@@ -129,7 +131,17 @@ harmonize_gwas <- function(gwas, genotype, columns = EPIC2_defaults()$gwas$colum
                            ld_prune_tool = "snprelate", ld_method = "composite",
                            ld_slide_max_n = NULL, ld_prune_maf_min = 0.005,
                            ld_remove_monomorphic = TRUE, ld_start_pos = "random.f500",
-                           ld_num_threads = 1L) {
+                           ld_num_threads = 1L, genome_build = NULL,
+                           duplicate_action = liftover_duplicate_action) {
+  genome_build <- assert_common_genome_build(
+    genome_build,
+    list(source_genome = source_genome, target_genome = target_genome),
+    "harmonize_gwas"
+  )
+  if (!is.null(chain_file)) {
+    stop("harmonize_gwas does not perform liftOver. Harmonize inputs before running EPIC2 and remove chain_file.", call. = FALSE)
+  }
+  source_genome <- target_genome <- genome_build
   setting_errors <- gwas_setting_errors(list(
     genotype_format = genotype_format,
     genotype_orientation = genotype_orientation,
@@ -224,21 +236,17 @@ harmonize_gwas <- function(gwas, genotype, columns = EPIC2_defaults()$gwas$colum
   }
   after_ambiguous <- nrow(gwas)
 
-  coordinate_result <- harmonize_gwas_coordinates(
+  coordinate_result <- validate_gwas_coordinates(
     gwas = gwas,
     columns = columns,
-    source_genome = source_genome,
-    target_genome = target_genome,
-    chain_file = chain_file,
+    genome = genome_build,
     genome_column = genome_column,
-    unmapped_action = liftover_unmapped_action,
-    multimapping_action = liftover_multimapping_action,
-    duplicate_action = liftover_duplicate_action,
+    duplicate_action = duplicate_action,
     gwas_name = gwas_name
   )
   gwas <- coordinate_result$gwas
   genotype <- genotype[coordinate_result$input_index, , drop = FALSE]
-  after_liftover <- nrow(gwas)
+  after_coordinate_validation <- nrow(gwas)
 
   chr_ord <- chr_to_order(gwas[[columns$chr]])
   pos <- suppressWarnings(as.integer(gwas[[columns$pos]]))
@@ -293,11 +301,10 @@ harmonize_gwas <- function(gwas, genotype, columns = EPIC2_defaults()$gwas$colum
     source_genome = source_genome,
     target_genome = target_genome,
     genome_metadata_status = input_genome_metadata_qc$metadata_status,
-    liftover_chain = coordinate_result$liftover_qc$chain_file,
-    liftover_chain_md5 = coordinate_result$liftover_qc$chain_md5,
-    n_liftover_unmapped = coordinate_result$liftover_qc$n_unmapped,
-    n_liftover_multimapped = coordinate_result$liftover_qc$n_multimapped,
-    n_liftover_duplicate_target = coordinate_result$liftover_qc$n_duplicate_target,
+    genome_build = genome_build,
+    genome_operation = "validation_only",
+    conversion_performed = FALSE,
+    n_duplicate_coordinates = coordinate_result$genome_qc$n_duplicate_target,
     n_reference_samples = ncol(genotype),
     maf_min = maf_min,
     reference_missing_rate_max = reference_missing_rate_max,
@@ -318,7 +325,7 @@ harmonize_gwas <- function(gwas, genotype, columns = EPIC2_defaults()$gwas$colum
     n_after_reference_missing = after_reference_missing,
     n_after_maf = after_maf,
     n_after_ambiguous = after_ambiguous,
-    n_after_liftover = after_liftover,
+    n_after_coordinate_validation = after_coordinate_validation,
     n_after_autosomal = after_autosomal,
     n_after_ld_prune = after_ld_prune,
     n_final = nrow(gwas),
@@ -335,6 +342,7 @@ harmonize_gwas <- function(gwas, genotype, columns = EPIC2_defaults()$gwas$colum
 #' @return Named list of output paths.
 #' @export
 run_gwas_stage <- function(config, traits = NULL, gwas_name = NULL) {
+  config <- normalize_common_genome_config(config)
   traits <- resolve_gwas_names(config, traits = traits, gwas_name = gwas_name)
   output_dir <- stage_output_dir(config, "02_gwas")
   summaries <- list()
@@ -349,9 +357,7 @@ run_gwas_stage <- function(config, traits = NULL, gwas_name = NULL) {
     genotype <- load_analysis_input(
       resolve_config_path(config, spec$genotype), spec$genotype_object %||% NULL
     )
-    source_genome <- normalize_genome_build(setting("genome"))
-    target_genome <- normalize_genome_build(config$genome$target)
-    chain_file <- resolve_chain_file(config, source_genome, target_genome)
+    genome_build <- config$genome$build
     result <- harmonize_gwas(
       gwas = gwas,
       genotype = genotype,
@@ -369,13 +375,9 @@ run_gwas_stage <- function(config, traits = NULL, gwas_name = NULL) {
       genotype_variant_id_column = setting("genotype_variant_id_column"),
       ld_prune_noninteger = setting("ld_prune_noninteger"),
       gwas_name = trait,
-      source_genome = source_genome,
-      target_genome = target_genome,
-      chain_file = chain_file,
+      genome_build = genome_build,
       genome_column = setting("genome_column"),
-      liftover_unmapped_action = config$genome$unmapped_action,
-      liftover_multimapping_action = config$genome$multimapping_action,
-      liftover_duplicate_action = config$genome$duplicate_action,
+      duplicate_action = config$genome$duplicate_action,
       reference_missing_rate_max = setting("reference_missing_rate_max"),
       ld_prune_tool = setting("ld_prune_tool"),
       ld_method = setting("ld_method"),

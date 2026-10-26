@@ -195,8 +195,10 @@ wrs_to_group_list <- function(result, z_column = "z_one_sided_enriched_trunc") {
 #' @return Named list of generated files.
 #' @export
 run_wrs_stage <- function(config, traits = names(config$gwas$traits)) {
+  config <- normalize_common_genome_config(config)
   output_dir <- stage_output_dir(config, "04_wrs")
   atac <- load_serialized(file.path(config$output_dir, "01_atac", "atac.qc.rds"))
+  check_atac_build(atac, config$atac$assay, config$genome$build)
   metadata <- get_atac_metadata(atac)
   outputs <- list()
 
@@ -207,6 +209,7 @@ run_wrs_stage <- function(config, traits = names(config$gwas$traits)) {
     )
     for (resolution in names(matrices)) {
       matrix <- matrices[[resolution]]
+      check_accessibility_matrix_build(matrix, config$genome$build, paste(trait, resolution, "WRS input"))
       cell_ids <- intersect(colnames(matrix), rownames(metadata))
       matrix <- matrix[, cell_ids, drop = FALSE]
       for (grouping in config$model$groupings) {

@@ -138,7 +138,7 @@ plot_gwas_filtering_waterfall <- function(table, base_size = 11) {
   stages <- c(
     n_input = "Input", n_reference_matched = "Reference matched",
     n_after_reference_missing = "Missingness QC", n_after_maf = "MAF QC",
-    n_after_ambiguous = "Ambiguous removed", n_after_liftover = "LiftOver",
+    n_after_ambiguous = "Ambiguous removed", n_after_coordinate_validation = "Coordinates validated",
     n_after_autosomal = "Autosomes", n_after_ld_prune = "LD pruned", n_final = "Final"
   )
   available <- names(stages)[names(stages) %in% colnames(table)]
@@ -161,11 +161,9 @@ plot_gwas_filtering_waterfall <- function(table, base_size = 11) {
     )
 }
 
-plot_liftover_qc <- function(table, base_size = 11) {
+plot_genome_validation_qc <- function(table, base_size = 11) {
   columns <- c(
-    n_liftover_unmapped = "Unmapped",
-    n_liftover_multimapped = "Multimapped",
-    n_liftover_duplicate_target = "Duplicate target"
+    n_duplicate_coordinates = "Duplicate coordinates"
   )
   rows <- lapply(names(columns), function(column) data.frame(
     trait = table$gwas_name,
@@ -178,8 +176,8 @@ plot_liftover_qc <- function(table, base_size = 11) {
     ggplot2::geom_col(position = "stack") +
     publication_theme(base_size) +
     ggplot2::labs(
-      title = "Variants excluded during coordinate harmonization",
-      x = "GWAS", y = "Variants", fill = "LiftOver outcome"
+      title = "Duplicate variants excluded during coordinate validation",
+      x = "GWAS", y = "Variants", fill = "Validation outcome"
     )
 }
 
@@ -192,6 +190,7 @@ collect_accessibility_plot_data <- function(config, traits) {
       path <- file.path(config$output_dir, "02_accessibility", paste0(trait, ".", suffix))
       if (!file.exists(path)) next
       matrix <- load_serialized(path)
+      check_accessibility_matrix_build(matrix, config$genome$build, "accessibility plot input")
       key <- paste(trait, resolution, sep = ".")
       distribution <- matrix_count_distribution(matrix, config$plots$count_bin_max)
       distribution$trait <- trait

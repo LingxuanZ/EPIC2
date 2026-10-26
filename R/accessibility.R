@@ -24,43 +24,42 @@ gwas_ranges <- function(gwas, columns = EPIC2_defaults()$gwas$columns) {
   ranges
 }
 
-prepare_gwas_ranges_for_atac <- function(gwas, columns, gwas_genome, atac_genome,
-                                         chain_file = NULL,
-                                         unmapped_action = "drop",
-                                         multimapping_action = "drop",
-                                         duplicate_action = "drop") {
-  input_builds <- unique(as.character(gwas$EPIC2_input_genome %||% character()))
-  input_builds <- input_builds[!is.na(input_builds) & nzchar(input_builds)]
-  use_original <- all(c("EPIC2_input_chr", "EPIC2_input_pos") %in% colnames(gwas)) &&
-    length(input_builds) == 1L && normalize_genome_build(input_builds) == normalize_genome_build(atac_genome)
-  if (use_original) {
-    ranges <- GenomicRanges::GRanges(
-      seqnames = canonical_chr(gwas$EPIC2_input_chr),
-      ranges = IRanges::IRanges(
-        start = as.integer(gwas$EPIC2_input_pos),
-        end = as.integer(gwas$EPIC2_input_pos)
-      ),
-      strand = "*"
-    )
-    names(ranges) <- gwas$coord_id
-    return(lift_genomic_ranges(
-      ranges, atac_genome, atac_genome,
-      unmapped_action = unmapped_action,
-      multimapping_action = multimapping_action,
-      duplicate_action = duplicate_action,
-      label = "original GWAS variants reused in the matching ATAC build"
-    ))
+check_prepared_gwas_build <- function(gwas, genome_build) {
+  check_table_genome_declaration(gwas, genome_build, label = "GWAS used for accessibility")
+  if ("EPIC2_target_genome" %in% colnames(gwas)) {
+    values <- unique(as.character(gwas$EPIC2_target_genome))
+    values <- values[!is.na(values) & nzchar(values)]
+    for (value in values) {
+      assert_common_genome_build(
+        genome_build, list(EPIC2_target_genome = value), "prepared GWAS"
+      )
+    }
   }
-  ranges <- gwas_ranges(gwas, columns)
-  lift_genomic_ranges(
-    ranges,
-    source_genome = gwas_genome,
-    target_genome = atac_genome,
-    chain_file = chain_file,
-    unmapped_action = unmapped_action,
-    multimapping_action = multimapping_action,
-    duplicate_action = duplicate_action,
-    label = "target-build GWAS variants mapped to the ATAC build"
+  invisible(TRUE)
+}
+
+check_atac_build <- function(atac, assay, genome_build) {
+  ranges <- GenomicRanges::granges(atac[[assay]])
+  check_range_genome_declaration(ranges, genome_build, "ATAC assay used for accessibility")
+}
+
+check_accessibility_matrix_build <- function(matrix, genome_build, label = "accessibility matrix") {
+  declared <- attr(matrix, "genome_build", exact = TRUE)
+  if (!is.null(declared)) {
+    assert_common_genome_build(genome_build, list(matrix_genome = declared), label)
+  }
+  invisible(TRUE)
+}
+
+prepare_gwas_ranges_for_atac <- function(gwas, columns, genome_build,
+                                         duplicate_action = "drop") {
+  genome_build <- assert_common_genome_build(genome_build, label = "ATAC overlap query")
+  check_prepared_gwas_build(gwas, genome_build)
+  # Always query the user's current, harmonized coordinates. Historical input
+  # coordinates may be from a previous build and are deliberately not reused.
+  validate_genomic_ranges(
+    gwas_ranges(gwas, columns), genome_build,
+    duplicate_action = duplicate_action, label = "GWAS variants used for ATAC overlap"
   )
 }
 
@@ -72,23 +71,32 @@ prepare_gwas_ranges_for_atac <- function(gwas, columns, gwas_genome, atac_genome
 #' @param assay ATAC assay name.
 #' @param workers Number of BiocParallel workers.
 #' @param chunks Number of genomic feature chunks.
-#' @param gwas_genome Build used by the harmonized GWAS coordinates.
-#' @param atac_genome Build used by ATAC peaks and fragments.
-#' @param chain_file Directional chain from `gwas_genome` to `atac_genome`.
-#' @param unmapped_action Drop or reject unmapped ranges.
-#' @param multimapping_action Drop or reject multiply mapped ranges.
+#' @param gwas_genome Legacy declaration; if supplied, must match `genome_build`.
+#' @param atac_genome Legacy declaration; if supplied, must match `genome_build`.
+#' @param genome_build Required common assembly for GWAS, peaks, and fragments.
+#' @param chain_file Legacy conversion argument; must be `NULL`.
+#' @param unmapped_action Legacy argument, unused in validation-only analysis.
+#' @param multimapping_action Legacy argument, unused in validation-only analysis.
 #' @param duplicate_action Drop or reject duplicate target ranges.
 #' @return Sparse SNP-by-cell matrix containing nonzero SNPs in ATAC peaks.
 #' @export
 build_snp_accessibility <- function(atac, gwas, columns = EPIC2_defaults()$gwas$columns,
                                     assay = "ATAC", workers = 1L, chunks = 20L,
-                                    gwas_genome = "hg19", atac_genome = gwas_genome,
+                                    gwas_genome = NULL, atac_genome = NULL,
                                     chain_file = NULL, unmapped_action = "drop",
-                                    multimapping_action = "drop", duplicate_action = "drop") {
+                                    multimapping_action = "drop", duplicate_action = "drop",
+                                    genome_build = NULL) {
+  genome_build <- assert_common_genome_build(
+    genome_build, list(gwas_genome = gwas_genome, atac_genome = atac_genome),
+    "build_snp_accessibility"
+  )
+  if (!is.null(chain_file)) stop("SNP accessibility does not perform liftOver; remove chain_file and harmonize inputs first.", call. = FALSE)
+  atac_genome <- genome_build
   require_namespaces(
     c("Signac", "GenomicRanges", "GenomeInfoDb", "BiocParallel", "Matrix"),
     "SNP accessibility"
   )
+  check_atac_build(atac, assay, genome_build)
   counts <- get_atac_counts(atac, assay)
   peak_ranges <- Signac::StringToGRanges(rownames(counts), sep = c("-", "-"))
   peak_ranges <- normalize_granges_seqnames(peak_ranges)
@@ -97,8 +105,7 @@ build_snp_accessibility <- function(atac, gwas, columns = EPIC2_defaults()$gwas$
     GenomicRanges::end(peak_ranges), atac_genome, "ATAC peaks"
   )
   prepared <- prepare_gwas_ranges_for_atac(
-    gwas, columns, gwas_genome, atac_genome, chain_file,
-    unmapped_action, multimapping_action, duplicate_action
+    gwas, columns, genome_build, duplicate_action
   )
   snps <- prepared$ranges
   snps <- IRanges::subsetByOverlaps(snps, peak_ranges, ignore.strand = TRUE)
@@ -124,6 +131,7 @@ build_snp_accessibility <- function(atac, gwas, columns = EPIC2_defaults()$gwas$
     stop("No SNP accessibility rows contain ATAC fragments after genome harmonization.", call. = FALSE)
   }
   attr(matrix, "genome_qc") <- prepared$qc
+  attr(matrix, "genome_build") <- genome_build
   matrix
 }
 
@@ -133,23 +141,33 @@ build_snp_accessibility <- function(atac, gwas, columns = EPIC2_defaults()$gwas$
 #' @param gwas Harmonized GWAS table.
 #' @param columns GWAS column mapping.
 #' @param assay ATAC assay name.
-#' @param gwas_genome Build used by the harmonized GWAS coordinates.
-#' @param atac_genome Build used by ATAC peaks and fragments.
-#' @param gwas_to_atac_chain Directional chain used to query source-build fragments.
-#' @param atac_to_gwas_chain Directional chain used to name retained peaks in the target build.
-#' @param unmapped_action Drop or reject unmapped ranges.
-#' @param multimapping_action Drop or reject multiply mapped ranges.
+#' @param gwas_genome Legacy declaration; if supplied, must match `genome_build`.
+#' @param atac_genome Legacy declaration; if supplied, must match `genome_build`.
+#' @param genome_build Required common assembly for GWAS, peaks, and fragments.
+#' @param gwas_to_atac_chain Legacy conversion argument; must be `NULL`.
+#' @param atac_to_gwas_chain Legacy conversion argument; must be `NULL`.
+#' @param unmapped_action Legacy argument, unused in validation-only analysis.
+#' @param multimapping_action Legacy argument, unused in validation-only analysis.
 #' @param duplicate_action Drop or reject duplicate target ranges.
 #' @return A list with a sparse peak matrix and SNP-to-peak overlap table.
 #' @export
 build_peak_accessibility <- function(atac, gwas, columns = EPIC2_defaults()$gwas$columns,
-                                     assay = "ATAC", gwas_genome = "hg19",
-                                     atac_genome = gwas_genome,
+                                     assay = "ATAC", gwas_genome = NULL,
+                                     atac_genome = NULL,
                                      gwas_to_atac_chain = NULL, atac_to_gwas_chain = NULL,
                                      unmapped_action = "drop",
                                      multimapping_action = "drop",
-                                     duplicate_action = "drop") {
+                                     duplicate_action = "drop", genome_build = NULL) {
+  genome_build <- assert_common_genome_build(
+    genome_build, list(gwas_genome = gwas_genome, atac_genome = atac_genome),
+    "build_peak_accessibility"
+  )
+  if (!is.null(gwas_to_atac_chain) || !is.null(atac_to_gwas_chain)) {
+    stop("Peak accessibility does not perform liftOver; remove chain arguments and harmonize inputs first.", call. = FALSE)
+  }
+  atac_genome <- genome_build
   require_namespaces(c("Signac", "GenomicRanges", "GenomeInfoDb"), "peak accessibility")
+  check_atac_build(atac, assay, genome_build)
   counts <- get_atac_counts(atac, assay)
   peaks <- Signac::StringToGRanges(rownames(counts), sep = c("-", "-"))
   peaks <- normalize_granges_seqnames(peaks)
@@ -159,8 +177,7 @@ build_peak_accessibility <- function(atac, gwas, columns = EPIC2_defaults()$gwas
     GenomicRanges::end(peaks), atac_genome, "ATAC peaks"
   )
   prepared <- prepare_gwas_ranges_for_atac(
-    gwas, columns, gwas_genome, atac_genome, gwas_to_atac_chain,
-    unmapped_action, multimapping_action, duplicate_action
+    gwas, columns, genome_build, duplicate_action
   )
   snps <- prepared$ranges
   hits <- GenomicRanges::findOverlaps(snps, peaks, ignore.strand = TRUE)
@@ -171,20 +188,15 @@ build_peak_accessibility <- function(atac, gwas, columns = EPIC2_defaults()$gwas
     stringsAsFactors = FALSE
   ))
   source_peak_order <- rownames(counts)[rownames(counts) %in% unique(source_overlap$peak)]
-  peak_lift <- lift_genomic_ranges(
-    peaks[source_peak_order],
-    source_genome = atac_genome,
-    target_genome = gwas_genome,
-    chain_file = atac_to_gwas_chain,
-    unmapped_action = unmapped_action,
-    multimapping_action = multimapping_action,
+  peak_validation <- validate_genomic_ranges(
+    peaks[source_peak_order], genome_build,
     duplicate_action = duplicate_action,
-    label = "GWAS-overlapping ATAC peaks mapped to the target build"
+    label = "GWAS-overlapping ATAC peaks"
   )
-  retained_source_peaks <- names(peak_lift$ranges)
+  retained_source_peaks <- names(peak_validation$ranges)
   target_peak_ids <- paste0(
-    canonical_chr(as.character(GenomicRanges::seqnames(peak_lift$ranges))), "-",
-    GenomicRanges::start(peak_lift$ranges), "-", GenomicRanges::end(peak_lift$ranges)
+    canonical_chr(as.character(GenomicRanges::seqnames(peak_validation$ranges))), "-",
+    GenomicRanges::start(peak_validation$ranges), "-", GenomicRanges::end(peak_validation$ranges)
   )
   source_to_target <- setNames(target_peak_ids, retained_source_peaks)
   source_overlap <- source_overlap[source_overlap$peak %in% retained_source_peaks, , drop = FALSE]
@@ -194,10 +206,11 @@ build_peak_accessibility <- function(atac, gwas, columns = EPIC2_defaults()$gwas
   source_peak_order <- source_peak_order[source_peak_order %in% retained_source_peaks]
   matrix <- counts[source_peak_order, , drop = FALSE]
   rownames(matrix) <- unname(source_to_target[source_peak_order])
+  attr(matrix, "genome_build") <- genome_build
   list(
     matrix = matrix,
     overlap = overlap,
-    genome_qc = list(snp_query = prepared$qc, peak_output = peak_lift$qc)
+    genome_qc = list(snp_query = prepared$qc, peak_output = peak_validation$qc)
   )
 }
 
@@ -261,6 +274,7 @@ compute_cell_scale <- function(atac, assay = "ATAC") {
 #' @return Named list of generated files.
 #' @export
 run_accessibility_stage <- function(config, traits = names(config$gwas$traits)) {
+  config <- normalize_common_genome_config(config)
   output_dir <- stage_output_dir(config, "02_accessibility")
   atac_path <- file.path(config$output_dir, "01_atac", "atac.qc.rds")
   atac <- load_serialized(atac_path)
@@ -270,35 +284,17 @@ run_accessibility_stage <- function(config, traits = names(config$gwas$traits)) 
     gwas <- load_serialized(file.path(config$output_dir, "02_gwas", paste0(trait, ".gwas.rds")))
     genotype <- load_serialized(file.path(config$output_dir, "02_gwas", paste0(trait, ".genotype.rds")))
     columns <- deep_merge(config$gwas$columns, trait_config(config, trait)$columns %||% list())
-    target_genome <- normalize_genome_build(config$genome$target)
-    atac_genome <- normalize_genome_build(config$atac$genome)
-    input_builds <- unique(as.character(gwas$EPIC2_input_genome %||% character()))
-    input_builds <- input_builds[!is.na(input_builds) & nzchar(input_builds)]
-    original_matches_atac <- length(input_builds) == 1L &&
-      normalize_genome_build(input_builds) == atac_genome
-    target_to_atac_chain <- if (original_matches_atac) NULL else {
-      resolve_chain_file(config, target_genome, atac_genome)
-    }
-    atac_to_target_chain <- resolve_chain_file(config, atac_genome, target_genome)
+    genome_build <- config$genome$build
     snp <- build_snp_accessibility(
       atac, gwas, columns, config$atac$assay,
       workers = config$parameters$workers,
       chunks = config$accessibility$chunks,
-      gwas_genome = target_genome,
-      atac_genome = atac_genome,
-      chain_file = target_to_atac_chain,
-      unmapped_action = config$genome$unmapped_action,
-      multimapping_action = config$genome$multimapping_action,
+      genome_build = genome_build,
       duplicate_action = config$genome$duplicate_action
     )
     peak <- build_peak_accessibility(
       atac, gwas, columns, config$atac$assay,
-      gwas_genome = target_genome,
-      atac_genome = atac_genome,
-      gwas_to_atac_chain = target_to_atac_chain,
-      atac_to_gwas_chain = atac_to_target_chain,
-      unmapped_action = config$genome$unmapped_action,
-      multimapping_action = config$genome$multimapping_action,
+      genome_build = genome_build,
       duplicate_action = config$genome$duplicate_action
     )
     aligned_genotype <- align_genotype_to_snp_matrix(gwas, genotype, snp, columns)

@@ -9,15 +9,9 @@ write_run_manifest <- function(config, stages, traits) {
     paste0("platform: ", R.version$platform),
     paste0("stages: ", paste(stages, collapse = ",")),
     paste0("traits: ", paste(traits, collapse = ",")),
-    paste0("target_genome: ", normalize_genome_build(config$genome$target)),
-    paste0("atac_input_genome: ", normalize_genome_build(config$atac$genome)),
-    paste0(
-      "gwas_input_genomes: ",
-      paste(vapply(traits, function(trait) {
-        spec <- trait_config(config, trait)
-        paste0(trait, "=", normalize_genome_build(spec$genome %||% config$gwas$genome))
-      }, character(1)), collapse = ",")
-    ),
+    paste0("genome_build: ", config$genome$build),
+    "genome_operation: validation_only",
+    "conversion_performed: false",
     paste0("seed: ", config$parameters$seed),
     paste0("workers: ", config$parameters$workers),
     paste0("config: ", config$.config_file %||% "<in-memory configuration>"),
@@ -42,7 +36,7 @@ write_run_manifest <- function(config, stages, traits) {
 #' @export
 run_EPIC2 <- function(config, stages = available_stages(), traits = NULL, gwas_name = NULL) {
   if (is.character(config) && length(config) == 1L) config <- read_EPIC2_config(config)
-  validate_EPIC2_config(config)
+  config <- validate_EPIC2_config(config)
   valid <- available_stages()
   unknown <- setdiff(stages, valid)
   if (length(unknown)) stop("Unknown stage(s): ", paste(unknown, collapse = ", "), call. = FALSE)

@@ -187,8 +187,10 @@ add_component_adjustment <- function(table) {
 #' @return Named list of output tables by grouping.
 #' @export
 run_model_stage <- function(config, traits = names(config$gwas$traits)) {
+  config <- normalize_common_genome_config(config)
   output_dir <- stage_output_dir(config, "05_models")
   atac <- load_serialized(file.path(config$output_dir, "01_atac", "atac.qc.rds"))
+  check_atac_build(atac, config$atac$assay, config$genome$build)
   metadata <- get_atac_metadata(atac)
   cell_scale <- compute_cell_scale(atac, config$atac$assay)
   all_results <- setNames(vector("list", length(config$model$groupings)), config$model$groupings)
@@ -198,8 +200,11 @@ run_model_stage <- function(config, traits = names(config$gwas$traits)) {
     component_tables <- list()
     for (trait in traits) {
       gwas <- load_serialized(file.path(config$output_dir, "02_gwas", paste0(trait, ".gwas.rds")))
+      check_prepared_gwas_build(gwas, config$genome$build)
       snp_matrix <- load_serialized(file.path(config$output_dir, "02_accessibility", paste0(trait, ".snp_by_cell.rds")))
       peak_matrix <- load_serialized(file.path(config$output_dir, "02_accessibility", paste0(trait, ".peak_by_cell.rds")))
+      check_accessibility_matrix_build(snp_matrix, config$genome$build, "SNP model input")
+      check_accessibility_matrix_build(peak_matrix, config$genome$build, "peak model input")
       snp_inverse <- load_serialized(file.path(config$output_dir, "03_ld", paste0(trait, ".snp_inverse_sqrt.rds")))
       peak_model <- load_serialized(file.path(config$output_dir, "03_ld", paste0(trait, ".peak_ld_model.rds")))
       snp_wrs <- load_serialized(file.path(config$output_dir, "04_wrs", paste(trait, "snp", grouping, "rds", sep = ".")))

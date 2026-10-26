@@ -375,9 +375,12 @@ align_genotype_to_coordinates <- function(gwas, genotype, columns) {
 #' @return Named list of generated files.
 #' @export
 run_ld_stage <- function(config, traits = names(config$gwas$traits)) {
+  config <- normalize_common_genome_config(config)
   output_dir <- stage_output_dir(config, "03_ld")
   outputs <- setNames(vector("list", length(traits)), traits)
   for (trait in traits) {
+    gwas <- load_serialized(file.path(config$output_dir, "02_gwas", paste0(trait, ".gwas.rds")))
+    check_prepared_gwas_build(gwas, config$genome$build)
     prefix <- file.path(output_dir, trait)
     paths <- list(
       snp_sigma = paste0(prefix, ".snp_sigma.rds"),
@@ -413,11 +416,12 @@ run_ld_stage <- function(config, traits = names(config$gwas$traits)) {
             ", MKL=", Sys.getenv("MKL_NUM_THREADS", unset = "not set"),
             ", OPENBLAS=", Sys.getenv("OPENBLAS_NUM_THREADS", unset = "not set"))
     columns <- deep_merge(config$gwas$columns, trait_config(config, trait)$columns %||% list())
-    gwas <- load_serialized(file.path(config$output_dir, "02_gwas", paste0(trait, ".gwas.rds")))
     genotype <- load_serialized(file.path(config$output_dir, "02_gwas", paste0(trait, ".genotype.rds")))
     genotype <- align_genotype_to_coordinates(gwas, genotype, columns)
     snp_matrix <- load_serialized(file.path(config$output_dir, "02_accessibility", paste0(trait, ".snp_by_cell.rds")))
     peak_matrix <- load_serialized(file.path(config$output_dir, "02_accessibility", paste0(trait, ".peak_by_cell.rds")))
+    check_accessibility_matrix_build(snp_matrix, config$genome$build, "SNP LD input")
+    check_accessibility_matrix_build(peak_matrix, config$genome$build, "peak LD input")
     overlap <- utils::read.delim(
       file.path(config$output_dir, "02_accessibility", paste0(trait, ".snp_peak_overlap.tsv")),
       stringsAsFactors = FALSE, check.names = FALSE
