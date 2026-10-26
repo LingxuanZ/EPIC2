@@ -154,6 +154,7 @@ local({
     sep = "\t", quote = FALSE, row.names = FALSE
   )
   config <- EPIC2:::EPIC2_defaults()
+  config$genome$build <- "hg19"
   config$output_dir <- stage_dir
   config$project$output_dir <- stage_dir
   config$gwas$traits <- list(HDL = list())

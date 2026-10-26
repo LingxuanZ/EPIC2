@@ -145,7 +145,7 @@ genotype <- rbind(
   rs4 = c(0, 1, 1, 0)
 )
 colnames(genotype) <- paste0("sample", 1:4)
-harmonized <- harmonize_gwas(gwas, genotype, ld_prune = FALSE)
+harmonized <- harmonize_gwas(gwas, genotype, ld_prune = FALSE, genome_build = "hg19")
 stopifnot(identical(harmonized$gwas$rsid, c("rs1", "rs4")))
 stopifnot(identical(rownames(harmonized$genotype), c("rs1", "rs4")))
 stopifnot(all.equal(harmonized$gwas$EPIC2_reference_maf, c(0.375, 0.25)))
@@ -160,7 +160,7 @@ gwas_with_build <- gwas
 gwas_with_build$build <- "GRCh38"
 expect_error_message(
   harmonize_gwas(
-    gwas_with_build, genotype, ld_prune = FALSE,
+    gwas_with_build, genotype, ld_prune = FALSE, genome_build = "hg19",
     source_genome = "hg19", genome_column = "build"
   ),
   "metadata reports hg38"
@@ -170,12 +170,12 @@ genotype_with_missing <- genotype
 genotype_with_missing["rs1", "sample1"] <- NA_real_
 strict_missing <- harmonize_gwas(
   gwas, genotype_with_missing,
-  ld_prune = FALSE,
+  ld_prune = FALSE, genome_build = "hg19",
   reference_missing_rate_max = 0.2
 )
 relaxed_missing <- harmonize_gwas(
   gwas, genotype_with_missing,
-  ld_prune = FALSE,
+  ld_prune = FALSE, genome_build = "hg19",
   reference_missing_rate_max = 0.25
 )
 stopifnot(identical(strict_missing$gwas$rsid, "rs4"))
@@ -190,6 +190,7 @@ saveRDS(genotype, file.path(stage_dir, "dosage.rds"))
 saveRDS(apply(genotype, c(1, 2), function(value) c("0/0", "0/1", "1/1")[[value + 1L]]),
         file.path(stage_dir, "gt.rds"))
 config <- EPIC2:::EPIC2_defaults()
+config$genome$build <- "hg19"
 config$atac$input <- "unused.rds"
 config$.config_dir <- stage_dir
 config$output_dir <- file.path(stage_dir, "results")
@@ -229,6 +230,7 @@ invalid_config$atac$qc$frip_min <- 1.1
 expect_error_message(validate_EPIC2_config(invalid_config), "frip_min")
 
 hg38_config <- config
+hg38_config$genome$build <- "GRCh38"
 hg38_config$genome$target <- "GRCh38"
 hg38_config$atac$genome <- "hg38"
 hg38_config$gwas$genome <- "GRCh38"
@@ -236,7 +238,7 @@ validate_EPIC2_config(hg38_config)
 
 mixed_config <- config
 mixed_config$genome$target <- "hg38"
-expect_error_message(validate_EPIC2_config(mixed_config), "genome.chains.hg19_to_hg38")
+expect_error_message(validate_EPIC2_config(mixed_config), "genome.target")
 
 # Ridge inverse square root whitens matrix + ridge * I.
 sigma <- matrix(c(1, 0.3, 0.3, 1), 2, 2, dimnames = list(c("a", "b"), c("a", "b")))
