@@ -7,33 +7,35 @@ shown below are defaults unless marked as required.
 
 | Key | Default | Purpose |
 | --- | --- | --- |
-| `project.name` | `LDIAG analysis` | Human-readable run name. |
+| `project.name` | `EPIC2 analysis` | Human-readable run name. |
 | `project.output_dir` | `results` | Root for all generated files. |
 | `parameters.seed` | `1000` | Reproducible LD pruning and balanced sampling seed. |
 | `parameters.workers` | `1` | BiocParallel workers for fragment overlap calculations. |
 
-## Genome harmonization
+## Common genome assembly
 
 | Key | Default | Purpose |
 | --- | --- | --- |
-| `genome.target` | `hg19` | Common build for saved GWAS, SNP, peak, LD, and model inputs; accepts hg19/GRCh37 or hg38/GRCh38. |
-| `genome.chains.hg19_to_hg38` | null | Directional UCSC hg19-to-hg38 chain file. |
-| `genome.chains.hg38_to_hg19` | null | Directional UCSC hg38-to-hg19 chain file. |
-| `genome.unmapped_action` | `drop` | `drop` or `error` for ranges with no target mapping. |
-| `genome.multimapping_action` | `drop` | `drop` or `error` for ranges with multiple target mappings. |
-| `genome.duplicate_action` | `drop` | `drop` or `error` when multiple inputs produce the same target range. |
+| `genome.build` | **required; no default** | Assembly already shared by GWAS, ATAC peaks, and fragment coordinates. Accepts hg19/GRCh37 or hg38/GRCh38. |
+| `genome.duplicate_action` | `drop` | `drop` removes all rows at duplicated coordinates; `error` rejects them. |
 
-Input builds are explicit because coordinates alone cannot reliably distinguish
-hg19 from hg38. The software checks chromosome bounds and compares declared
-builds with available Seqinfo or GWAS metadata. A conversion requires the chain
-in the correct direction. ATAC-to-target is required when those builds differ.
-Target-to-ATAC is additionally required only for a GWAS that did not originate
-in the ATAC build; otherwise its preserved input coordinates are reused for
-source-build fragment queries.
+EPIC2 does not convert coordinates in its analysis pipeline. Harmonize all
+coordinate-bearing inputs before running it. Missing `genome.build` is an error,
+even when old assembly fields are present. GRCh37/hg19 and GRCh38/hg38 aliases
+are normalized to hg19 and hg38, respectively.
 
-The standard UCSC files are `hg19ToHg38.over.chain.gz` and
-`hg38ToHg19.over.chain.gz`. Keep local immutable copies and record their MD5;
-LDIAG also writes the observed chain MD5 into its QC output.
+Legacy `genome.target`, `atac.genome`, `gwas.genome`, and per-trait `genome`
+declarations are accepted only when each matches the common assembly. Missing
+legacy values inherit it. A conflicting, empty, or invalid explicit declaration
+is an error. Nonempty `genome.chains` is rejected; remove chain settings from
+pipeline configurations. The standalone `lift_genomic_ranges()` utility remains
+available for separate, explicitly requested preprocessing and is never called
+by the pipeline.
+
+Assembly metadata and chromosome bounds are checked where available. Missing
+metadata is reported as unavailable; coordinate bounds alone cannot identify a
+true assembly. Genotype dosage values do not require coordinate conversion, and
+variant identifier matching does not establish allele coding alignment.
 
 ## ATAC input and QC
 
@@ -42,7 +44,7 @@ LDIAG also writes the observed chain MD5 into its QC output.
 | `atac.input` | required | Seurat/Signac `.rds` or `.rda` object. |
 | `atac.object_name` | null | Object name when an `.rda` contains multiple objects. |
 | `atac.assay` | `ATAC` | Chromatin assay name. |
-| `atac.genome` | `hg19` | Declared build of both ATAC peaks and fragment files; hg19/GRCh37 or hg38/GRCh38. |
+| `atac.genome` | inherits `genome.build` | Optional legacy declaration; must match the common assembly. |
 | `atac.tissue_column` | `tissue` | Tissue metadata column. |
 | `atac.group_column` | `tissue_cell_type` | Column used for minimum group-size QC. |
 | `atac.attach_fragments` | `false` | Attach files listed under `atac.fragment_files`. |
@@ -61,7 +63,7 @@ LDIAG also writes the observed chain MD5 into its QC output.
 | `atac.qc.peak_min_total_counts` | `1` | Minimum total counts across cells for a peak. |
 | `atac.qc.peak_min_cells` | `1` | Minimum number of cells in which a peak is detected. |
 | `atac.qc.peak_autosomes_only` | `true` | Retain peaks on chromosomes 1-22 only. |
-| `atac.qc.peak_remove_blacklist` | `true` | Remove peaks using the Signac blacklist matching `atac.genome`. |
+| `atac.qc.peak_remove_blacklist` | `true` | Remove peaks using the Signac blacklist matching `genome.build`. |
 
 When `compute_qc_metrics` is false, the five QC metadata fields must already be
 present. Fragment objects must be attached before the accessibility stage even
@@ -75,7 +77,7 @@ and the data-derived ATAC count cutoff to `01_atac/qc_thresholds.tsv`.
 | `gwas.traits.<name>.summary` | required | Aligned GWAS table for one trait. |
 | `gwas.traits.<name>.genotype` | required | Matrix-like genotype object or probability array/list. |
 | `summary_object` / `genotype_object` | null | Object names for multi-object `.rda` inputs. |
-| `gwas.genome` | `hg19` | Default declared GWAS input build; each named GWAS may override it. |
+| `gwas.genome` | inherits `genome.build` | Optional legacy declaration; every per-GWAS declaration must also match. |
 | `gwas.genome_column` | null | Optional summary-statistics column containing build metadata to verify. |
 | `gwas.maf_min` | `0.05` | Minimum MAF in both GWAS and reference panel. |
 | `gwas.genotype_format` | `auto` | `dosage`, `hard_call`, `gt`, `allele`, `gp`, `gl`, `pl`, or automatic detection. |
@@ -106,8 +108,8 @@ effective settings and variant counts are written to each
 GWAS and genotype inputs may be `.rds`, `.rda/.RData`, `.csv[.gz]`,
 `.tsv[.gz]`, or `.txt[.gz]`. A text genotype table should place stable variant
 IDs in the configured `genotype_variant_id_column` and samples in the remaining
-columns. Genotype matrices are joined by those IDs; liftOver changes GWAS
-coordinates, not dosage values. Native PLINK/VCF/BGEN/GDS containers still need
+columns. Genotype matrices are joined by those IDs; coordinates come from the
+already harmonized GWAS table, and dosage values are not converted. Native PLINK/VCF/BGEN/GDS containers still need
 to be read or exported to a supported matrix first.
 
 `auto` accepts numeric allele dosage, biallelic GT strings, allele labels, and
