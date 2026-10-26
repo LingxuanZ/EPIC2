@@ -413,3 +413,119 @@ harmonize_gwas_coordinates <- function(gwas, columns, source_genome, target_geno
   list(gwas = result, input_index = lifted$input_index, liftover_qc = lifted$qc,
        metadata_qc = metadata_qc)
 }
+
+# Require one declared build; optional legacy declarations may only confirm it.
+assert_common_genome_build <- function(genome_build, declarations = list(),
+                                       label = "genome configuration") {
+  if (missing(genome_build) || is.null(genome_build)) {
+    stop(label, ": genome.build is required; supply hg19/GRCh37 or hg38/GRCh38.", call. = FALSE)
+  }
+  genome <- tryCatch(
+    normalize_genome_build(genome_build),
+    error = function(e) stop(label, ": invalid genome.build: ", conditionMessage(e), call. = FALSE)
+  )
+  if (!is.list(declarations)) {
+    stop(label, ": genome declarations must be a list.", call. = FALSE)
+  }
+  declaration_names <- names(declarations)
+  for (index in seq_along(declarations)) {
+    value <- declarations[[index]]
+    if (is.null(value)) next
+    path <- if (!is.null(declaration_names) && !is.na(declaration_names[[index]]) &&
+                nzchar(declaration_names[[index]])) {
+      declaration_names[[index]]
+    } else {
+      paste0("declarations[[", index, "]]")
+    }
+    declared <- tryCatch(
+      normalize_genome_build(value),
+      error = function(e) stop(label, ": invalid ", path, ": ", conditionMessage(e), call. = FALSE)
+    )
+    if (declared != genome) {
+      stop(
+        label, ": ", path, " declares ", declared, " but genome.build declares ", genome,
+        ". Harmonize all inputs to one build before running EPIC2; the pipeline does not convert coordinates.",
+        call. = FALSE
+      )
+    }
+  }
+  genome
+}
+
+# Validate existing coordinates without invoking the standalone liftOver helper.
+validate_genomic_ranges <- function(ranges, genome, duplicate_action = "drop", label = "ranges") {
+  require_namespaces(c("GenomicRanges", "IRanges", "S4Vectors"), "genome validation")
+  genome <- normalize_genome_build(genome)
+  duplicate_action <- match.arg(duplicate_action, c("drop", "error"))
+  metadata_qc <- check_range_genome_declaration(ranges, genome, label)
+  if (is.null(names(ranges))) names(ranges) <- paste0("range_", seq_along(ranges))
+  if (anyNA(names(ranges)) || any(!nzchar(names(ranges))) || anyDuplicated(names(ranges))) {
+    stop(label, " must have unique, non-empty range names before genome validation.", call. = FALSE)
+  }
+  ranges <- normalize_granges_seqnames(ranges)
+  validate_genome_coordinates(
+    as.character(GenomicRanges::seqnames(ranges)), GenomicRanges::start(ranges),
+    GenomicRanges::end(ranges), genome, label
+  )
+  coordinate <- paste0(
+    canonical_chr(as.character(GenomicRanges::seqnames(ranges))), "-",
+    GenomicRanges::start(ranges), "-", GenomicRanges::end(ranges)
+  )
+  duplicate <- duplicated(coordinate) | duplicated(coordinate, fromLast = TRUE)
+  n_duplicate <- sum(duplicate)
+  if (n_duplicate && duplicate_action == "error") {
+    stop(label, " contains ", n_duplicate, " duplicated coordinate range(s).", call. = FALSE)
+  }
+  input_index <- if (n_duplicate) which(!duplicate) else seq_along(ranges)
+  if (!length(input_index)) {
+    stop(label, " has no unique ranges after genome validation.", call. = FALSE)
+  }
+  result <- ranges[input_index]
+  qc <- liftover_qc_row(
+    genome, genome, length(ranges), length(ranges), 0L, 0L,
+    n_duplicate, length(result), NULL
+  )
+  qc$genome_build <- genome
+  qc$operation <- "validation_only"
+  qc$conversion_performed <- FALSE
+  qc$metadata_status <- metadata_qc$metadata_status
+  list(ranges = result, input_index = input_index, qc = qc)
+}
+
+validate_gwas_coordinates <- function(gwas, columns, genome, genome_column = NULL,
+                                      duplicate_action = "drop", gwas_name = NULL) {
+  label <- if (is.null(gwas_name)) "GWAS" else paste0("GWAS '", gwas_name, "'")
+  genome <- normalize_genome_build(genome)
+  duplicate_action <- match.arg(duplicate_action, c("drop", "error"))
+  metadata_qc <- check_table_genome_declaration(gwas, genome, genome_column, label)
+  chromosome <- canonical_chr(gwas[[columns$chr]])
+  position <- suppressWarnings(as.integer(gwas[[columns$pos]]))
+  validate_genome_coordinates(chromosome, position, position, genome, label)
+  coordinate <- paste0(chromosome, "-", position)
+  duplicate <- duplicated(coordinate) | duplicated(coordinate, fromLast = TRUE)
+  n_duplicate <- sum(duplicate)
+  if (n_duplicate && duplicate_action == "error") {
+    stop(label, " contains ", n_duplicate, " duplicated coordinate(s).", call. = FALSE)
+  }
+  input_index <- if (n_duplicate) which(!duplicate) else seq_len(nrow(gwas))
+  if (!length(input_index)) {
+    stop(label, " has no unique coordinates after genome validation.", call. = FALSE)
+  }
+  result <- gwas[input_index, , drop = FALSE]
+  result$EPIC2_input_chr <- as.character(gwas[[columns$chr]][input_index])
+  result$EPIC2_input_pos <- position[input_index]
+  result$EPIC2_input_genome <- genome
+  result$EPIC2_target_genome <- genome
+  result[[columns$chr]] <- sub("^chr", "", chromosome[input_index], ignore.case = TRUE)
+  result[[columns$pos]] <- position[input_index]
+  attr(result, "genome") <- genome
+  qc <- liftover_qc_row(
+    genome, genome, nrow(gwas), nrow(gwas), 0L, 0L,
+    n_duplicate, length(input_index), NULL
+  )
+  qc$genome_build <- genome
+  qc$operation <- "validation_only"
+  qc$conversion_performed <- FALSE
+  qc$metadata_status <- metadata_qc$metadata_status
+  list(gwas = result, input_index = input_index, genome_qc = qc, metadata_qc = metadata_qc)
+}
