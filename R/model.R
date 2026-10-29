@@ -4,10 +4,9 @@ one_sided_p_greater <- function(statistic, degrees_freedom) {
 
 #' Fit group-wise LD-whitened linear models
 #'
-#' To reproduce the notebook, the response and complete raw design are first
-#' transformed by the inverse square-root covariance matrix. The transformed
-#' intercept column is then discarded, and the fit uses an ordinary intercept
-#' together with the transformed focal and baseline predictors.
+#' The response and complete raw design, including the intercept, are
+#' transformed by the inverse square-root covariance matrix. The fit retains
+#' all transformed design columns to preserve the original-scale linear model.
 #'
 #' @param response Named response vector.
 #' @param predictors Named list of group-specific predictor vectors.
@@ -55,12 +54,8 @@ fit_whitened_groups <- function(response, predictors, baseline, inverse_sqrt,
     design <- cbind(intercept = 1, predictor = x, baseline = base)
     transformed_design <- as.matrix(whitening %*% design)
     transformed_response <- as.numeric(whitening %*% y)
-    # Match the notebook's lm() call after its transformed intercept was dropped.
-    fit_design <- cbind(
-      intercept = 1,
-      predictor = transformed_design[, "predictor"],
-      baseline = transformed_design[, "baseline"]
-    )
+    # Retain the transformed intercept along with both transformed predictors.
+    fit_design <- transformed_design
     qr_design <- qr(fit_design)
     if (qr_design$rank < ncol(fit_design)) {
       return(data.frame(
