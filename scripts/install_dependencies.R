@@ -21,5 +21,5 @@ if (!requireNamespace("Signac", quietly = TRUE)) {
 }
 
 if (!requireNamespace("presto", quietly = TRUE)) {
-  remotes::install_github("immunogenomics/presto")
+  remotes::install_github("immunogenomics/presto@b5df6ee6097eb62522f2e557aa93ac21bab2d05f", upgrade = "never")
 }

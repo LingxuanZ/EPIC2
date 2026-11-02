@@ -34,22 +34,23 @@ plot_group_cell_counts <- function(table, base_size = 11) {
     ggplot2::labs(title = "Retained nuclei by annotation group", x = "Nuclei", y = NULL)
 }
 
-plot_atac_qc_metrics <- function(atac, settings) {
+plot_atac_qc_metrics <- function(atac, settings, assay = "ATAC") {
   metadata <- get_atac_metadata(atac)
-  metrics <- c("nCount_ATAC", "TSS.enrichment", "FRIP", "BlacklistRatio", "nucleosome_signal")
+  count_column <- paste0("nCount_", assay)
+  metrics <- c(count_column, "TSS.enrichment", "FRIP", "BlacklistRatio", "nucleosome_signal")
   metrics <- metrics[metrics %in% colnames(metadata)]
   if (!length(metrics)) return(NULL)
   index <- evenly_spaced_indices(nrow(metadata), settings$max_umap_cells)
   rows <- lapply(metrics, function(metric) {
     value <- suppressWarnings(as.numeric(metadata[index, metric]))
-    if (metric == "nCount_ATAC") value <- log10(pmax(value, 0) + 1)
+    if (metric == count_column) value <- log10(pmax(value, 0) + 1)
     data.frame(metric = metric, value = value, stringsAsFactors = FALSE)
   })
   data <- do.call(rbind, rows)
   data <- data[is.finite(data$value), , drop = FALSE]
   data$metric <- factor(
     data$metric, levels = metrics,
-    labels = ifelse(metrics == "nCount_ATAC", "log10(nCount_ATAC + 1)", metrics)
+    labels = ifelse(metrics == count_column, paste0("log10(", count_column, " + 1)"), metrics)
   )
   ggplot2::ggplot(data, ggplot2::aes(value)) +
     ggplot2::geom_histogram(bins = 60, fill = "#5B8DB8", color = "white", linewidth = 0.15) +
@@ -79,12 +80,13 @@ plot_peak_detection_distribution <- function(atac, assay = "ATAC", base_size = 1
     )
 }
 
-plot_atac_density_scatter <- function(atac, settings) {
+plot_atac_density_scatter <- function(atac, settings, assay = "ATAC") {
   metadata <- get_atac_metadata(atac)
-  if (!all(c("nCount_ATAC", "TSS.enrichment") %in% colnames(metadata))) return(NULL)
+  count_column <- paste0("nCount_", assay)
+  if (!all(c(count_column, "TSS.enrichment") %in% colnames(metadata))) return(NULL)
   index <- evenly_spaced_indices(nrow(metadata), settings$max_umap_cells)
   data <- data.frame(
-    count = log10(pmax(as.numeric(metadata$nCount_ATAC[index]), 0) + 1),
+    count = log10(pmax(as.numeric(metadata[[count_column]][index]), 0) + 1),
     tss = as.numeric(metadata$TSS.enrichment[index])
   )
   data <- data[stats::complete.cases(data), , drop = FALSE]
@@ -94,7 +96,7 @@ plot_atac_density_scatter <- function(atac, settings) {
     publication_theme(settings$base_size) +
     ggplot2::labs(
       title = "ATAC fragment depth and TSS enrichment",
-      x = "log10(nCount_ATAC + 1)", y = "TSS enrichment", fill = "Nuclei"
+      x = paste0("log10(", count_column, " + 1)"), y = "TSS enrichment", fill = "Nuclei"
     )
 }
 
@@ -138,8 +140,9 @@ plot_gwas_filtering_waterfall <- function(table, base_size = 11) {
   stages <- c(
     n_input = "Input", n_reference_matched = "Reference matched",
     n_after_reference_missing = "Missingness QC", n_after_maf = "MAF QC",
-    n_after_ambiguous = "Ambiguous removed", n_after_coordinate_validation = "Coordinates validated",
-    n_after_autosomal = "Autosomes", n_after_ld_prune = "LD pruned", n_final = "Final"
+    n_after_coordinate_validation = "Coordinates validated", n_after_autosomal = "Autosomes",
+    n_after_effect_qc = "Effect statistics QC", n_after_ld_prune = "LD pruned",
+    n_after_ambiguous = "Ambiguous removed", n_final = "Final"
   )
   available <- names(stages)[names(stages) %in% colnames(table)]
   rows <- lapply(seq_len(nrow(table)), function(index) data.frame(

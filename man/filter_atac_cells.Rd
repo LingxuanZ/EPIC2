@@ -6,12 +6,14 @@
 Filter nuclei using manuscript QC thresholds.
 }
 \usage{
-filter_atac_cells(atac, thresholds = list(), group_column = "tissue_cell_type") 
+filter_atac_cells(atac, thresholds = list(), group_column = "tissue_cell_type",
+  assay = "ATAC") 
 }
 \arguments{
   \item{atac}{A Seurat/Signac object.}
   \item{thresholds}{Named list of cell-level thresholds.}
   \item{group_column}{Metadata column used for minimum group size filtering.}
+  \item{assay}{Chromatin assay name; cell counts are read from \code{nCount_<assay>}.}
 }
 \value{
 The filtered object.

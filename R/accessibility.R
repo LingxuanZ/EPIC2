@@ -279,12 +279,20 @@ compute_cell_scale <- function(atac, assay = "ATAC") {
 #' @export
 run_accessibility_stage <- function(config, traits = names(config$gwas$traits)) {
   config <- normalize_common_genome_config(config)
+  lock <- acquire_stage_lock(config, "accessibility")
+  on.exit(unlink(lock, recursive = TRUE), add = TRUE)
   output_dir <- stage_output_dir(config, "02_accessibility")
   atac_path <- file.path(config$output_dir, "01_atac", "atac.qc.rds")
   atac <- load_serialized(atac_path)
   outputs <- setNames(vector("list", length(traits)), traits)
 
   for (trait in traits) {
+    gwas_receipt <- file.path(config$output_dir, "02_gwas", paste0(trait, ".gwas_receipt.rds"))
+    if (file.exists(gwas_receipt)) validate_stage_receipt(gwas_receipt, gwas_stage_settings(config, trait))
+    receipt_path <- file.path(output_dir, paste0(trait, ".accessibility_receipt.rds"))
+    unlink(receipt_path)
+    input_hashes <- file_fingerprints(c(atac_path,
+      file.path(config$output_dir, "02_gwas", paste0(trait, c(".gwas.rds", ".genotype.rds")))))
     gwas <- load_serialized(file.path(config$output_dir, "02_gwas", paste0(trait, ".gwas.rds")))
     genotype <- load_serialized(file.path(config$output_dir, "02_gwas", paste0(trait, ".genotype.rds")))
     columns <- deep_merge(config$gwas$columns, trait_config(config, trait)$columns %||% list())
@@ -318,6 +326,9 @@ run_accessibility_stage <- function(config, traits = names(config$gwas$traits)) 
       cbind(step = "peak_output", peak$genome_qc$peak_output, stringsAsFactors = FALSE)
     )
     write_table(genome_qc, genome_qc_path)
+    write_stage_receipt(receipt_path, input_hashes, c(snp_path, peak_path, overlap_path, genotype_path),
+                        list(genome = config$genome$build, assay = config$atac$assay,
+                             duplicate_action = config$genome$duplicate_action))
     outputs[[trait]] <- list(
       snp = snp_path, peak = peak_path, overlap = overlap_path,
       genotype = genotype_path, genome_qc = genome_qc_path
@@ -328,4 +339,14 @@ run_accessibility_stage <- function(config, traits = names(config$gwas$traits)) 
     )
   }
   outputs
+}
+
+validate_prepared_inputs <- function(config, trait) {
+  gwas_path <- file.path(config$output_dir, "02_gwas", paste0(trait, ".gwas_receipt.rds"))
+  if (file.exists(gwas_path)) validate_stage_receipt(gwas_path, gwas_stage_settings(config, trait))
+  accessibility_path <- file.path(config$output_dir, "02_accessibility", paste0(trait, ".accessibility_receipt.rds"))
+  if (file.exists(accessibility_path)) validate_stage_receipt(accessibility_path,
+    list(genome = config$genome$build, assay = config$atac$assay,
+         duplicate_action = config$genome$duplicate_action))
+  invisible(TRUE)
 }

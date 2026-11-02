@@ -117,18 +117,52 @@ compute_snp_ld_covariance <- function(genotype, gwas,
   as_general_csparse(sigma)
 }
 
+dense_ld_block_limit_valid <- function(limit) {
+  is.numeric(limit) && length(limit) == 1L && !is.na(limit) &&
+    limit >= 1 && (is.infinite(limit) || limit == floor(limit))
+}
+
+check_dense_ld_block <- function(size, max_dense_block_size = 5000L,
+                                context = "LD inverse square root") {
+  if (!dense_ld_block_limit_valid(max_dense_block_size)) {
+    stop("max_dense_block_size must be one positive integer or Inf.", call. = FALSE)
+  }
+  # This estimate is a planning aid, not a peak-RAM bound. LAPACK workspaces,
+  # input objects and retained blocks can increase total process memory.
+  matrix_gib <- 8 * as.double(size)^2 / 1024^3
+  if (size > max_dense_block_size) {
+    stop(
+      context, " requires a dense ", size, " x ", size, " block: one double matrix = ",
+      formatC(matrix_gib, digits = 3L, format = "f"), " GiB; six-matrix planning estimate = ",
+      formatC(6 * matrix_gib, digits = 3L, format = "f"), " GiB (actual peak may be higher). ",
+      "This exceeds max_dense_block_size = ", max_dense_block_size, ". ",
+      "The block has not been converted or decomposed. After checking available memory, ",
+      "deliberately raise ld.max_dense_block_size (or the function argument); ",
+      "Inf, written .inf in YAML, disables this guard. ",
+      "Changing the LD window would change the statistical model.",
+      call. = FALSE
+    )
+  }
+  invisible(matrix_gib)
+}
+
 #' Compute a ridge-stabilized inverse square root
 #'
 #' @param matrix Symmetric square matrix.
 #' @param ridge Nonnegative ridge added to every eigenvalue.
 #' @param eigen_tolerance Lower eigenvalue floor.
+#' @param max_dense_block_size Maximum dense block dimension before allocation;
+#'   a positive integer or `Inf` to deliberately disable the guard.
 #' @return Dense symmetric inverse square-root matrix.
 #' @export
-compute_inverse_sqrt <- function(matrix, ridge = 0.01, eigen_tolerance = 1e-8) {
-  matrix <- as.matrix(matrix)
-  if (nrow(matrix) == 0L || nrow(matrix) != ncol(matrix)) {
+compute_inverse_sqrt <- function(matrix, ridge = 0.01, eigen_tolerance = 1e-8,
+                                 max_dense_block_size = 5000L) {
+  shape <- dim(matrix)
+  if (length(shape) != 2L || shape[[1L]] == 0L || shape[[1L]] != shape[[2L]]) {
     stop("matrix must be a nonempty square matrix.", call. = FALSE)
   }
+  check_dense_ld_block(shape[[1L]], max_dense_block_size)
+  matrix <- as.matrix(matrix)
   matrix <- (matrix + t(matrix)) / 2
   eig <- eigen(matrix, symmetric = TRUE)
   value <- pmax(eig$values, eigen_tolerance) + ridge
@@ -155,10 +189,14 @@ split_sparse_components <- function(matrix) {
   groups
 }
 
-inverse_sqrt_components <- function(sigma, ridge, eigen_tolerance) {
+inverse_sqrt_components <- function(sigma, ridge, eigen_tolerance,
+                                    max_dense_block_size = 5000L) {
   require_namespaces("Matrix", "block inverse square roots")
   components <- split_sparse_components(sigma)
   sizes <- lengths(components)
+  # Inspect every component before allocating even the first dense block.
+  check_dense_ld_block(max(sizes), max_dense_block_size,
+                       "Largest LD connected component")
   message("[LD] Inverse square root: ", length(components),
           " connected components; largest = ", max(sizes), " features")
   matrices <- lapply(seq_along(components), function(index) {
@@ -171,7 +209,8 @@ inverse_sqrt_components <- function(sigma, ridge, eigen_tolerance) {
               " (one dense matrix ~", round(8 * length(ids)^2 / 1024^3, 2),
               " GiB; eigendecomposition needs additional memory)")
     }
-    result <- compute_inverse_sqrt(sigma[ids, ids, drop = FALSE], ridge, eigen_tolerance)
+    result <- compute_inverse_sqrt(sigma[ids, ids, drop = FALSE], ridge, eigen_tolerance,
+                                    max_dense_block_size)
     if (report) message("[LD] Eigen block ", index, " finished in ",
                         round(proc.time()[["elapsed"]] - started, 1), " seconds")
     result
@@ -195,25 +234,31 @@ inverse_sqrt_components <- function(sigma, ridge, eigen_tolerance) {
 #' @param ridge Ridge used for within-peak and response covariance matrices.
 #' @param eigen_tolerance Eigenvalue floor.
 #' @param max_snps_for_chr_ld Maximum variants for caching a chromosome LD matrix.
+#' @param max_dense_block_size Maximum dense block dimension for within-peak
+#'   inverses and covariance components; a positive integer or `Inf`.
 #' @return List containing peak response, covariance, and inverse square root.
 #' @export
 build_peak_ld_model <- function(gwas, genotype, peak_matrix, overlap,
                                 window_bp = 5000000L, ridge = 0.01,
                                 eigen_tolerance = 1e-8,
-                                max_snps_for_chr_ld = 15000L) {
+                                max_snps_for_chr_ld = 15000L,
+                                max_dense_block_size = 5000L) {
   build_peak_ld_model_impl(
     gwas, genotype, peak_matrix, overlap, window_bp, ridge,
-    eigen_tolerance, max_snps_for_chr_ld
+    eigen_tolerance, max_snps_for_chr_ld,
+    max_dense_block_size = max_dense_block_size
   )
 }
 
-# The public API stays unchanged. Only stage 03 requests intermediate files;
+# Only stage 03 requests intermediate files;
 # these are diagnostic checkpoints, not automatically reused caches.
 build_peak_ld_model_impl <- function(gwas, genotype, peak_matrix, overlap,
                                      window_bp = 5000000L, ridge = 0.01,
                                      eigen_tolerance = 1e-8,
                                      max_snps_for_chr_ld = 15000L,
-                                     checkpoint_prefix = NULL) {
+                                     checkpoint_prefix = NULL,
+                                     max_dense_block_size = 5000L) {
+  check_dense_ld_block(0L, max_dense_block_size)
   require_namespaces(c("Matrix", "Signac", "GenomicRanges"), "peak LD model")
   validate_named_matrix(genotype, "peak-model genotype")
   validate_named_matrix(peak_matrix, "peak accessibility")
@@ -242,12 +287,13 @@ build_peak_ld_model_impl <- function(gwas, genotype, peak_matrix, overlap,
     snps <- snps[keep]
     z <- as.numeric(z[keep])
     if (length(snps) == 0L) return(NULL)
+    check_dense_ld_block(length(snps), max_dense_block_size, "Within-peak SNP LD")
     r <- ld_from_scaled(scaled, snps, snps)
     # Match the Rmd's single-SNP shortcut while retaining the configured floor.
     inverse <- if (length(snps) == 1L) {
       matrix(1 / sqrt(max(r[[1L]], eigen_tolerance) + ridge),
              nrow = 1L, dimnames = dimnames(r))
-    } else compute_inverse_sqrt(r, ridge, eigen_tolerance)
+    } else compute_inverse_sqrt(r, ridge, eigen_tolerance, max_dense_block_size)
     y <- sum(as.numeric(inverse %*% z)^2) / length(snps)
     if (!is.finite(y)) return(NULL)
     list(snps = snps, k = length(snps), y = y, inverse = inverse)
@@ -281,6 +327,7 @@ build_peak_ld_model_impl <- function(gwas, genotype, peak_matrix, overlap,
   pair_j <- integer(capacity)
   pair_x <- numeric(capacity)
   count <- 0L
+  chromosome_cache_limit <- min(max_snps_for_chr_ld, max_dense_block_size)
   for (chromosome in sort(unique(peak_table$chr_order))) {
     chromosome_started <- proc.time()[["elapsed"]]
     previous_count <- count
@@ -289,8 +336,8 @@ build_peak_ld_model_impl <- function(gwas, genotype, peak_matrix, overlap,
     chromosome_snps <- intersect(chromosome_snps, colnames(scaled))
     message("[LD] Peak covariance: chr", chromosome, ", ", nrow(table_chr),
             " peaks, ", length(chromosome_snps), " SNPs; ",
-            if (length(chromosome_snps) <= max_snps_for_chr_ld) "cached LD" else "pairwise LD")
-    cached <- if (length(chromosome_snps) <= max_snps_for_chr_ld) {
+            if (length(chromosome_snps) <= chromosome_cache_limit) "cached LD" else "pairwise LD")
+    cached <- if (length(chromosome_snps) <= chromosome_cache_limit) {
       ld_from_scaled(scaled, chromosome_snps, chromosome_snps)
     } else NULL
     right_boundary <- findInterval(table_chr$end + window_bp, table_chr$start)
@@ -348,7 +395,7 @@ build_peak_ld_model_impl <- function(gwas, genotype, peak_matrix, overlap,
   }
   rm(pair_i, pair_j, pair_x, scaled, peak_info)
   message("[LD] Peak covariance complete; starting peak inverse square root")
-  inverse <- inverse_sqrt_components(sigma, ridge, eigen_tolerance)
+  inverse <- inverse_sqrt_components(sigma, ridge, eigen_tolerance, max_dense_block_size)
   list(
     response = y[peak_ids],
     sigma = sigma,
@@ -368,6 +415,24 @@ align_genotype_to_coordinates <- function(gwas, genotype, columns) {
   genotype
 }
 
+ld_stage_settings <- function(config, trait) {
+  list(genome = config$genome$build,
+       columns = deep_merge(config$gwas$columns, trait_config(config, trait)$columns %||% list()),
+       ld = config$ld[c("window_bp", "ridge", "eigen_tolerance")])
+}
+
+validate_ld_completion <- function(config, trait) {
+  validate_prepared_inputs(config, trait)
+  prefix <- file.path(config$output_dir, "03_ld", trait)
+  runtime_path <- paste0(prefix, ".ld_runtime.tsv")
+  if (!file.exists(runtime_path)) stop("Missing LD completion status for ", trait, "; rerun LD.", call. = FALSE)
+  runtime <- utils::read.delim(runtime_path, stringsAsFactors = FALSE)
+  if (!identical(runtime$value[runtime$setting == "status"], "COMPLETED")) {
+    stop("LD is incomplete for ", trait, "; rerun LD before model fitting.", call. = FALSE)
+  }
+  validate_stage_receipt(paste0(prefix, ".ld_receipt.rds"), ld_stage_settings(config, trait))
+}
+
 #' Build local SNP- and peak-level LD models
 #'
 #' @param config Parsed EPIC2 configuration.
@@ -376,11 +441,14 @@ align_genotype_to_coordinates <- function(gwas, genotype, columns) {
 #' @export
 run_ld_stage <- function(config, traits = names(config$gwas$traits)) {
   config <- normalize_common_genome_config(config)
+  lock <- acquire_stage_lock(config, "ld")
+  on.exit(unlink(lock, recursive = TRUE), add = TRUE)
   output_dir <- stage_output_dir(config, "03_ld")
   outputs <- setNames(vector("list", length(traits)), traits)
   for (trait in traits) {
     gwas <- load_serialized(file.path(config$output_dir, "02_gwas", paste0(trait, ".gwas.rds")))
     check_prepared_gwas_build(gwas, config$genome$build)
+    validate_prepared_inputs(config, trait)
     prefix <- file.path(output_dir, trait)
     paths <- list(
       snp_sigma = paste0(prefix, ".snp_sigma.rds"),
@@ -405,11 +473,19 @@ run_ld_stage <- function(config, traits = names(config$gwas$traits)) {
       eigen_tolerance = as.character(config$ld$eigen_tolerance),
       correlation_block_size = as.character(config$ld$correlation_block_size),
       max_snps_for_chr_ld = as.character(config$ld$max_snps_for_chr_ld %||% 15000L),
+      max_dense_block_size = as.character(config$ld$max_dense_block_size %||% 5000L),
       configured_workers = as.character(config$parameters$workers),
       Sys.getenv(thread_variables, unset = "not set")
     )
     write_table(data.frame(setting = names(runtime), value = unname(runtime)),
                 paste0(prefix, ".ld_runtime.tsv"))
+    receipt_path <- paste0(prefix, ".ld_receipt.rds")
+    unlink(receipt_path)
+    input_paths <- c(
+      file.path(config$output_dir, "02_gwas", paste0(trait, c(".gwas.rds", ".genotype.rds"))),
+      file.path(config$output_dir, "02_accessibility", paste0(trait, c(".snp_by_cell.rds", ".peak_by_cell.rds", ".snp_peak_overlap.tsv")))
+    )
+    input_hashes <- file_fingerprints(input_paths)
     message("[LD] ", trait, ": ld-rmd-storage-v1; loading completed stage 02 inputs")
     message("[LD] LD loops are serial; BLAS threading is determined at R startup. ",
             "OMP=", Sys.getenv("OMP_NUM_THREADS", unset = "not set"),
@@ -442,7 +518,8 @@ run_ld_stage <- function(config, traits = names(config$gwas$traits)) {
     save_rds_atomic(snp_sigma, paths$snp_sigma)
     message("[LD] Saved SNP covariance; starting SNP inverse square root")
     snp_inverse <- inverse_sqrt_components(
-      snp_sigma, config$ld$ridge, config$ld$eigen_tolerance
+      snp_sigma, config$ld$ridge, config$ld$eigen_tolerance,
+      max_dense_block_size = config$ld$max_dense_block_size %||% 5000L
     )
     save_rds_atomic(snp_inverse$matrix, paths$snp_inverse)
     save_rds_atomic(snp_inverse$indices, paths$snp_blocks)
@@ -454,10 +531,13 @@ run_ld_stage <- function(config, traits = names(config$gwas$traits)) {
       ridge = config$ld$ridge,
       eigen_tolerance = config$ld$eigen_tolerance,
       max_snps_for_chr_ld = config$ld$max_snps_for_chr_ld %||% 15000L,
-      checkpoint_prefix = prefix
+      checkpoint_prefix = prefix,
+      max_dense_block_size = config$ld$max_dense_block_size %||% 5000L
     )
 
     save_rds_atomic(peak_model, paths$peak_model)
+    write_stage_receipt(receipt_path, input_hashes, unlist(paths, use.names = FALSE),
+                        ld_stage_settings(config, trait))
     # An interrupted rerun may leave older files alongside new checkpoints.
     # Only COMPLETED marks all outputs as belonging to this finished run.
     runtime[["status"]] <- "COMPLETED"

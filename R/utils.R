@@ -96,17 +96,71 @@ save_rds_atomic <- function(object, path, compress = TRUE) {
 
 write_table <- function(x, path) {
   ensure_dir(dirname(path))
+  tmp <- tempfile(pattern = paste0(basename(path), "."), tmpdir = dirname(path))
+  on.exit(unlink(tmp), add = TRUE)
   if (requireNamespace("data.table", quietly = TRUE)) {
-    data.table::fwrite(x, path, sep = "\t", na = "NA")
+    data.table::fwrite(x, tmp, sep = "\t", na = "NA")
   } else {
-    utils::write.table(x, path, sep = "\t", quote = FALSE, row.names = FALSE)
+    utils::write.table(x, tmp, sep = "\t", quote = FALSE, row.names = FALSE)
   }
+  if (!file.rename(tmp, path)) stop("Unable to write output: ", path, call. = FALSE)
   invisible(path)
 }
 
+acquire_stage_lock <- function(config, stage) {
+  ensure_dir(config$output_dir)
+  path <- file.path(config$output_dir, ".EPIC2-stage-lock")
+  if (!dir.create(path, showWarnings = FALSE)) {
+    stop("Another stage is using this output directory, or an interrupted run left a lock: ",
+         path, ". Check owner.txt and stop the previous process before removing a stale lock. ",
+         "Use separate output directories for concurrent jobs.", call. = FALSE)
+  }
+  writeLines(c(paste("stage", stage), paste("pid", Sys.getpid()),
+               paste("host", Sys.info()[["nodename"]]),
+               paste("started_utc", format(Sys.time(), tz = "UTC", usetz = TRUE))),
+             file.path(path, "owner.txt"))
+  path
+}
+
+file_fingerprints <- function(paths) {
+  if (!length(paths) || any(!file.exists(paths))) {
+    stop("Missing stage input or output: ", paste(paths[!file.exists(paths)], collapse = ", "), call. = FALSE)
+  }
+  result <- unname(tools::md5sum(paths))
+  if (anyNA(result)) stop("Unable to checksum stage files.", call. = FALSE)
+  setNames(result, paths)
+}
+
+write_stage_receipt <- function(path, inputs, outputs, settings) {
+  save_rds_atomic(list(version = as.character(utils::packageVersion("EPIC2")),
+                       settings = settings, inputs = inputs,
+                       outputs = file_fingerprints(outputs)), path)
+}
+
+validate_stage_receipt <- function(path, settings = NULL) {
+  if (!file.exists(path)) stop("Missing completion record: ", path,
+                               ". Rerun the producing stage with this EPIC2 version.", call. = FALSE)
+  receipt <- readRDS(path)
+  if (!identical(receipt$version, as.character(utils::packageVersion("EPIC2"))) ||
+      (!is.null(settings) && !identical(receipt$settings, settings))) {
+    stop("Stage version or settings changed; rerun the producing stage: ", path, call. = FALSE)
+  }
+  for (kind in c("inputs", "outputs")) {
+    expected <- receipt[[kind]]
+    actual <- file_fingerprints(names(expected))
+    if (!identical(actual, expected)) stop("Stage ", kind, " changed since completion: ", path,
+                                          ". Rerun the producing stage.", call. = FALSE)
+  }
+  invisible(receipt)
+}
+
 normalize_chr <- function(chr, prefix = TRUE) {
-  x <- sub("^chr", "", as.character(chr), ignore.case = TRUE)
-  if (prefix) paste0("chr", x) else x
+  x <- sub("^chr", "", trimws(as.character(chr)), ignore.case = TRUE)
+  x[toupper(x) %in% c("X", "Y", "M", "MT")] <- toupper(x[toupper(x) %in% c("X", "Y", "M", "MT")])
+  missing <- is.na(x) | !nzchar(x)
+  if (prefix) x <- paste0("chr", x)
+  x[missing] <- NA_character_
+  x
 }
 
 chr_to_order <- function(chr) {

@@ -54,7 +54,7 @@ variant identifier matching does not establish allele coding alignment.
 | `atac.recompute_embedding` | `false` | Re-run TF-IDF, LSI, UMAP, neighbors, and clustering after QC. |
 | `atac.qc.tss_min` | `2.5` | Minimum TSS enrichment. |
 | `atac.qc.frip_min` | `0.3` | Minimum fraction of fragments in peaks. |
-| `atac.qc.count_quantile_min` | `0.01` | Remove cells below this ATAC-count quantile. |
+| `atac.qc.count_quantile_min` | `0.01` | Remove cells below this ATAC-count quantile, calculated after TSS and FRIP filtering. |
 | `atac.qc.blacklist_max` | `0.02` | Exclusive upper blacklist-fragment ratio. |
 | `atac.qc.nucleosome_max` | `4` | Maximum nucleosome signal. |
 | `atac.qc.min_cells_per_group` | `50` | Minimum retained cells per annotation group. |
@@ -66,7 +66,8 @@ variant identifier matching does not establish allele coding alignment.
 | `atac.qc.peak_remove_blacklist` | `true` | Remove peaks using the Signac blacklist matching `genome.build`. |
 
 When `compute_qc_metrics` is false, the five QC metadata fields must already be
-present. Fragment objects must be attached before the accessibility stage even
+present. The count field is derived from `atac.assay`: `nCount_ATAC` for `ATAC`,
+`nCount_peaks` for `peaks`, and likewise for other assay names. Fragment objects must be attached before the accessibility stage even
 if QC metrics are precomputed. The ATAC stage writes both the configured values
 and the data-derived ATAC count cutoff to `01_atac/qc_thresholds.tsv`.
 
@@ -83,10 +84,10 @@ and the data-derived ATAC count cutoff to `01_atac/qc_thresholds.tsv`.
 | `gwas.genotype_format` | `auto` | `dosage`, `hard_call`, `gt`, `allele`, `gp`, `gl`, `pl`, or automatic detection. |
 | `gwas.genotype_orientation` | `auto` | `variants_by_samples`, `samples_by_variants`, or infer from rsIDs. |
 | `gwas.genotype_ploidy` | `2` | Allele copy number used to derive reference frequency. |
-| `gwas.genotype_missing_values` | `[-9]` | Additional input values decoded as missing. |
+| `gwas.genotype_missing_values` | `[-9]` | Additional missing-value codes; finite numeric GL states remain likelihood values (see below). |
 | `gwas.genotype_variant_id_column` | null | Variant ID column for genotype data-frame input. |
 | `gwas.reference_missing_rate_max` | `0.01` | Maximum missing reference genotypes per variant. |
-| `gwas.remove_ambiguous` | `true` | Remove A/T, T/A, C/G, and G/C variants. |
+| `gwas.remove_ambiguous` | `true` | Remove A/T, T/A, C/G, and G/C variants after pruning (documented order). |
 | `gwas.ld_prune` | `true` | Perform SNPRelate pruning. |
 | `gwas.ld_prune_tool` | `snprelate` | LD-pruning backend; only SNPRelate is integrated in this release. |
 | `gwas.ld_prune_noninteger` | `error` | Reject continuous dosage during pruning, or `round` to opt into nearest hard calls. |
@@ -128,6 +129,18 @@ exact allele frequency. Numeric `0/1` with diploid ploidy is likewise ambiguous
 under `auto`; declare `dosage` only for true allele counts, or set ploidy to `1`
 for haploid calls.
 
+For explicit `gl` input, finite numeric states such as `-9` are valid log10
+likelihoods and are never replaced by numeric missing codes inside a likelihood
+vector, array, or state-matrix list. For example, `0,-9,-18` is a called genotype
+and `-9,-9,-9` is an uninformative called vector. Use `NA` or nonnumeric missing
+tokens for missing array/list states. A scalar text genotype cell consisting
+only of a configured code, such as `"-9"`, is still missing. Other genotype
+formats retain their existing missing-code behavior.
+
+Finite effect estimates, finite positive standard errors, and finite derived
+Z-scores are required before LD pruning, so an unusable summary-statistic row
+cannot displace a usable linked variant.
+
 SNPRelate pruning operates on diploid `0/1/2` hard calls. Haploid dosage is
 scaled exactly to `0/2`. Continuous dosage, GP/GL/PL-derived expected dosage, and
 polyploid values that do not map exactly require either
@@ -155,8 +168,9 @@ input.
 | `ld.ridge` | `0.01` | Ridge added before inverse square roots. |
 | `ld.eigen_tolerance` | `1e-8` | Eigenvalue floor before ridge regularization. |
 | `ld.correlation_block_size` | `256` | Focal variants per vectorized BLAS correlation block; performance-only setting. |
-| `ld.max_snps_for_chr_ld` | `15000` | Cache full chromosome LD below this size; otherwise calculate peak-pair LD on demand. |
-| `wrs.truncation_quantiles` | `[0.02, 0.98]` | Winsorization limits for enrichment-oriented Wilcoxon Z-scores. |
+| `ld.max_snps_for_chr_ld` | `15000` | Maximum variants for optional chromosome LD caching; also capped by `ld.max_dense_block_size`. Above the smaller limit, calculate peak-pair LD on demand. |
+| `ld.max_dense_block_size` | `5000` | Reject a larger dense inverse-square-root block before allocation; applies to SNP/peak covariance components and within-peak SNP inverses. Positive integer, or `.inf` to deliberately disable the guard. |
+| `wrs.truncation_quantiles` | `[0.02, 0.98]` | Quantiles of finite raw enrichment-oriented Z-scores; then cap all scores, including infinities. |
 | `wrs.balanced.enabled` | `false` | Run repeated equal-size one-versus-rest sampling. |
 | `wrs.balanced.cells_per_side` | `[500, 1000]` | Target and background sample sizes. |
 | `wrs.balanced.repeats` | `30` | Repeats at each sample size. |
@@ -164,7 +178,7 @@ input.
 | `wrs.balanced.stability_frequency_cutoff` | `0.8` | Minimum selected-repeat proportion for a feature to be marked stable. |
 | `wrs.balanced.top_n` | `100` | Top-ranked features compared between repeat pairs. |
 | `model.groupings` | `[tissue_cell_type, tissue]` | Metadata resolutions modeled independently. |
-| `model.require_all_components` | `true` | Require all four component P-values for ACAT. |
+| `model.require_all_components` | `false` | Combine available valid P-values by default (default); set true to require all four. |
 
 Changing `ld.ridge`, `ld.window_bp`, Wilcoxon truncation, or group definitions
 changes the statistical model and should be treated as a new analysis rather
@@ -173,6 +187,33 @@ than an execution-only option.
 `ld.correlation_block_size` changes batching only. Block size 1 and larger
 blocks use the same standardized dosage values, local-distance mask, and output
 schema; numerical-equivalence tests cover this contract.
+
+A local LD distance window does not bound the size of a connected component:
+successive local connections can span a chromosome. Each component still uses
+a dense eigendecomposition. `ld.max_dense_block_size` checks every component
+before any component is converted to dense form, and checks each within-peak
+SNP block before allocating its dense LD matrix. A stopped run reports the
+dimension and memory estimates. At the default limit of 5000, one double matrix
+occupies approximately 0.19 GiB; an illustrative six-matrix working estimate is
+1.12 GiB. LAPACK workspaces, genotype data, retained blocks, covariance storage,
+and copies can require additional memory, so this is not a total-memory limit
+or a guarantee that a job will fit in RAM.
+
+The guard can stop large analyses that earlier versions attempted. After
+checking the resources available to the job, increase the limit explicitly or
+set `ld.max_dense_block_size: .inf` to disable it (`Inf` in R). The standalone
+`compute_inverse_sqrt()` and `build_peak_ld_model()` functions accept the same
+`max_dense_block_size` argument. The guard does not split components, remove LD
+connections, or approximate accepted inverse square roots. It is not a scalable
+replacement for the dense eigensolver. Reducing `ld.window_bp` to bypass a large
+block changes the statistical model.
+
+Chromosome LD caching uses the smaller of `ld.max_snps_for_chr_ld` and the dense
+block limit. Above it, the existing exact peak-pair calculation is used. This
+can increase runtime while avoiding the optional full chromosome LD matrix;
+it does not change the covariance definition. Sparse covariance construction
+and the accumulated output matrices can still exhaust memory independently of
+this guard.
 
 ## Publication figures
 
@@ -196,3 +237,13 @@ source path, output paths, status, message, and elapsed time. S-LDSC computation
 is external; accepted summaries need `trait`, an annotation/group column, and a
 coefficient z-score. Common coefficient/enrichment P-value column names are
 standardized automatically.
+
+## Version 0.3.0 behavior
+
+`atac.fragment_barcode_column` defaults to null. When attaching files, set it to the metadata column containing raw file barcodes if Seurat cell names were renamed. Attached Signac mappings take precedence when files are already attached.
+
+Numeric and GT/probability genotypes must count the GWAS A1 effect allele. Allele-label normalization records the counted allele; GWAS harmonization verifies labels and flips dosage to A1 where needed. No strand flips are inferred.
+
+S-LDSC is optional external benchmarking only. Comparison plots derive positive-coefficient P-values as `pnorm(coefficient_z, lower.tail = FALSE)` even when a supplied coefficient P-value exists; that supplied value is retained separately for inspection. EPIC2 never executes S-LDSC.
+
+See [REPRODUCIBILITY.md](REPRODUCIBILITY.md) for completion checks, migration, and the method contract.

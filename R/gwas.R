@@ -192,15 +192,36 @@ harmonize_gwas <- function(gwas, genotype, columns = EPIC2_defaults()$gwas$colum
     variant_id_column = genotype_variant_id_column
   )
   normalized_format <- attr(genotype, "genotype_format")
+  counted_alleles <- attr(genotype, "counted_alleles")
+  observed_alleles <- attr(genotype, "observed_alleles")
   validate_named_matrix(genotype, "reference genotype")
 
   input_n <- nrow(gwas)
   rsid <- as.character(gwas[[columns$rsid]])
   keep <- !is.na(rsid) & nzchar(rsid) & !duplicated(rsid) & rsid %in% rownames(genotype)
   gwas <- gwas[keep, , drop = FALSE]
+  if (!nrow(gwas)) stop("No GWAS variants match the reference genotype identifiers.", call. = FALSE)
   genotype <- genotype[match(as.character(gwas[[columns$rsid]]), rownames(genotype)), , drop = FALSE]
   stopifnot(identical(as.character(gwas[[columns$rsid]]), rownames(genotype)))
   after_reference_match <- nrow(gwas)
+  n_allele_flips <- 0L
+  if (!is.null(counted_alleles)) {
+    ids <- as.character(gwas[[columns$rsid]])
+    effect <- toupper(as.character(gwas[[columns$a1]]))
+    other <- toupper(as.character(gwas[[columns$a2]]))
+    counted <- counted_alleles[ids]
+    compatible <- vapply(seq_along(ids), function(i) {
+      !is.na(effect[[i]]) && !is.na(other[[i]]) && effect[[i]] != other[[i]] &&
+        (is.na(counted[[i]]) || counted[[i]] %in% c(effect[[i]], other[[i]])) &&
+        all(observed_alleles[[ids[[i]]]] %in% c(effect[[i]], other[[i]]))
+    }, logical(1))
+    if (any(!compatible)) stop("Allele-label genotypes do not match GWAS A1/A2 at: ",
+                               paste(utils::head(ids[!compatible], 5L), collapse = ", "),
+                               ". Align strands and alleles before input.", call. = FALSE)
+    flip <- !is.na(counted) & counted != effect
+    genotype[flip, ] <- genotype_ploidy - genotype[flip, , drop = FALSE]
+    n_allele_flips <- sum(flip)
+  }
 
   reference_missing_rate <- rowMeans(is.na(genotype))
   keep <- is.finite(reference_missing_rate) &
@@ -228,14 +249,6 @@ harmonize_gwas <- function(gwas, genotype, columns = EPIC2_defaults()$gwas$colum
   genotype <- genotype[keep, , drop = FALSE]
   after_maf <- nrow(gwas)
 
-  if (remove_ambiguous) {
-    ambiguous <- is_strand_ambiguous(gwas[[columns$a1]], gwas[[columns$a2]])
-    ambiguous[is.na(ambiguous)] <- TRUE
-    gwas <- gwas[!ambiguous, , drop = FALSE]
-    genotype <- genotype[!ambiguous, , drop = FALSE]
-  }
-  after_ambiguous <- nrow(gwas)
-
   coordinate_result <- validate_gwas_coordinates(
     gwas = gwas,
     columns = columns,
@@ -257,6 +270,21 @@ harmonize_gwas <- function(gwas, genotype, columns = EPIC2_defaults()$gwas$colum
   gwas <- gwas[ord, , drop = FALSE]
   genotype <- genotype[ord, , drop = FALSE]
   after_autosomal <- nrow(gwas)
+
+  # Invalid association statistics must not displace valid correlated variants
+  # during pruning. Check the inputs as well as their ratio (finite / Inf is 0).
+  beta_se <- get_beta_se_columns(gwas, columns)
+  beta <- suppressWarnings(as.numeric(gwas[[beta_se$beta]]))
+  se <- suppressWarnings(as.numeric(gwas[[beta_se$se]]))
+  gwas$Z <- beta / se
+  keep <- is.finite(beta) & is.finite(se) & se > 0 & is.finite(gwas$Z)
+  n_invalid_effect_statistics <- sum(!keep)
+  gwas <- gwas[keep, , drop = FALSE]
+  genotype <- genotype[keep, , drop = FALSE]
+  after_effect_qc <- nrow(gwas)
+  if (after_effect_qc == 0L) {
+    stop("No variants remain after effect-statistic QC.", call. = FALSE)
+  }
 
   if (ld_prune && nrow(gwas) > 1L) {
     selected <- switch(
@@ -280,24 +308,29 @@ harmonize_gwas <- function(gwas, genotype, columns = EPIC2_defaults()$gwas$colum
   }
   after_ld_prune <- nrow(gwas)
 
+  # Supplementary Methods: prune first, then exclude strand-ambiguous SNPs.
+  if (remove_ambiguous) {
+    ambiguous <- is_strand_ambiguous(gwas[[columns$a1]], gwas[[columns$a2]])
+    ambiguous[is.na(ambiguous)] <- TRUE
+    gwas <- gwas[!ambiguous, , drop = FALSE]
+    genotype <- genotype[!ambiguous, , drop = FALSE]
+  }
+  after_ambiguous <- nrow(gwas)
+  if (!nrow(gwas)) stop("No variants remain after LD pruning and ambiguous-allele filtering.", call. = FALSE)
+
   rownames(genotype) <- as.character(gwas[[columns$rsid]])
   gwas$coord_id <- coordinate_id(gwas[[columns$chr]], gwas[[columns$pos]])
   if (anyDuplicated(gwas$coord_id)) {
     stop("GWAS contains duplicated genomic coordinates after harmonization.", call. = FALSE)
   }
-  beta_se <- get_beta_se_columns(gwas, columns)
-  beta <- suppressWarnings(as.numeric(gwas[[beta_se$beta]]))
-  se <- suppressWarnings(as.numeric(gwas[[beta_se$se]]))
-  gwas$Z <- beta / se
-  keep <- is.finite(gwas$Z) & se > 0
-  gwas <- gwas[keep, , drop = FALSE]
-  genotype <- genotype[keep, , drop = FALSE]
   stopifnot(identical(as.character(gwas[[columns$rsid]]), rownames(genotype)))
 
   summary <- data.frame(
     gwas_name = gwas_name %||% NA_character_,
     genotype_format = normalized_format,
     genotype_ploidy = genotype_ploidy,
+    n_allele_dosage_flips = n_allele_flips,
+    dosage_orientation = if (is.null(counted_alleles)) "input_must_count_GWAS_A1" else "aligned_to_GWAS_A1",
     source_genome = source_genome,
     target_genome = target_genome,
     genome_metadata_status = input_genome_metadata_qc$metadata_status,
@@ -327,6 +360,8 @@ harmonize_gwas <- function(gwas, genotype, columns = EPIC2_defaults()$gwas$colum
     n_after_ambiguous = after_ambiguous,
     n_after_coordinate_validation = after_coordinate_validation,
     n_after_autosomal = after_autosomal,
+    n_invalid_effect_statistics = n_invalid_effect_statistics,
+    n_after_effect_qc = after_effect_qc,
     n_after_ld_prune = after_ld_prune,
     n_final = nrow(gwas),
     stringsAsFactors = FALSE
@@ -343,6 +378,8 @@ harmonize_gwas <- function(gwas, genotype, columns = EPIC2_defaults()$gwas$colum
 #' @export
 run_gwas_stage <- function(config, traits = NULL, gwas_name = NULL) {
   config <- normalize_common_genome_config(config)
+  lock <- acquire_stage_lock(config, "gwas")
+  on.exit(unlink(lock, recursive = TRUE), add = TRUE)
   traits <- resolve_gwas_names(config, traits = traits, gwas_name = gwas_name)
   output_dir <- stage_output_dir(config, "02_gwas")
   summaries <- list()
@@ -350,6 +387,10 @@ run_gwas_stage <- function(config, traits = NULL, gwas_name = NULL) {
 
   for (trait in traits) {
     spec <- trait_config(config, trait)
+    receipt_path <- file.path(output_dir, paste0(trait, ".gwas_receipt.rds"))
+    unlink(receipt_path)
+    input_hashes <- file_fingerprints(c(resolve_config_path(config, spec$summary),
+                                        resolve_config_path(config, spec$genotype)))
     setting <- function(name) spec[[name]] %||% config$gwas[[name]]
     gwas <- load_analysis_input(
       resolve_config_path(config, spec$summary), spec$summary_object %||% NULL
@@ -391,6 +432,8 @@ run_gwas_stage <- function(config, traits = NULL, gwas_name = NULL) {
     genotype_path <- file.path(output_dir, paste0(trait, ".genotype.rds"))
     save_rds_atomic(result$gwas, gwas_path)
     save_rds_atomic(result$genotype, genotype_path)
+    write_stage_receipt(receipt_path, input_hashes, c(gwas_path, genotype_path),
+                        gwas_stage_settings(config, trait))
     summaries[[trait]] <- result$summary
     write_table(result$summary, file.path(output_dir, paste0(trait, ".gwas_qc.tsv")))
     outputs[[trait]] <- list(gwas = gwas_path, genotype = genotype_path)
@@ -402,11 +445,17 @@ run_gwas_stage <- function(config, traits = NULL, gwas_name = NULL) {
     previous <- utils::read.delim(summary_path, stringsAsFactors = FALSE, check.names = FALSE)
     if ("gwas_name" %in% colnames(previous)) {
       previous <- previous[!previous$gwas_name %in% traits, , drop = FALSE]
-      shared <- intersect(colnames(previous), colnames(summary_table))
-      if (length(shared) == ncol(summary_table) && ncol(previous) == ncol(summary_table)) {
-        previous <- previous[, colnames(summary_table), drop = FALSE]
-        summary_table <- rbind(previous, summary_table)
+      # Keep unrequested traits when a newer release adds QC fields. Values
+      # not recorded by the older run remain unknown, rather than inferred.
+      columns <- union(colnames(summary_table), colnames(previous))
+      for (column in setdiff(columns, colnames(previous))) {
+        previous[[column]] <- rep(NA, nrow(previous))
       }
+      for (column in setdiff(columns, colnames(summary_table))) {
+        summary_table[[column]] <- rep(NA, nrow(summary_table))
+      }
+      summary_table <- rbind(previous[, columns, drop = FALSE],
+                             summary_table[, columns, drop = FALSE])
     }
   }
   configured_order <- names(config$gwas$traits)
@@ -414,4 +463,13 @@ run_gwas_stage <- function(config, traits = NULL, gwas_name = NULL) {
   rownames(summary_table) <- NULL
   write_table(summary_table, summary_path)
   outputs
+}
+
+gwas_stage_settings <- function(config, trait) {
+  settings <- deep_merge(config$gwas, trait_config(config, trait))
+  settings$traits <- NULL
+  settings$summary <- resolve_config_path(config, settings$summary)
+  settings$genotype <- resolve_config_path(config, settings$genotype)
+  list(gwas = settings, genome = config$genome$build,
+       duplicate_action = config$genome$duplicate_action, seed = config$parameters$seed)
 }

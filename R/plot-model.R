@@ -157,14 +157,13 @@ standardize_sldsc_summary <- function(table) {
     stop("S-LDSC summary needs trait and annotation/group columns.", call. = FALSE)
   }
   annotation <- as.character(table[[annotation_column]])
-  table <- table[annotation != "All_fetal_ATAC_peaks", , drop = FALSE]
+  table <- table[!is.na(annotation) & nzchar(annotation) & annotation != "All_fetal_ATAC_peaks" &
+                   !is.na(table$trait) & nzchar(as.character(table$trait)), , drop = FALSE]
   annotation <- as.character(table[[annotation_column]])
   z_column <- find_first_column(table, c("coef_z", "Coefficient_z-score", "coefficient_z"))
   if (is.null(z_column)) stop("S-LDSC summary is missing coefficient z-scores.", call. = FALSE)
   p_column <- find_first_column(table, c("Coefficient_P_value", "coefficient_p", "coef_p"))
-  coefficient_p <- if (is.null(p_column)) {
-    2 * stats::pnorm(-abs(as.numeric(table[[z_column]])))
-  } else as.numeric(table[[p_column]])
+  coefficient_p <- stats::pnorm(as.numeric(table[[z_column]]), lower.tail = FALSE)
   label_column <- find_first_column(table, c("annotation_label", "label"))
   display <- if (is.null(label_column)) gsub("_", " ", annotation) else as.character(table[[label_column]])
   out <- data.frame(
@@ -177,6 +176,10 @@ standardize_sldsc_summary <- function(table) {
     coefficient_p = coefficient_p,
     stringsAsFactors = FALSE
   )
+  out$coefficient_p_supplied <- if (is.null(p_column)) NA_real_ else as.numeric(table[[p_column]])
+  if (anyDuplicated(out[c("trait", "annotation_key")])) {
+    stop("S-LDSC annotations are duplicated or collide after label normalization.", call. = FALSE)
+  }
   enrichment_column <- find_first_column(table, c("Enrichment", "enrichment"))
   enrichment_p_column <- find_first_column(table, c("Enrichment_p", "enrichment_p"))
   out$enrichment <- if (is.null(enrichment_column)) NA_real_ else as.numeric(table[[enrichment_column]])

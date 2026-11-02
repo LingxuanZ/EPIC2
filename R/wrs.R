@@ -2,6 +2,8 @@
 #'
 #' @param result Data frame returned by `presto::wilcoxauc()`.
 #' @param truncation_quantiles Lower and upper empirical winsorization quantiles.
+#'   Cutoffs use finite raw normal scores across all feature--group pairs.
+#'   Infinite scores from P = 0 or 1 are then capped at these cutoffs.
 #' @return Input data frame with one-sided P-value and Z-score columns.
 #' @export
 make_one_sided_wrs <- function(result, truncation_quantiles = c(0.02, 0.98)) {
@@ -11,9 +13,17 @@ make_one_sided_wrs <- function(result, truncation_quantiles = c(0.02, 0.98)) {
   result <- as.data.frame(result)
   p_two <- as.numeric(result$pval)
   auc <- as.numeric(result$auc)
+  if (any(!is.na(p_two) & (!is.finite(p_two) | p_two < 0 | p_two > 1)) ||
+      any(!is.na(auc) & (!is.finite(auc) | auc < 0 | auc > 1))) {
+    stop("Wilcoxon P-values and AUC values must be in [0, 1] or NA.", call. = FALSE)
+  }
+  if (!is.numeric(truncation_quantiles) || length(truncation_quantiles) != 2L ||
+      any(!is.finite(truncation_quantiles)) || any(truncation_quantiles < 0 | truncation_quantiles > 1) ||
+      truncation_quantiles[[1L]] >= truncation_quantiles[[2L]]) {
+    stop("truncation_quantiles must contain two increasing probabilities.", call. = FALSE)
+  }
   p_one <- ifelse(auc >= 0.5, p_two / 2, 1 - p_two / 2)
-  p_for_z <- pmin(pmax(p_one, 1e-300), 1 - 1e-16)
-  z <- stats::qnorm(p_for_z, lower.tail = FALSE)
+  z <- stats::qnorm(p_one, lower.tail = FALSE)
   finite <- z[is.finite(z)]
   if (length(finite) == 0L) stop("No finite Wilcoxon Z-scores were generated.", call. = FALSE)
   limits <- stats::quantile(finite, truncation_quantiles, na.rm = TRUE, names = FALSE)
@@ -188,6 +198,11 @@ wrs_to_group_list <- function(result, z_column = "z_one_sided_enriched_trunc") {
   })
 }
 
+wrs_stage_settings <- function(config) {
+  list(genome = config$genome$build, assay = config$atac$assay,
+       groupings = config$model$groupings, truncation_quantiles = config$wrs$truncation_quantiles)
+}
+
 #' Run section 4: SNP- and peak-level Wilcoxon analyses
 #'
 #' @param config Parsed EPIC2 configuration.
@@ -196,6 +211,8 @@ wrs_to_group_list <- function(result, z_column = "z_one_sided_enriched_trunc") {
 #' @export
 run_wrs_stage <- function(config, traits = names(config$gwas$traits)) {
   config <- normalize_common_genome_config(config)
+  lock <- acquire_stage_lock(config, "wrs")
+  on.exit(unlink(lock, recursive = TRUE), add = TRUE)
   output_dir <- stage_output_dir(config, "04_wrs")
   atac <- load_serialized(file.path(config$output_dir, "01_atac", "atac.qc.rds"))
   check_atac_build(atac, config$atac$assay, config$genome$build)
@@ -203,6 +220,14 @@ run_wrs_stage <- function(config, traits = names(config$gwas$traits)) {
   outputs <- list()
 
   for (trait in traits) {
+    validate_prepared_inputs(config, trait)
+    receipt_path <- file.path(output_dir, paste0(trait, ".wrs_receipt.rds"))
+    unlink(receipt_path)
+    input_hashes <- file_fingerprints(c(
+      file.path(config$output_dir, "01_atac", "atac.qc.rds"),
+      file.path(config$output_dir, "02_accessibility", paste0(trait, c(".snp_by_cell.rds", ".peak_by_cell.rds")))
+    ))
+    trait_outputs <- character()
     matrices <- list(
       snp = load_serialized(file.path(config$output_dir, "02_accessibility", paste0(trait, ".snp_by_cell.rds"))),
       peak = load_serialized(file.path(config$output_dir, "02_accessibility", paste0(trait, ".peak_by_cell.rds")))
@@ -218,6 +243,7 @@ run_wrs_stage <- function(config, traits = names(config$gwas$traits)) {
         result <- run_wrs_matrix(matrix, groups, config$wrs$truncation_quantiles)
         path <- file.path(output_dir, paste(trait, resolution, grouping, "rds", sep = "."))
         save_rds_atomic(result, path)
+        trait_outputs <- c(trait_outputs, path)
         write_table(result, sub("rds$", "tsv", path))
         outputs[[paste(trait, resolution, grouping, sep = ".")]] <- path
 
@@ -256,6 +282,7 @@ run_wrs_stage <- function(config, traits = names(config$gwas$traits)) {
         }
       }
     }
+    write_stage_receipt(receipt_path, input_hashes, trait_outputs, wrs_stage_settings(config))
     message("WRS stage complete for ", trait)
   }
   outputs

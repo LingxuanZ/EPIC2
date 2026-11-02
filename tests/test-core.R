@@ -296,33 +296,73 @@ stopifnot(
   max(abs(aggregated$baseline - rowMeans(cbind(manual_a, manual_b)))) < 1e-12
 )
 
-# The model reproduces the notebook by discarding the transformed intercept and
-# allowing an ordinary lm() intercept with the transformed predictors.
+# Compare against GLS solved directly on the original scale, independently of
+# the whitening implementation, with the same regularized working covariance.
 ids <- paste0("v", 1:8)
 covariance <- outer(seq_along(ids), seq_along(ids), function(i, j) 0.4^abs(i - j))
 dimnames(covariance) <- list(ids, ids)
-whitening <- compute_inverse_sqrt(covariance, ridge = 0)
+ridge <- 0.02
+whitening <- compute_inverse_sqrt(covariance, ridge = ridge)
 predictor <- setNames(c(-2, -1, 0, 1, 2, 3, 4, 5), ids)
 baseline <- setNames(c(1, 0, 1, 0, 1, 0, 1, 0), ids)
 response <- setNames(2 + 0.7 * predictor + 0.2 * baseline + c(0.1, -0.1, 0.05, -0.05, 0.08, -0.08, 0.03, -0.03), ids)
 fit <- fit_whitened_groups(response, list(group1 = predictor), baseline, whitening, "trait")
 design <- cbind(intercept = 1, predictor = predictor, baseline = baseline)
-transformed_design <- as.matrix(whitening %*% design)
-manual_data <- data.frame(
-  response = as.numeric(whitening %*% response),
-  predictor = transformed_design[, "predictor"],
-  baseline = transformed_design[, "baseline"]
-)
-manual <- stats::lm(response ~ predictor + baseline, data = manual_data)
-manual_coefficient <- summary(manual)$coefficients["predictor", ]
-fully_transformed <- stats::lm.fit(transformed_design, manual_data$response)
+precision <- solve(covariance + diag(ridge, length(ids)))
+information_inverse <- solve(crossprod(design, precision %*% design))
+gls_beta <- information_inverse %*% crossprod(design, precision %*% response)
+gls_residual <- as.numeric(response - design %*% gls_beta)
+gls_df <- length(ids) - ncol(design)
+gls_variance <- as.numeric(crossprod(gls_residual, precision %*% gls_residual)) / gls_df
+gls_se <- sqrt(gls_variance * information_inverse["predictor", "predictor"])
+gls_t <- gls_beta["predictor", 1L] / gls_se
 stopifnot(
-  abs(fit$beta - manual_coefficient[["Estimate"]]) < 1e-10,
-  abs(fit$se - manual_coefficient[["Std. Error"]]) < 1e-10,
-  abs(fit$t - manual_coefficient[["t value"]]) < 1e-10,
-  abs(fit$p_two_sided - manual_coefficient[["Pr(>|t|)"]]) < 1e-10,
-  abs(fit$beta - fully_transformed$coefficients[["predictor"]]) > 1e-6
+  abs(fit$beta - gls_beta["predictor", 1L]) < 1e-10,
+  abs(fit$se - gls_se) < 1e-10,
+  abs(fit$t - gls_t) < 1e-10,
+  abs(fit$p_two_sided - 2 * stats::pt(abs(gls_t), gls_df, lower.tail = FALSE)) < 1e-10,
+  abs(fit$p - stats::pt(gls_t, gls_df, lower.tail = FALSE)) < 1e-10,
+  fit$df == gls_df,
+  identical(fit$status, "ok")
 )
+
+# With no LD, the transformation is a scalar multiple of the identity and
+# the focal estimate and inference agree with ordinary raw-scale regression.
+identity_covariance <- diag(length(ids))
+dimnames(identity_covariance) <- list(ids, ids)
+identity_fit <- fit_whitened_groups(
+  response, list(group1 = predictor), baseline,
+  compute_inverse_sqrt(identity_covariance, ridge = ridge), "trait"
+)
+ordinary <- stats::lm(response ~ predictor + baseline)
+ordinary_coefficient <- coef(summary(ordinary))["predictor", ]
+stopifnot(
+  abs(identity_fit$beta - ordinary_coefficient[["Estimate"]]) < 1e-10,
+  abs(identity_fit$se - ordinary_coefficient[["Std. Error"]]) < 1e-10,
+  abs(identity_fit$t - ordinary_coefficient[["t value"]]) < 1e-10,
+  abs(identity_fit$p - stats::pt(ordinary_coefficient[["t value"]],
+                                stats::df.residual(ordinary), lower.tail = FALSE)) < 1e-10
+)
+
+# A constant raw response has zero accessibility slope, even when the
+# predictor differs between correlated and independent regions. Test the
+# coefficient only: an exactly fitted response has essentially zero variance.
+null_ids <- paste0("null", seq_len(80L))
+null_covariance <- diag(length(null_ids))
+for (block in 0:3) {
+  index <- 10L * block + seq_len(10L)
+  null_covariance[index, index] <- 0.3^2
+  diag(null_covariance)[index] <- 1
+}
+dimnames(null_covariance) <- list(null_ids, null_ids)
+null_predictor <- setNames(rep(c(0, 1), each = 40L) + seq_len(80L) / 5000, null_ids)
+null_baseline <- setNames(1 + (seq_len(80L) %% 7L) / 7, null_ids)
+stopifnot(all(2 * null_baseline - null_predictor > 0))
+constant_fit <- fit_whitened_groups(
+  setNames(rep(1, 80L), null_ids), list(group1 = null_predictor), null_baseline,
+  compute_inverse_sqrt(null_covariance), "constant_response"
+)
+stopifnot(identical(constant_fit$status, "ok"), abs(constant_fit$beta) < 1e-10)
 
 # ACAT returns one result per complete trait/group combination.
 component <- function(p) data.frame(trait = "T", group = "G", p = p)

@@ -7,7 +7,7 @@ Combine SNP/peak count and Wilcoxon component tests with ACAT.
 }
 \usage{
 combine_component_tests(snp_accessibility, snp_wrs, peak_accessibility, peak_wrs, 
-    require_all = TRUE) 
+    require_all = FALSE) 
 }
 \arguments{
   \item{snp_accessibility}{SNP accessibility coefficient table.}
@@ -17,7 +17,7 @@ combine_component_tests(snp_accessibility, snp_wrs, peak_accessibility, peak_wrs
   \item{require_all}{Require all four valid component P-values.}
 }
 \details{
-Tables are matched by \code{trait} and \code{group}; each table must have a \code{p} column. With \code{require_all = TRUE}, a combined result requires valid P-values for all four components. Otherwise available valid components can be combined.
+Tables are matched by \code{trait} and \code{group}; each table must have a \code{p} column. By default all available valid P-values in [0, 1] are combined with equal weights. With \code{require_all = TRUE}, all four components must be valid. The reported component count uses this same validity rule.
 }
 \value{
 Trait-by-group component and combined P-value table.

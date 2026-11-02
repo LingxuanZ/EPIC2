@@ -51,7 +51,7 @@ R CMD INSTALL .
 
 Alternatively, download and extract the repository ZIP, open a terminal in the extracted package directory, and run the last two commands.
 
-The dependency script installs missing CRAN/Bioconductor packages and installs `presto` from its upstream GitHub repository. It also installs `knitr` and `rmarkdown` for tutorial documents. Additional system libraries or compilers may be required by these dependencies on your operating system.
+The dependency script installs missing CRAN/Bioconductor packages and, when absent, installs `presto` at commit `b5df6ee6097eb62522f2e557aa93ac21bab2d05f`. Existing installations are retained; record their versions with your analysis. It also installs `knitr` and `rmarkdown` for tutorial documents. Additional system libraries or compilers may be required by these dependencies on your operating system.
 
 ### Install the package directly from GitHub
 
@@ -121,7 +121,7 @@ combined_results <- read.delim(file.path(
 head(combined_results[order(combined_results$p_cauchy), ])
 ```
 
-The combined table contains the component P-values, `p_cauchy`, the number of tests combined, and within-trait BH and Bonferroni adjustments. By default, ACAT requires all four component P-values to be valid. Adjustments are within each trait across tested groups; they are not a single correction across all traits.
+The combined table contains the component P-values, `p_cauchy`, the number of tests combined, and within-trait BH and Bonferroni adjustments. By default, ACAT combines all available valid component P-values, matching the Supplementary Methods. Set `model.require_all_components: true` to require four. Adjustments are within each trait across tested groups; they are not a single correction across all traits.
 
 ### Command-line usage
 
@@ -154,11 +154,17 @@ GWAS and genotype files can be supplied as `.rds`, `.rda`/`.RData`, `.csv[.gz]`,
 
 Genotype normalization supports hard calls, dosage, GT strings, biallelic allele labels, and genotype probability representations. Set `genotype_format` and `genotype_orientation` explicitly when automatic detection is ambiguous. Carrier-only presence/absence data do not contain enough information for exact MAF calculation and are rejected. See the [configuration reference](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md) for encoding and ploidy requirements.
 
-Variants are matched by identifier and reordered to the GWAS rows; variants genuinely absent from the reference are skipped. Genotype variant IDs must be supplied as unique row names (column names for transposed input) or through `genotype_variant_id_column`. Matching dimensions or setting `genotype_orientation` does not establish correspondence, and GWAS IDs are never assigned automatically to unnamed genotype rows. Coordinates used for matching ATAC features and defining LD windows come from the GWAS table; genotype dosage values themselves are not lifted between assemblies. Matching identifiers alone does not verify allele coding.
+Variants are matched by identifier and reordered to the GWAS rows; variants genuinely absent from the reference are skipped. Genotype variant IDs must be supplied as unique row names (column names for transposed input) or through `genotype_variant_id_column`. Matching dimensions or setting `genotype_orientation` does not establish correspondence, and GWAS IDs are never assigned automatically to unnamed genotype rows. Coordinates used for matching ATAC features and defining LD windows come from the GWAS table; genotype dosage values themselves are not lifted between assemblies. Matching identifiers alone does not verify allele coding. Numeric dosage must count the GWAS effect allele (`A1`); GT and probability states must be exported with that same counted-allele orientation. Allele-label input is explicitly oriented to `A1` and incompatible labels are rejected. See the method contract for details.
 
 ### ATAC QC and preprocessed inputs
 
-When `atac.compute_qc_metrics: false`, the input object must contain the QC metadata required by the configured filters, including `TSS.enrichment`, `FRIP`, `nCount_ATAC`, `BlacklistRatio`, and `nucleosome_signal` under the default settings.
+When `atac.compute_qc_metrics: false`, the input object must contain the QC metadata required by the configured filters, including `TSS.enrichment`, `FRIP`, `nCount_<assay>`, `BlacklistRatio`, and `nucleosome_signal`. The count column is `nCount_ATAC` for the default `ATAC` assay and, for example, `nCount_peaks` for an assay named `peaks`.
+
+QC first applies TSS and FRIP thresholds, then computes the count quantile among remaining cells, then applies count, blacklist, nucleosome, and group-size filters.
+
+When attaching fragment files to renamed cells, set `atac.fragment_barcode_column` to a metadata column containing the raw file barcodes, or supply already attached Signac objects with correct named mappings. Cell prefixes are not guessed.
+
+When FRIP is computed, each fragment record is counted once in the denominator and once in the numerator if it overlaps at least one retained peak. Fragment-file barcodes are mapped back to Seurat cell names separately for each fragment object. The fifth-column PCR/read multiplicity does not weight these unique-fragment counts. Blacklist ratios use the same fragment-record denominator and count a record once if it overlaps any blacklist interval. Both metrics return NA when no fragments are observed. The calculations scan complete local fragment files in bounded-size chunks; a reduced tutorial fragment file is not suitable for whole-genome FRIP QC.
 
 **Disabling QC metric calculation does not disable ATAC filtering.** Running the `atac` stage applies the configured cell and peak filters, even when the object has already been filtered elsewhere.
 
@@ -187,9 +193,18 @@ configuration reference](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURAT
 
 ## Tutorial
 
+A self-contained synthetic example is available without manuscript data or HPC files:
+
+```bash
+Rscript scripts/run_synthetic_example.R /absolute/path/to/new-demo-directory hg19
+```
+
+It constructs indexed fragments, ATAC and GWAS/reference fixtures, runs all stages, and writes plots and result tables. Use `hg38` to exercise that assembly. These artificial data demonstrate execution and are not biological findings.
+
+
 A small-data vignette is being prepared as an R Markdown document with an HTML report. It walks through GWAS/reference matching, SNP and peak accessibility, LD, WRS, association models, and result inspection using post-QC ATAC inputs. The default example uses one trait, HDL.
 
-**Current status: draft.** The draft defaults to inspecting available outputs without executing the analysis (`run_analysis: false`). Its prepared inputs still depend on the original HPC fragment files; a standalone public example dataset and hosted HTML tutorial are not yet provided here.
+**Real-data tutorial status: draft.** The draft defaults to inspecting available outputs without executing the analysis (`run_analysis: false`). Its prepared inputs still depend on the original HPC fragment files; a standalone public example dataset and hosted HTML tutorial are not yet provided here.
 
 The tutorial begins after ATAC QC and therefore omits the `atac` stage. The full workflow in the quick start includes that stage. Tutorial results from a randomly selected subset are intended for demonstrating the software and do not replace a full-data analysis.
 
@@ -207,7 +222,9 @@ results/
 ├── 05_models/           # Component and ACAT result tables
 ├── figures/             # Figures, plotting tables, figure_manifest.tsv
 ├── run_manifest.txt
-└── config.used.yml      # Written when a YAML configuration file is available
+├── config.used.yml      # Effective settings, including in-memory overrides
+├── config.used.rds
+└── run_history/         # Per-invocation manifests and configuration copies
 ```
 
 | Main output                                  | Contents                                                     |
@@ -228,14 +245,18 @@ See the [example configuration](https://github.com/LingxuanZ/EPIC2/blob/main/ins
 - If GWAS variants have already been LD-pruned, provide matching inputs and set `gwas.ld_prune: false` to avoid repeating pruning.
 - `parameters.workers` controls workers for SNP accessibility feature chunks. It does not automatically run different traits in parallel.
 - Local LD calculations use configurable blocks (`ld.correlation_block_size`); LD loops are serial, with BLAS threading determined by the R environment. SNPRelate pruning has a separate `gwas.ld_num_threads` setting.
+- `ld.max_dense_block_size` defaults to `5000` and stops oversized dense inverse-square-root blocks before allocation. Error messages include memory planning estimates. Increase this limit deliberately for a suitable machine, or explicitly use `.inf` in YAML to disable the size guard. This guard does not split LD components or establish a total-memory bound; accepted calculations retain the existing numerical method.
 - Balanced WRS repeats are optional and can substantially increase work. Enable them when the analysis requires these diagnostics.
-- Stage selection explicitly reruns the requested stages. It is not an automatic resume or cache-validation mechanism.
+- Stage selection explicitly reruns the requested stages. It is not an automatic resume mechanism. Completion records check produced GWAS/accessibility, LD, and WRS artifacts before reuse.
 
-For concurrent per-trait jobs, use a separate output directory for each independent run. Model tables and figure manifests use shared filenames within an output directory and must not be written concurrently by separate trait jobs. A single run with multiple selected traits produces combined model tables for those traits.
+For concurrent per-trait jobs, use a separate output directory for each independent run. Model tables and figure manifests use shared filenames within an output directory and must not be written concurrently by separate trait jobs. Sequential model runs retain completed per-trait results for other traits still listed in the configuration. Their completion records are checked before aggregation.
 
 Runtime and memory depend on the number of cells and features, reference sample size, LD connectivity, WRS repeats, and available resources. The repository includes [benchmark_hotspots.R](https://github.com/LingxuanZ/EPIC2/blob/main/scripts/benchmark_hotspots.R) for comparing numerical results and timings of selected numerical routines on your system.
 
 ## Reproducibility and testing
+
+See [REPRODUCIBILITY.md](REPRODUCIBILITY.md) for the method contract, changed defaults, input orientation, completion records, and migration from earlier results. Start the corrected manuscript analysis in a new output directory.
+
 
 Record the installed EPIC2 version, repository commit or release, input provenance, configuration, and R session information for each analysis. Keep separate output directories when comparing configurations, and retain manifests from runs that need to be compared.
 
@@ -245,6 +266,8 @@ sessionInfo()
 ```
 
 The repository contains [core tests](https://github.com/LingxuanZ/EPIC2/blob/main/tests/test-core.R), [LD comparison tests](https://github.com/LingxuanZ/EPIC2/blob/main/tests/test-ld-rmd.R), common-build configuration and accessibility tests, and an optional [same-build integration test](https://github.com/LingxuanZ/EPIC2/blob/main/tests/test-common-build-integration.R). The integration fixture tests hg19 and hg38 separately and fails on accidental pipeline liftOver calls; the [mixed-build test](https://github.com/LingxuanZ/EPIC2/blob/main/tests/test-mixed-build-integration.R) verifies early rejection. Full integration requires the complete workflow dependencies and `EPIC2_RUN_COMMON_BUILD_TEST=true`. Configuration validation alone is not an end-to-end analysis test.
+
+The additional regression tests cover fragment barcode mappings and non-duplicated FRIP counts, custom assay QC, effect-statistic filtering before LD pruning, legitimate GL likelihood values, and the dense-block size guard. Run `scripts/benchmark_dense_inverse.R` after installing EPIC2 to record small dense-inverse timings and numerical checks on your machine. Its memory columns are planning estimates, not measured peak RAM or full-workflow benchmarks.
 
 ## Support
 
@@ -258,4 +281,4 @@ If you use EPIC2, cite the software repository and report the version or commit 
 
 ## License
 
-EPIC2 is distributed under the [MIT License](https://github.com/LingxuanZ/EPIC2/blob/main/LICENSE.md).
+EPIC2 is distributed under the [MIT License](https://github.com/LingxuanZ/EPIC2/blob/main/LICENSE).

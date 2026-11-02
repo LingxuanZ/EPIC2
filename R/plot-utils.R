@@ -110,8 +110,7 @@ new_figure_registry <- function(config, output_dir) {
 }
 
 matrix_nonzero_values <- function(matrix) {
-  if (inherits(matrix, "sparseMatrix")) return(as.numeric(Matrix::summary(matrix)$x))
-  values <- as.numeric(matrix)
+  values <- if (inherits(matrix, "sparseMatrix")) as.numeric(Matrix::summary(matrix)$x) else as.numeric(matrix)
   values[is.finite(values) & values != 0]
 }
 

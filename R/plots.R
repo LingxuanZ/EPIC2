@@ -9,6 +9,8 @@
 #' @export
 run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
   config <- normalize_common_genome_config(config)
+  lock <- acquire_stage_lock(config, "plot")
+  on.exit(unlink(lock, recursive = TRUE), add = TRUE)
   require_namespaces(c("ggplot2", "Matrix"), "publication plot stage")
   output_dir <- stage_output_dir(config, "figures")
   table_dir <- ensure_dir(file.path(output_dir, "tables"))
@@ -45,11 +47,11 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
   if (!is.null(atac)) {
     registry$run(
       "atac_qc_metric_distributions", "ATAC QC", "00_atac_qc", atac_path,
-      function() as_figure(plot_atac_qc_metrics(atac, config$plots), 10, 8)
+      function() as_figure(plot_atac_qc_metrics(atac, config$plots, config$atac$assay), 10, 8)
     )
     registry$run(
       "density_scatter_nCount_TSS", "ATAC QC", "00_atac_qc", atac_path,
-      function() as_figure(plot_atac_density_scatter(atac, config$plots), 7.5, 6.5)
+      function() as_figure(plot_atac_density_scatter(atac, config$plots, config$atac$assay), 7.5, 6.5)
     )
     registry$run(
       "peak_coverage_distribution", "ATAC QC", "00_atac_qc", atac_path,
@@ -275,7 +277,7 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
     )
   }
 
-  balanced <- collect_balanced_stability(config)
+  balanced <- collect_balanced_stability(config, traits)
   if (nrow(balanced$pairwise)) {
     write_table(balanced$pairwise, file.path(table_dir, "balanced_pairwise_stability.tsv"))
     registry$run(
@@ -357,6 +359,7 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
   if (!is.null(sldsc_path)) sldsc_path <- resolve_config_path(config, sldsc_path)
   if (!is.null(sldsc_path) && file.exists(sldsc_path)) {
     sldsc <- standardize_sldsc_summary(load_analysis_input(sldsc_path, label = "S-LDSC summary"))
+    sldsc <- sldsc[sldsc$trait %in% traits, , drop = FALSE]
     write_table(sldsc, file.path(table_dir, "sldsc_standardized_summary.tsv"))
     registry$run(
       "sldsc_coefficient_zscore_heatmap", "S-LDSC", "06_sldsc", sldsc_path,

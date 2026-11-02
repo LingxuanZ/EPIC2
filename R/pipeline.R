@@ -20,9 +20,23 @@ write_run_manifest <- function(config, stages, traits) {
     utils::capture.output(utils::sessionInfo())
   )
   writeLines(manifest, file.path(config$output_dir, "run_manifest.txt"))
-  if (!is.null(config$.config_file) && file.exists(config$.config_file)) {
-    file.copy(config$.config_file, file.path(config$output_dir, "config.used.yml"), overwrite = TRUE)
+  effective <- config
+  effective$project$output_dir <- ensure_dir(config$output_dir)
+  effective$atac$input <- resolve_config_path(config, config$atac$input)
+  effective$atac$fragment_files <- lapply(config$atac$fragment_files, function(x) resolve_config_path(config, x))
+  for (trait in names(config$gwas$traits)) {
+    for (key in c("summary", "genotype")) {
+      effective$gwas$traits[[trait]][[key]] <- resolve_config_path(config, config$gwas$traits[[trait]][[key]])
+    }
   }
+  effective$plots$sldsc_summary <- resolve_config_path(config, config$plots$sldsc_summary)
+  effective[c(".config_file", ".config_dir", "output_dir")] <- NULL
+  yaml::write_yaml(effective, file.path(config$output_dir, "config.used.yml"))
+  save_rds_atomic(config, file.path(config$output_dir, "config.used.rds"))
+  history <- ensure_dir(file.path(config$output_dir, "run_history"))
+  id <- paste0(format(Sys.time(), "%Y%m%dT%H%M%OS6", tz = "UTC"), "-", Sys.getpid())
+  writeLines(manifest, file.path(history, paste0(id, ".txt")))
+  save_rds_atomic(config, file.path(history, paste0(id, ".config.rds")))
   invisible(TRUE)
 }
 

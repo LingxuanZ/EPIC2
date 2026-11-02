@@ -92,11 +92,11 @@ prepare_wrs_plot_table <- function(table) {
     table$pval_one_sided_enriched <- ifelse(table$auc >= 0.5, table$pval / 2, 1 - table$pval / 2)
   }
   if (!"z_one_sided_enriched" %in% colnames(table)) {
-    p <- pmin(pmax(table$pval_one_sided_enriched, 1e-300), 1 - 1e-16)
-    table$z_one_sided_enriched <- stats::qnorm(p, lower.tail = FALSE)
+    table$z_one_sided_enriched <- stats::qnorm(table$pval_one_sided_enriched, lower.tail = FALSE)
   }
   if (!"z_one_sided_enriched_trunc" %in% colnames(table)) {
     finite <- table$z_one_sided_enriched[is.finite(table$z_one_sided_enriched)]
+    if (!length(finite)) stop("No finite WRS scores for plot winsorization.", call. = FALSE)
     limits <- stats::quantile(finite, c(0.02, 0.98), na.rm = TRUE, names = FALSE)
     table$z_one_sided_enriched_trunc <- pmin(
       pmax(table$z_one_sided_enriched, limits[[1L]]), limits[[2L]]
@@ -306,7 +306,8 @@ parse_balanced_filename <- function(path, suffix) {
        cells_per_side = as.integer(fields[[5L]]))
 }
 
-collect_balanced_stability <- function(config) {
+collect_balanced_stability <- function(config, traits = names(config$gwas$traits)) {
+  if (!isTRUE(config$wrs$balanced$enabled)) return(list(pairwise = data.frame(), feature = data.frame()))
   directory <- file.path(config$output_dir, "04_wrs")
   pair_files <- list.files(directory, pattern = "pairwise_stability\\.tsv$", full.names = TRUE)
   feature_files <- list.files(directory, pattern = "feature_stability\\.tsv$", full.names = TRUE)
@@ -314,6 +315,8 @@ collect_balanced_stability <- function(config) {
     rows <- lapply(files, function(path) {
       metadata <- parse_balanced_filename(path, suffix)
       if (is.null(metadata)) return(NULL)
+      if (!metadata$trait %in% traits || !metadata$grouping %in% config$model$groupings ||
+          !metadata$cells_per_side %in% config$wrs$balanced$cells_per_side) return(NULL)
       table <- read_tsv_if_exists(path)
       if (is.null(table)) return(NULL)
       for (name in names(metadata)) table[[name]] <- metadata[[name]]

@@ -9,7 +9,7 @@ validate_genotype_ploidy <- function(ploidy) {
 genotype_missing_token <- function(x, missing_values = -9) {
   token <- toupper(trimws(as.character(x)))
   configured <- toupper(trimws(as.character(missing_values)))
-  token %in% unique(c("", ".", "./.", ".|.", "NA", "NAN", "NULL", "--", configured))
+  is.na(x) | token %in% unique(c("", ".", "./.", ".|.", "NA", "NAN", "NULL", "--", configured))
 }
 
 orient_genotype_matrix <- function(x, variant_ids = NULL,
@@ -245,6 +245,8 @@ split_allele_genotype <- function(value, ploidy) {
 parse_allele_matrix <- function(x, ploidy, missing_values) {
   values <- matrix(as.character(x), nrow = nrow(x), ncol = ncol(x), dimnames = dimnames(x))
   result <- matrix(NA_real_, nrow = nrow(x), ncol = ncol(x), dimnames = dimnames(x))
+  counted_alleles <- setNames(rep(NA_character_, nrow(x)), rownames(x))
+  observed_alleles <- setNames(vector("list", nrow(x)), rownames(x))
   for (row in seq_len(nrow(values))) {
     parsed <- vector("list", ncol(values))
     for (column in seq_len(ncol(values))) {
@@ -268,10 +270,14 @@ parse_allele_matrix <- function(x, ploidy, missing_values) {
     }
     if (!length(observed)) next
     counted <- observed[[length(observed)]]
+    counted_alleles[[row]] <- counted
+    observed_alleles[[row]] <- observed
     for (column in seq_len(ncol(values))) {
       if (length(parsed[[column]])) result[row, column] <- sum(parsed[[column]] == counted)
     }
   }
+  attr(result, "counted_alleles") <- counted_alleles
+  attr(result, "observed_alleles") <- observed_alleles
   result
 }
 
@@ -296,7 +302,7 @@ probability_list_to_array <- function(x, ploidy, variant_ids, orientation) {
     stop("All genotype probability-state matrices must have identical dimensions and names.", call. = FALSE)
   }
   array(
-    unlist(lapply(matrices, as.numeric), use.names = FALSE),
+    unlist(matrices, use.names = FALSE),
     dim = c(dim(matrices[[1L]]), ploidy + 1L),
     dimnames = c(dimnames(matrices[[1L]]), list(as.character(0:ploidy)))
   )
@@ -308,7 +314,7 @@ probability_matrix_to_array <- function(x, ploidy, missing_values) {
                   dimnames = c(dimnames(x), list(as.character(0:ploidy))))
   for (index in seq_along(values)) {
     value <- trimws(values[[index]])
-    if (genotype_missing_token(value, missing_values)) next
+    if (is.na(value) || genotype_missing_token(value, missing_values)) next
     fields <- strsplit(value, ":", fixed = TRUE)[[1L]]
     candidates <- fields[grepl(",", fields, fixed = TRUE)]
     if (length(candidates)) value <- candidates[[length(candidates)]]
@@ -332,7 +338,9 @@ probability_to_dosage <- function(probability, format, ploidy, missing_values) {
     as.numeric(probability[, , index, drop = TRUE])
   })
   values <- do.call(cbind, states)
-  values <- replace_numeric_missing(values, missing_values)
+  # Every finite GL state is a valid log10 likelihood, including -9. Numeric
+  # sentinels only identify entire scalar text genotypes for this format.
+  if (format != "gl") values <- replace_numeric_missing(values, missing_values)
   called <- rowSums(is.na(values)) == 0L
   weights <- matrix(NA_real_, nrow = nrow(values), ncol = ncol(values))
   if (any(called)) {
@@ -370,9 +378,13 @@ probability_to_dosage <- function(probability, format, ploidy, missing_values) {
 #'   `gl`, `pl`, or `carrier`.
 #' @param ploidy Positive integer copy number.
 #' @param orientation Whether variants are rows, columns, or inferred from IDs.
-#' @param missing_values Numeric or character missing-value codes.
+#' @param missing_values Numeric or character missing-value codes. For `gl`,
+#'   numeric codes apply only to entire scalar text genotype cells, never to
+#'   individual likelihood states; use `NA` for missing array/list entries.
 #' @param variant_id_column Optional variant ID column for data-frame input.
-#' @return Numeric variant-by-sample allele-dosage matrix.
+#' @return Numeric variant-by-sample allele-dosage matrix. Allele-label input
+#'   additionally records `counted_alleles` and `observed_alleles` attributes;
+#'   [harmonize_gwas()] uses these to orient dosages to the GWAS effect allele.
 #' @export
 normalize_genotype <- function(genotype, variant_ids = NULL, format = "auto", ploidy = 2,
                                orientation = "auto", missing_values = -9,
@@ -410,8 +422,13 @@ normalize_genotype <- function(genotype, variant_ids = NULL, format = "auto", pl
     }
     if (!is.numeric(probability)) {
       numeric_probability <- suppressWarnings(as.numeric(probability))
+      state_missing_values <- missing_values
+      if (format == "gl") {
+        numeric_codes <- suppressWarnings(as.numeric(missing_values))
+        state_missing_values <- missing_values[is.na(numeric_codes)]
+      }
       declared_missing <- is.na(probability) |
-        genotype_missing_token(probability, missing_values)
+        genotype_missing_token(probability, state_missing_values)
       bad <- is.na(numeric_probability) & !declared_missing
       if (any(bad)) {
         stop("Genotype probability array contains non-numeric values.", call. = FALSE)

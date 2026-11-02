@@ -19,6 +19,8 @@ atac:
   tissue_column: tissue
   group_column: tissue_cell_type
   attach_fragments: false
+  # When attaching files to renamed cells, name the metadata column with raw barcodes.
+  fragment_barcode_column: null
   compute_qc_metrics: false
   recompute_embedding: false
   qc:
@@ -88,6 +90,10 @@ ld:
   # not the LD window or statistical definition.
   correlation_block_size: 256
   max_snps_for_chr_ld: 15000
+  # Stop before dense LD eigen blocks larger than this dimension are allocated.
+  # This also caps optional chromosome LD caching; it does not bound total RAM.
+  # Raise deliberately for larger-memory jobs, or use .inf to disable the guard.
+  max_dense_block_size: 5000
 
 wrs:
   truncation_quantiles: [0.02, 0.98]
@@ -101,7 +107,8 @@ wrs:
 
 model:
   groupings: [tissue_cell_type, tissue]
-  require_all_components: true
+  # V4 combines all available valid component P-values.
+  require_all_components: false
 
 plots:
   formats: [png, pdf]

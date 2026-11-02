@@ -7,7 +7,8 @@ Build peak-level GWAS response and local LD covariance.
 }
 \usage{
 build_peak_ld_model(gwas, genotype, peak_matrix, overlap, window_bp = 5000000L, 
-    ridge = 0.01, eigen_tolerance = 1e-08, max_snps_for_chr_ld = 15000L) 
+    ridge = 0.01, eigen_tolerance = 1e-08, max_snps_for_chr_ld = 15000L,
+    max_dense_block_size = 5000L)
 }
 \arguments{
   \item{gwas}{Harmonized GWAS table containing \code{coord_id} and \code{Z}.}
@@ -18,6 +19,10 @@ build_peak_ld_model(gwas, genotype, peak_matrix, overlap, window_bp = 5000000L,
   \item{ridge}{Ridge used for within-peak and response covariance matrices.}
   \item{eigen_tolerance}{Eigenvalue floor.}
   \item{max_snps_for_chr_ld}{Maximum variants for caching a chromosome LD matrix.}
+  \item{max_dense_block_size}{Maximum dense block dimension for within-peak inverses and peak covariance components. A positive integer, or \code{Inf} to deliberately disable the guard. Also caps optional chromosome LD caching.}
+}
+\details{
+Oversized within-peak SNP blocks are rejected before constructing their dense LD matrix. All covariance component sizes are checked before any component is converted to dense form. Above the smaller of the two cache limits, chromosome LD is calculated through the existing exact peak-pair path, potentially increasing runtime. Accepted inverse square roots are unchanged. The guard does not bound total process memory or split the statistical covariance model.
 }
 \value{
 List containing peak response, covariance, and inverse square root.

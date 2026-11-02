@@ -4,7 +4,10 @@
 test_source_file <- tryCatch(sys.frame(1)$ofile, error = function(e) NULL)
 if (is.null(test_source_file)) {
   script_argument <- grep("^--file=", commandArgs(FALSE), value = TRUE)
-  if (length(script_argument)) test_source_file <- sub("^--file=", "", script_argument[[1L]])
+  if (length(script_argument)) {
+    test_source_file <- sub("^--file=", "", script_argument[[1L]])
+    test_source_file <- gsub("~+~", " ", test_source_file, fixed = TRUE)
+  }
 }
 test_package_dir <- Sys.getenv("EPIC2_TEST_SOURCE_DIR", unset = "")
 if (!nzchar(test_package_dir)) {

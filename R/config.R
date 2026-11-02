@@ -30,6 +30,7 @@ EPIC2_defaults <- function() {
       group_column = "tissue_cell_type",
       attach_fragments = FALSE,
       fragment_files = NULL,
+      fragment_barcode_column = NULL,
       validate_fragments = TRUE,
       compute_qc_metrics = FALSE,
       recompute_embedding = FALSE,
@@ -82,7 +83,8 @@ EPIC2_defaults <- function() {
       ridge = 0.01,
       eigen_tolerance = 1e-8,
       correlation_block_size = 256L,
-      max_snps_for_chr_ld = 15000L
+      max_snps_for_chr_ld = 15000L,
+      max_dense_block_size = 5000L
     ),
     wrs = list(
       truncation_quantiles = c(0.02, 0.98),
@@ -97,7 +99,7 @@ EPIC2_defaults <- function() {
     ),
     model = list(
       groupings = c("tissue_cell_type", "tissue"),
-      require_all_components = TRUE
+      require_all_components = FALSE
     ),
     plots = list(
       formats = c("png", "pdf"),
@@ -355,6 +357,11 @@ validate_EPIC2_config <- function(config, check_files = FALSE) {
       )
     }
   }
+  barcode_column <- config$atac$fragment_barcode_column
+  if (!is.null(barcode_column) && (!is.character(barcode_column) ||
+      length(barcode_column) != 1L || is.na(barcode_column) || !nzchar(barcode_column))) {
+    errors <- c(errors, "atac.fragment_barcode_column must be null or one metadata column name")
+  }
   qc <- config$atac$qc
   qc_ranges <- list(
     tss_min = c(0, Inf), frip_min = c(0, 1), count_quantile_min = c(0, 1),
@@ -408,6 +415,12 @@ validate_EPIC2_config <- function(config, check_files = FALSE) {
   }
   if (!is_scalar_number(config$ld$correlation_block_size, lower = 1, integer = TRUE)) {
     errors <- c(errors, "ld.correlation_block_size must be one positive integer")
+  }
+  dense_block_limit <- config$ld$max_dense_block_size
+  if (!(is.numeric(dense_block_limit) && length(dense_block_limit) == 1L &&
+        !is.na(dense_block_limit) && dense_block_limit >= 1 &&
+        (is.infinite(dense_block_limit) || dense_block_limit == floor(dense_block_limit)))) {
+    errors <- c(errors, "ld.max_dense_block_size must be one positive integer or Inf (.inf in YAML)")
   }
   truncation_quantiles <- config$wrs$truncation_quantiles
   if (length(truncation_quantiles) != 2L ||

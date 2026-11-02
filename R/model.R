@@ -19,6 +19,10 @@ one_sided_p_greater <- function(statistic, degrees_freedom) {
 fit_whitened_groups <- function(response, predictors, baseline, inverse_sqrt,
                                 trait = NA_character_, predictor_name = "predictor") {
   validate_named_matrix(inverse_sqrt, "inverse square-root covariance")
+  if (nrow(inverse_sqrt) != ncol(inverse_sqrt) ||
+      !identical(rownames(inverse_sqrt), colnames(inverse_sqrt))) {
+    stop("inverse_sqrt must be square with identical ordered row and column names.", call. = FALSE)
+  }
   if (is.null(names(response)) || is.null(names(baseline))) {
     stop("response and baseline must be named vectors.", call. = FALSE)
   }
@@ -29,18 +33,24 @@ fit_whitened_groups <- function(response, predictors, baseline, inverse_sqrt,
   rows <- lapply(names(predictors), function(group) {
     predictor <- predictors[[group]]
     if (is.null(names(predictor))) stop("Predictor vector is unnamed for group: ", group, call. = FALSE)
-    ids <- ordered_intersection(
-      rownames(inverse_sqrt), names(response), names(predictor), names(baseline),
-      colnames(inverse_sqrt)
-    )
+    for (value in list(response, predictor, baseline)) {
+      if (anyNA(names(value)) || any(!nzchar(names(value))) || anyDuplicated(names(value))) {
+        stop("Model vectors must have unique, non-missing feature names.", call. = FALSE)
+      }
+    }
+    ids <- rownames(inverse_sqrt)
     y <- as.numeric(response[ids])
     x <- as.numeric(predictor[ids])
     base <- as.numeric(baseline[ids])
-    keep <- stats::complete.cases(y, x, base)
-    ids <- ids[keep]
-    y <- y[keep]
-    x <- x[keep]
-    base <- base[keep]
+    if (any(!is.finite(y) | !is.finite(x) | !is.finite(base))) {
+      # Subsetting an inverse square root is not generally the inverse square
+      # root of the corresponding marginal covariance. Do not silently do so.
+      return(data.frame(trait = trait, group = group, term = predictor_name,
+                        beta = NA_real_, se = NA_real_, t = NA_real_,
+                        p_two_sided = NA_real_, p = NA_real_, n = length(ids),
+                        df = NA_integer_, status = "missing/nonfinite inputs; rebuild covariance for retained features",
+                        stringsAsFactors = FALSE))
+    }
     if (length(y) <= 3L) {
       return(data.frame(
         trait = trait, group = group, term = predictor_name, beta = NA_real_,
@@ -69,7 +79,9 @@ fit_whitened_groups <- function(response, predictors, baseline, inverse_sqrt,
     fit <- stats::lm.fit(x = fit_design, y = transformed_response)
     degrees_freedom <- length(y) - fit$rank
     residual_variance <- sum(fit$residuals^2) / degrees_freedom
-    covariance <- residual_variance * solve(crossprod(fit_design))
+    covariance <- matrix(0, ncol(fit_design), ncol(fit_design),
+                          dimnames = list(colnames(fit_design), colnames(fit_design)))
+    covariance[fit$qr$pivot, fit$qr$pivot] <- residual_variance * chol2inv(qr.R(fit$qr))
     standard_error <- sqrt(diag(covariance))
     statistic <- fit$coefficients / standard_error
     p_two <- 2 * stats::pt(abs(statistic), df = degrees_freedom, lower.tail = FALSE)
@@ -136,7 +148,7 @@ acat_pvalue <- function(pvalues) {
 #' @export
 combine_component_tests <- function(snp_accessibility, snp_wrs,
                                     peak_accessibility, peak_wrs,
-                                    require_all = TRUE) {
+                                    require_all = FALSE) {
   prepare <- function(x, name) {
     required <- c("trait", "group", "p")
     missing <- setdiff(required, colnames(x))
@@ -158,7 +170,9 @@ combine_component_tests <- function(snp_accessibility, snp_wrs,
   )
   p_columns <- c("p_snp_accessibility", "p_snp_wrs", "p_peak_accessibility", "p_peak_wrs")
   p_matrix <- as.matrix(result[, p_columns, drop = FALSE])
-  result$n_tests_combined <- rowSums(is.finite(p_matrix))
+  valid <- is.finite(p_matrix) & p_matrix >= 0 & p_matrix <= 1
+  result$n_tests_combined <- rowSums(valid)
+  p_matrix[!valid] <- NA_real_
   result$p_cauchy <- apply(p_matrix, 1L, function(row) {
     if (require_all && sum(is.finite(row)) != 4L) return(NA_real_)
     acat_pvalue(row)
@@ -183,7 +197,15 @@ add_component_adjustment <- function(table) {
 #' @export
 run_model_stage <- function(config, traits = names(config$gwas$traits)) {
   config <- normalize_common_genome_config(config)
+  lock <- acquire_stage_lock(config, "model")
+  on.exit(unlink(lock, recursive = TRUE), add = TRUE)
   output_dir <- stage_output_dir(config, "05_models")
+  traits <- resolve_gwas_names(config, traits = traits)
+  for (trait in traits) {
+    validate_ld_completion(config, trait)
+    validate_stage_receipt(file.path(config$output_dir, "04_wrs", paste0(trait, ".wrs_receipt.rds")),
+                           wrs_stage_settings(config))
+  }
   atac <- load_serialized(file.path(config$output_dir, "01_atac", "atac.qc.rds"))
   check_atac_build(atac, config$atac$assay, config$genome$build)
   metadata <- get_atac_metadata(atac)
@@ -193,6 +215,25 @@ run_model_stage <- function(config, traits = names(config$gwas$traits)) {
   for (grouping in config$model$groupings) {
     if (!grouping %in% colnames(metadata)) stop("ATAC metadata column not found: ", grouping, call. = FALSE)
     component_tables <- list()
+    remaining <- setdiff(names(config$gwas$traits), traits)
+    old_path <- file.path(output_dir, paste0(grouping, ".component_results.rds"))
+    if (file.exists(old_path)) {
+      previous_traits <- intersect(unique(readRDS(old_path)$trait), remaining)
+      missing_records <- previous_traits[!file.exists(file.path(output_dir,
+        paste(previous_traits, grouping, "components.rds", sep = ".")))]
+      if (length(missing_records)) stop("Existing results lack per-trait completion records: ",
+                                        paste(missing_records, collapse = ", "),
+                                        ". Rerun all traits in a new output directory.", call. = FALSE)
+    }
+    for (trait in remaining) {
+      path <- file.path(output_dir, paste(trait, grouping, "components.rds", sep = "."))
+      if (!file.exists(path)) next
+      validate_ld_completion(config, trait)
+      validate_stage_receipt(file.path(config$output_dir, "04_wrs", paste0(trait, ".wrs_receipt.rds")),
+                             wrs_stage_settings(config))
+      validate_stage_receipt(paste0(path, ".receipt.rds"), list(grouping = grouping, assay = config$atac$assay))
+      component_tables[[trait]] <- readRDS(path)
+    }
     for (trait in traits) {
       gwas <- load_serialized(file.path(config$output_dir, "02_gwas", paste0(trait, ".gwas.rds")))
       check_prepared_gwas_build(gwas, config$genome$build)
@@ -241,6 +282,12 @@ run_model_stage <- function(config, traits = names(config$gwas$traits)) {
       )
       for (component in names(tables)) tables[[component]]$component <- component
       component_tables[[trait]] <- do.call(rbind, tables)
+      path <- file.path(output_dir, paste(trait, grouping, "components.rds", sep = "."))
+      save_rds_atomic(component_tables[[trait]], path)
+      dependencies <- c(file.path(config$output_dir, "03_ld", paste0(trait, ".ld_receipt.rds")),
+                         file.path(config$output_dir, "04_wrs", paste0(trait, ".wrs_receipt.rds")))
+      write_stage_receipt(paste0(path, ".receipt.rds"), file_fingerprints(dependencies), path,
+                          list(grouping = grouping, assay = config$atac$assay))
       message("Association models complete for ", trait, " / ", grouping)
     }
 
@@ -252,7 +299,7 @@ run_model_stage <- function(config, traits = names(config$gwas$traits)) {
       split_components$snp_wrs,
       split_components$peak_accessibility,
       split_components$peak_wrs,
-      require_all = config$model$require_all_components %||% TRUE
+      require_all = config$model$require_all_components %||% FALSE
     )
     component_path <- file.path(output_dir, paste0(grouping, ".component_results.tsv"))
     combined_path <- file.path(output_dir, paste0(grouping, ".cauchy_results.tsv"))

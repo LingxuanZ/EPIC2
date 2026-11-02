@@ -57,7 +57,7 @@ human_genome_lengths <- function(genome) {
 
 canonical_chr <- function(chr) {
   value <- normalize_chr(chr)
-  value[toupper(value) == "CHRMT"] <- "chrM"
+  value[!is.na(value) & toupper(value) == "CHRMT"] <- "chrM"
   value
 }
 
@@ -80,10 +80,11 @@ validate_genome_coordinates <- function(chr, start, end = start, genome, label =
     stop(label, " chromosome, start, and end vectors must have equal lengths.", call. = FALSE)
   }
   chromosome <- canonical_chr(chr)
-  start <- suppressWarnings(as.integer(start))
-  end <- suppressWarnings(as.integer(end))
+  start <- suppressWarnings(as.numeric(as.character(start)))
+  end <- suppressWarnings(as.numeric(as.character(end)))
   basic_invalid <- is.na(chromosome) | !nzchar(chromosome) |
-    !is.finite(start) | !is.finite(end) | start < 1L | end < start
+    !is.finite(start) | !is.finite(end) | start < 1L | end < start |
+    start != floor(start) | end != floor(end)
   lengths <- human_genome_lengths(genome)
   known <- chromosome %in% names(lengths)
   out_of_bounds <- !basic_invalid & known & end > unname(lengths[chromosome])

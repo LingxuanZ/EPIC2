@@ -221,7 +221,29 @@ run_common_build_integration <- function(genome_build = "hg19") {
       all(combined$p_cauchy >= 0 & combined$p_cauchy <= 1)
     )
   }
-  message("Common-build pipeline and figure integration test completed: ", config$output_dir)
+  # A later sequential trait run must preserve the earlier trait's results.
+  original <- readRDS(file.path(config$output_dir, "05_models", "tissue.cauchy_results.rds"))
+  config$gwas$traits$SECOND <- config$gwas$traits$SYNTHETIC
+  run_EPIC2(config, stages = c("gwas", "accessibility", "ld", "wrs", "model"), gwas_name = "SECOND")
+  combined <- readRDS(file.path(config$output_dir, "05_models", "tissue.cauchy_results.rds"))
+  stopifnot(setequal(unique(combined$trait), c("SYNTHETIC", "SECOND")),
+            isTRUE(all.equal(combined$p_cauchy[combined$trait == "SYNTHETIC"], original$p_cauchy)))
+  expect_failure <- function(pattern) {
+    message <- tryCatch({ run_model_stage(config, traits = "SYNTHETIC"); NA_character_ }, error = conditionMessage)
+    stopifnot(!is.na(message), grepl(pattern, message, fixed = TRUE))
+  }
+  runtime_path <- file.path(config$output_dir, "03_ld", "SYNTHETIC.ld_runtime.tsv")
+  original_runtime <- readLines(runtime_path)
+  writeLines(gsub("COMPLETED", "RUNNING", original_runtime, fixed = TRUE), runtime_path)
+  expect_failure("LD is incomplete")
+  writeLines(original_runtime, runtime_path)
+  snp_path <- file.path(config$output_dir, "02_accessibility", "SYNTHETIC.snp_by_cell.rds")
+  original_bytes <- readBin(snp_path, "raw", n = file.info(snp_path)$size)
+  changed <- readRDS(snp_path); changed[1, 1] <- changed[1, 1] + 1
+  saveRDS(changed, snp_path)
+  expect_failure("changed")
+  writeBin(original_bytes, snp_path)
+  message("Common-build pipeline, plots, sequential traits, and incomplete/stale input guards passed: ", config$output_dir)
   invisible(TRUE)
 }
 

@@ -1,7 +1,7 @@
 Package: EPIC2
 Type: Package
 Title: LD-Aware Integration of Single-Cell Chromatin Accessibility and GWAS
-Version: 0.2.1
+Version: 0.3.0
 Authors@R: c(
     person("Lingxuan", "Zhu", role = c("aut", "cre"),
            email = "zhulx@tamu.edu",
@@ -40,3 +40,4 @@ Suggests:
     presto,
     rtracklayer
 RoxygenNote: 7.3.2
+Remotes: immunogenomics/presto@b5df6ee6097eb62522f2e557aa93ac21bab2d05f

@@ -57,7 +57,9 @@ harmonize_gwas(gwas, genotype, columns = EPIC2_defaults()$gwas$columns,
 \details{
 EPIC2 requires one explicitly declared common human genome assembly for GWAS, reference genotypes, ATAC peaks, and fragments. The main workflow validates declarations and coordinate bounds; it does not perform liftOver. Coordinate bounds alone cannot establish that inputs use the same assembly. Users must harmonize assemblies and allele orientation before analysis.
 
-Reference variants are matched and reordered by variant identifier. GWAS identifiers missing from the reference panel are excluded. MAF, reference missingness, ambiguous-allele, coordinate, and optional LD-pruning filters are then applied. No allele-strand harmonization is inferred from the reference matrix. The actual retained SNP coordinates define single-base coordinate identifiers. For duplicated coordinates, the default \code{"drop"} excludes every row at that coordinate.
+Reference variants are matched and reordered by variant identifier. GWAS identifiers missing from the reference panel are excluded. Reference missingness, dosage-based MAF, coordinate, autosomal and effect-statistic filters precede optional LD pruning. Strand-ambiguous SNPs are removed afterwards, matching the documented order. Allele-label inputs are oriented to the configured GWAS effect allele; numerical/GT/probability inputs must already have that orientation. No strand harmonization is inferred. Retained SNP coordinates define single-base identifiers. For duplicated coordinates, the default \code{"drop"} excludes every row at that coordinate.
+
+Before LD pruning, variants must have finite effect estimates, finite positive standard errors, and finite derived Z-scores. This prevents invalid variants from displacing valid correlated variants. The QC fields \code{n_invalid_effect_statistics} and \code{n_after_effect_qc} report exclusions at this step and the number eligible for pruning, respectively. Genotype missing-value semantics, including valid negative GL likelihood states, follow \code{\link{normalize_genotype}}.
 }
 \value{
 A list containing aligned \code{gwas}, \code{genotype}, and a QC summary.
