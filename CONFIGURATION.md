@@ -237,13 +237,3 @@ source path, output paths, status, message, and elapsed time. S-LDSC computation
 is external; accepted summaries need `trait`, an annotation/group column, and a
 coefficient z-score. Common coefficient/enrichment P-value column names are
 standardized automatically.
-
-## Version 0.3.0 behavior
-
-`atac.fragment_barcode_column` defaults to null. When attaching files, set it to the metadata column containing raw file barcodes if Seurat cell names were renamed. Attached Signac mappings take precedence when files are already attached.
-
-Numeric and GT/probability genotypes must count the GWAS A1 effect allele. Allele-label normalization records the counted allele; GWAS harmonization verifies labels and flips dosage to A1 where needed. No strand flips are inferred.
-
-S-LDSC is optional external benchmarking only. Comparison plots derive positive-coefficient P-values as `pnorm(coefficient_z, lower.tail = FALSE)` even when a supplied coefficient P-value exists; that supplied value is retained separately for inspection. EPIC2 never executes S-LDSC.
-
-See [REPRODUCIBILITY.md](REPRODUCIBILITY.md) for completion checks, migration, and the method contract.
