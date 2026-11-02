@@ -23,8 +23,24 @@ evenly_spaced_indices <- function(n, maximum) {
 
 adaptive_umap_point_size <- function(cells_per_panel) {
   cells_per_panel <- suppressWarnings(as.numeric(cells_per_panel))
-  if (!is.finite(cells_per_panel) || cells_per_panel < 1) return(0.15)
-  max(0.15, min(2.2, 10 / sqrt(cells_per_panel)))
+  if (length(cells_per_panel) != 1L || !is.finite(cells_per_panel) || cells_per_panel < 1) return(0.6)
+  max(0.6, min(2.2, 65 / sqrt(cells_per_panel)))
+}
+
+# Compose plots with independent legends using R's standard grid graphics.
+combine_publication_plots <- function(plots, ncol = 1L) {
+  plots <- plots[!vapply(plots, is.null, logical(1))]
+  if (!length(plots)) return(NULL)
+  nrow <- ceiling(length(plots) / ncol)
+  children <- lapply(seq_along(plots), function(i) {
+    grid::grobTree(
+      ggplot2::ggplotGrob(plots[[i]]),
+      vp = grid::viewport(layout.pos.row = (i - 1L) %/% ncol + 1L,
+                          layout.pos.col = (i - 1L) %% ncol + 1L)
+    )
+  })
+  grid::gTree(children = do.call(grid::gList, children),
+              vp = grid::viewport(layout = grid::grid.layout(nrow, ncol)))
 }
 
 sanitize_plot_id <- function(x) {

@@ -14,7 +14,8 @@ largest_ld_block <- function(matrix, blocks, maximum) {
   ids <- resolve_block_ids(block, matrix)
   if (!length(ids)) return(NULL)
   if (length(ids) > maximum) {
-    ids <- ids[evenly_spaced_indices(length(ids), maximum)]
+    # A contiguous central window preserves local structure; selection is independent of LD values.
+    ids <- ids[floor((length(ids) - maximum) / 2) + seq_len(maximum)]
   }
   matrix[ids, ids, drop = FALSE]
 }
@@ -30,23 +31,41 @@ ld_heatmap_data <- function(matrix) {
   )
 }
 
-plot_ld_heatmap <- function(matrix, title, base_size = 11) {
+plot_ld_heatmap <- function(matrix, title, base_size = 11, fill_label = "Covariance") {
   if (is.null(matrix) || !nrow(matrix)) return(NULL)
-  data <- ld_heatmap_data(matrix)
-  ggplot2::ggplot(data, ggplot2::aes(column, row, fill = value)) +
-    ggplot2::geom_raster() +
-    ggplot2::scale_fill_viridis_c(option = "C") +
-    ggplot2::coord_equal(expand = FALSE) +
-    publication_theme(base_size) +
-    ggplot2::theme(
-      axis.text = ggplot2::element_blank(), axis.ticks = ggplot2::element_blank(),
-      panel.grid = ggplot2::element_blank()
-    ) +
-    ggplot2::labs(
-      title = title,
-      subtitle = paste0("Largest local block; displayed features: ", nrow(matrix)),
-      x = "Ordered feature", y = "Ordered feature", fill = "Covariance"
-    )
+  full <- ld_heatmap_data(matrix)
+  detail <- full
+  detail$value[detail$row == detail$column] <- NA_real_
+  panel <- function(data, off_diagonal) {
+    finite <- data$value[is.finite(data$value)]
+    limits <- range(c(0, finite))
+    if (diff(limits) == 0) limits <- c(0, 1)
+    use_sqrt <- off_diagonal && all(finite >= 0)
+    breaks <- if (use_sqrt) limits[[2L]] * c(0, 1/9, 4/9, 1) else pretty(limits, n = 4)
+    ggplot2::ggplot(data, ggplot2::aes(column, row, fill = value)) +
+      ggplot2::geom_raster() +
+      ggplot2::scale_fill_viridis_c(
+        option = "C", trans = if (use_sqrt) "sqrt" else "identity", limits = limits,
+        breaks = breaks, labels = function(x) formatC(x, digits = 2, format = "g"),
+        na.value = "grey85",
+        guide = ggplot2::guide_colourbar(barwidth = grid::unit(4.2, "cm"),
+          barheight = grid::unit(0.35, "cm"), title.position = "top", title.hjust = 0.5)
+      ) +
+      ggplot2::scale_y_reverse() +
+      ggplot2::coord_equal(expand = FALSE) +
+      publication_theme(base_size) +
+      ggplot2::theme(
+        axis.text = ggplot2::element_blank(), axis.ticks = ggplot2::element_blank(),
+        panel.grid = ggplot2::element_blank(), legend.position = "bottom"
+      ) +
+      ggplot2::labs(
+        title = paste0(title, "\n", if (off_diagonal) "Off-diagonal detail" else "Full matrix"),
+        subtitle = paste(nrow(matrix), "central contiguous features;",
+                         if (use_sqrt) "square-root colors" else "linear colors"),
+        x = "Feature order within largest block", y = NULL, fill = fill_label
+      )
+  }
+  combine_publication_plots(list(panel(full, FALSE), panel(detail, TRUE)), ncol = 2L)
 }
 
 collect_ld_block_summary <- function(config, traits) {
@@ -161,9 +180,9 @@ plot_wrs_histogram <- function(table, value, title, x_label, bins, base_size = 1
   table$plot_value <- as.numeric(table[[value]])
   ggplot2::ggplot(table, ggplot2::aes(x = plot_value)) +
     ggplot2::geom_histogram(bins = bins, fill = "#5B8DB8", color = "white", linewidth = 0.15) +
-    ggplot2::facet_wrap(~group, scales = "free_y") +
+    ggplot2::facet_wrap(~group, scales = "free_y", ncol = 3L, labeller = ggplot2::label_wrap_gen(30)) +
     publication_theme(base_size) +
-    ggplot2::theme(strip.text = ggplot2::element_text(size = max(5, base_size - 3))) +
+    ggplot2::theme(strip.text = ggplot2::element_text(size = max(8, base_size - 2))) +
     ggplot2::labs(title = title, x = x_label, y = "Features")
 }
 

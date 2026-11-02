@@ -61,22 +61,24 @@ plot_atac_qc_metrics <- function(atac, settings, assay = "ATAC") {
 
 plot_peak_detection_distribution <- function(atac, assay = "ATAC", base_size = 11) {
   counts <- get_atac_counts(atac, assay)
-  data <- data.frame(
-    proportion = as.numeric(Matrix::rowSums(counts != 0)) / ncol(counts)
-  )
-  ggplot2::ggplot(data, ggplot2::aes(proportion)) +
-    ggplot2::geom_histogram(
-      bins = 80, fill = "#3B7A78", color = "white", linewidth = 0.15
+  data <- data.frame(cells = as.numeric(Matrix::rowSums(counts != 0)))
+  # Transform the display only; retain peaks with zero detection.
+  data$display <- log10(data$cells + 1)
+  ticks <- c(0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000)
+  ggplot2::ggplot(data, ggplot2::aes(display)) +
+    ggplot2::geom_histogram(bins = 60, fill = "#3B7A78", color = "white", linewidth = 0.15) +
+    ggplot2::scale_x_continuous(breaks = log10(ticks + 1), labels = ticks) +
+    ggplot2::scale_y_continuous(
+      trans = "log1p", breaks = c(0, 10, 100, 1000, 10000, 100000, 1000000),
+      labels = function(x) format(x, big.mark = ",", scientific = FALSE)
     ) +
-    ggplot2::scale_x_continuous(
-      breaks = seq(0, 1, by = 0.25),
-      labels = function(x) paste0(round(100 * x), "%")
-    ) +
-    ggplot2::coord_cartesian(xlim = c(0, 1)) +
     publication_theme(base_size) +
     ggplot2::labs(
       title = "Peak detection across retained nuclei",
-      x = "Nuclei with nonzero accessibility", y = "Peaks"
+      subtitle = paste(format(nrow(data), big.mark = ","), "peaks;",
+                       format(sum(data$cells == 0), big.mark = ","), "with zero detection"),
+      x = "Nuclei detecting each peak (log10[1 + count] axis)",
+      y = "Peaks (log[1 + count] axis)"
     )
 }
 
@@ -104,36 +106,37 @@ plot_atac_annotation_umap <- function(atac, columns, settings) {
   embedding <- get_umap_embeddings(atac)
   if (is.null(embedding)) return(NULL)
   metadata <- get_atac_metadata(atac)
-  columns <- columns[columns %in% colnames(metadata)]
+  columns <- unique(columns[columns %in% colnames(metadata)])
   if (!length(columns)) return(NULL)
   cells <- intersect(rownames(embedding), rownames(metadata))
-  index <- evenly_spaced_indices(length(cells), settings$max_umap_cells)
-  cells <- cells[index]
-  rows <- lapply(columns, function(column) data.frame(
-    UMAP1 = embedding[cells, 1L],
-    UMAP2 = embedding[cells, 2L],
-    annotation = column,
-    value = as.character(metadata[cells, column]),
-    stringsAsFactors = FALSE
-  ))
-  data <- do.call(rbind, rows)
-  data <- data[!is.na(data$value) & nzchar(data$value), , drop = FALSE]
-  values <- sort(unique(data$value))
-  palette <- setNames(grDevices::hcl.colors(length(values), "Dark 3"), values)
-  point_size <- adaptive_umap_point_size(max(table(data$annotation)))
-  ggplot2::ggplot(data, ggplot2::aes(UMAP1, UMAP2, color = value)) +
-    ggplot2::geom_point(size = point_size, alpha = 0.8, stroke = 0) +
-    ggplot2::facet_wrap(~annotation, nrow = 1L) +
-    ggplot2::scale_color_manual(values = palette) +
-    ggplot2::coord_equal() +
-    publication_theme(settings$base_size) +
-    ggplot2::theme(
-      axis.text = ggplot2::element_blank(), axis.ticks = ggplot2::element_blank(),
-      panel.grid = ggplot2::element_blank(), legend.key.height = grid::unit(0.32, "cm"),
-      legend.text = ggplot2::element_text(size = max(5, settings$base_size - 4))
-    ) +
-    ggplot2::guides(color = ggplot2::guide_legend(override.aes = list(size = 2, alpha = 1))) +
-    ggplot2::labs(title = "Fetal chromatin accessibility atlas", x = NULL, y = NULL, color = NULL)
+  cells <- cells[evenly_spaced_indices(length(cells), settings$max_umap_cells)]
+  plots <- lapply(columns, function(column) {
+    data <- data.frame(UMAP1 = embedding[cells, 1L], UMAP2 = embedding[cells, 2L],
+                       value = as.character(metadata[cells, column]), stringsAsFactors = FALSE)
+    data <- data[!is.na(data$value) & nzchar(data$value), , drop = FALSE]
+    if (!nrow(data)) return(NULL)
+    values <- sort(unique(data$value))
+    palette <- setNames(grDevices::hcl.colors(length(values), "Dark 3"), values)
+    ggplot2::ggplot(data, ggplot2::aes(UMAP1, UMAP2, color = value)) +
+      ggplot2::geom_point(size = adaptive_umap_point_size(nrow(data)), alpha = 0.95, stroke = 0) +
+      ggplot2::scale_color_manual(values = palette) +
+      ggplot2::coord_equal() +
+      publication_theme(settings$base_size) +
+      ggplot2::theme(
+        axis.text = ggplot2::element_blank(), axis.ticks = ggplot2::element_blank(),
+        panel.grid = ggplot2::element_blank(), legend.position = "bottom",
+        legend.key.height = grid::unit(0.4, "cm"),
+        legend.text = ggplot2::element_text(size = max(8, settings$base_size - 2))
+      ) +
+      ggplot2::guides(color = ggplot2::guide_legend(
+        ncol = if (length(values) > 10L) 2L else 4L,
+        override.aes = list(size = 3, alpha = 1)
+      )) +
+      ggplot2::labs(title = paste("Chromatin accessibility atlas:", column),
+                    subtitle = paste(format(nrow(data), big.mark = ","), "displayed nuclei"),
+                    x = NULL, y = NULL, color = NULL)
+  })
+  combine_publication_plots(plots)
 }
 
 plot_gwas_filtering_waterfall <- function(table, base_size = 11) {
@@ -177,6 +180,9 @@ plot_genome_validation_qc <- function(table, base_size = 11) {
   data <- do.call(rbind, rows)
   ggplot2::ggplot(data, ggplot2::aes(trait, variants, fill = outcome)) +
     ggplot2::geom_col(position = "stack") +
+    ggplot2::geom_point(size = 2, show.legend = FALSE) +
+    ggplot2::geom_text(ggplot2::aes(label = variants), vjust = -0.7, size = 4) +
+    ggplot2::expand_limits(y = c(0, max(1, data$variants, na.rm = TRUE) * 1.2)) +
     publication_theme(base_size) +
     ggplot2::labs(
       title = "Duplicate variants excluded during coordinate validation",
@@ -222,14 +228,24 @@ collect_accessibility_plot_data <- function(config, traits) {
 plot_accessibility_count_distributions <- function(data, base_size = 11) {
   if (!nrow(data)) return(NULL)
   data$resolution <- factor(data$resolution, levels = c("snp", "peak"), labels = c("SNP", "Peak"))
-  ggplot2::ggplot(data, ggplot2::aes(count, proportion, fill = resolution)) +
+  data$view <- "All entries (including zeros)"
+  positive <- data[as.character(data$count) != "0", , drop = FALSE]
+  if (nrow(positive)) {
+    total <- ave(positive$n, interaction(positive$trait, positive$resolution, drop = TRUE), FUN = sum)
+    positive$proportion <- ifelse(total > 0, positive$n / total, 0)
+  }
+  positive$view <- rep("Nonzero entries only", nrow(positive))
+  display <- rbind(data, positive)
+  display$view <- factor(display$view, levels = c("All entries (including zeros)", "Nonzero entries only"))
+  ggplot2::ggplot(display, ggplot2::aes(count, proportion, fill = resolution)) +
     ggplot2::geom_col(position = "dodge") +
-    ggplot2::facet_wrap(~trait, ncol = 4L) +
+    ggplot2::facet_wrap(~trait + view, ncol = 2L, scales = "free_x") +
     ggplot2::scale_y_continuous(labels = function(x) paste0(round(100 * x, 1), "%")) +
     publication_theme(base_size) +
     ggplot2::labs(
       title = "Distribution of per-feature per-cell ATAC counts",
-      x = "ATAC fragment count", y = "Matrix entries", fill = "Resolution"
+      subtitle = "Each panel uses its stated denominator, separately for SNPs and peaks",
+      x = "ATAC fragment count", y = "Proportion of entries in panel", fill = "Resolution"
     )
 }
 
@@ -240,7 +256,7 @@ plot_accessibility_coverage <- function(data, base_size = 11) {
     data, ggplot2::aes(trait, proportion_features_detected_ge_1pct, fill = resolution)
   ) +
     ggplot2::geom_col(position = ggplot2::position_dodge(width = 0.8), width = 0.72) +
-    ggplot2::scale_y_continuous(labels = function(x) paste0(round(100 * x), "%")) +
+    ggplot2::scale_y_continuous(labels = function(x) paste0(round(100 * x, 2), "%")) +
     publication_theme(base_size) +
     ggplot2::labs(
       title = "Trait-specific features detected in at least 1% of nuclei",
@@ -284,19 +300,19 @@ plot_signal_group_violin <- function(data, resolution, grouping, base_size = 11)
   data$group <- factor(data$group, levels = sort(unique(data$group)))
   data$log_total <- log1p(data$raw_total)
   label <- if (resolution == "snp") "GWAS SNP positions" else "GWAS-overlapping peaks"
-  ggplot2::ggplot(data, ggplot2::aes(group, log_total, fill = group)) +
-    ggplot2::geom_violin(scale = "width", trim = TRUE, linewidth = 0.2) +
-    ggplot2::geom_boxplot(width = 0.12, outlier.shape = NA, fill = "white", linewidth = 0.2) +
-    ggplot2::facet_wrap(~trait, ncol = 2L, scales = "free_y") +
+  ggplot2::ggplot(data, ggplot2::aes(log_total, group, fill = group)) +
+    ggplot2::geom_violin(scale = "width", trim = TRUE, linewidth = 0.2, orientation = "y") +
+    ggplot2::geom_boxplot(width = 0.12, outlier.shape = NA, fill = "white", linewidth = 0.2, orientation = "y") +
+    ggplot2::facet_wrap(~trait, ncol = 2L, scales = "free_x") +
     publication_theme(base_size) +
     ggplot2::theme(
-      axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, size = max(5, base_size - 4)),
+      axis.text.y = ggplot2::element_text(size = max(8, base_size - 2)),
       legend.position = "none"
     ) +
     ggplot2::labs(
       title = paste("Per-nucleus accessibility at", label, "by", grouping),
       subtitle = "Violin and boxplot summaries use deterministic UMAP-matched cell sampling",
-      x = NULL, y = "log1p(total ATAC fragments)"
+      x = "log1p(total ATAC fragments)", y = NULL
     )
 }
 
@@ -306,8 +322,8 @@ plot_signal_umap <- function(data, resolution, base_size = 11) {
   label <- if (resolution == "snp") "GWAS SNP positions" else "GWAS-overlapping peaks"
   point_size <- adaptive_umap_point_size(max(table(data$trait)))
   ggplot2::ggplot(data, ggplot2::aes(UMAP1, UMAP2, color = display)) +
-    ggplot2::geom_point(size = point_size, alpha = 0.85, stroke = 0) +
-    ggplot2::facet_wrap(~trait, ncol = 4L) +
+    ggplot2::geom_point(size = point_size, alpha = 1, stroke = 0) +
+    ggplot2::facet_wrap(~trait, ncol = 2L) +
     ggplot2::scale_color_viridis_c(option = "C", limits = c(0, 1)) +
     ggplot2::coord_equal() +
     publication_theme(base_size) +

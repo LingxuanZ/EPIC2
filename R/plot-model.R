@@ -100,10 +100,14 @@ plot_component_heatmap <- function(table, grouping, adjustment = "nominal", cap 
     )
 }
 
-plot_component_effect_heatmap <- function(table, grouping, cap = 8, base_size = 11) {
+plot_component_effect_heatmap <- function(table, grouping, cap = NULL, base_size = 11) {
   required <- c("trait", "group", "component", "beta", "se", "p", "p_bh_within_trait")
   if (length(setdiff(required, colnames(table)))) return(NULL)
   table$z_effect <- as.numeric(table$beta) / as.numeric(table$se)
+  if (is.null(cap)) {
+    finite <- abs(table$z_effect[is.finite(table$z_effect)])
+    cap <- max(1, min(8, ceiling(max(c(0, finite)))))
+  }
   table$z_effect <- pmin(pmax(table$z_effect, -cap), cap)
   table$significance <- ifelse(
     is.finite(table$p_bh_within_trait) & table$p_bh_within_trait < 0.05, "*", ""
@@ -117,20 +121,24 @@ plot_component_effect_heatmap <- function(table, grouping, cap = 8, base_size = 
   })
   best_table$p_cauchy <- unname(group_min[best_table$group])
   table$group <- factor(table$group, levels = model_group_order(best_table))
-  ggplot2::ggplot(table, ggplot2::aes(trait, group, fill = z_effect)) +
+  ggplot2::ggplot(table, ggplot2::aes(component, group, fill = z_effect)) +
     ggplot2::geom_tile(color = "white", linewidth = 0.2) +
     ggplot2::geom_text(ggplot2::aes(label = significance), size = 2.7) +
-    ggplot2::facet_wrap(~component, nrow = 1L) +
+    ggplot2::facet_wrap(~trait, nrow = 1L) +
     ggplot2::scale_fill_gradient2(
       low = "#3B4CC0", mid = "white", high = "#B40426", midpoint = 0,
       limits = c(-cap, cap)
     ) +
     publication_theme(base_size) +
-    ggplot2::theme(axis.text.y = ggplot2::element_text(size = max(5, base_size - 4))) +
+    ggplot2::theme(
+      axis.text.y = ggplot2::element_text(size = max(8, base_size - 2)),
+      axis.text.x = ggplot2::element_text(angle = 25, hjust = 1)
+    ) +
     ggplot2::labs(
       title = paste("LD-adjusted component effect statistics by", grouping),
-      subtitle = "Fill is beta/SE; values are capped for display; * within-trait BH P < 0.05",
-      x = "GWAS", y = NULL, fill = "beta / SE"
+      subtitle = paste0("Fill is beta/SE; display range -", cap, " to ", cap,
+                        "; * within-trait BH P < 0.05"),
+      x = NULL, y = NULL, fill = "beta / SE"
     )
 }
 

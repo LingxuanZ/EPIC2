@@ -20,6 +20,10 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
   }
 
   atac_path <- file.path(config$output_dir, "01_atac", "atac.qc.rds")
+  if (file.exists(atac_path)) {
+    # Register Seurat/ChromatinAssay methods when plotting in a fresh R session.
+    require_namespaces(c("Seurat", "Signac"), "ATAC publication figures")
+  }
   atac <- if (file.exists(atac_path)) load_serialized(atac_path) else NULL
   if (!is.null(atac)) check_atac_build(atac, config$atac$assay, config$genome$build)
   qc_dimensions_path <- file.path(config$output_dir, "01_atac", "qc_dimensions.tsv")
@@ -67,7 +71,7 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
         plot_atac_annotation_umap(
           atac, c(config$atac$tissue_column, config$atac$group_column), config$plots
         ),
-        20, 10
+        10, 7 * length(unique(c(config$atac$tissue_column, config$atac$group_column)))
       )
     )
   } else {
@@ -105,7 +109,7 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
       file.path(config$output_dir, "02_accessibility"),
       function() as_figure(
         plot_accessibility_count_distributions(accessibility$distributions, config$plots$base_size),
-        13, 8
+        12, max(5.5, 4.5 * length(unique(accessibility$distributions$trait)))
       )
     )
     registry$run(
@@ -136,7 +140,9 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
       registry$run(
         manuscript_id, "Manuscript", ".", file.path(config$output_dir, "02_accessibility"),
         function() as_figure(
-          plot_signal_umap(umap_data, resolution, config$plots$base_size), 20, 11
+          plot_signal_umap(umap_data, resolution, config$plots$base_size),
+          if (length(unique(umap_data$trait)) > 1L) 13 else 8,
+          7 * max(1, ceiling(length(unique(umap_data$trait)) / 2L))
         )
       )
       registry$run(
@@ -145,7 +151,9 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
         function() as_figure(
           plot_signal_group_violin(
             umap_data, resolution, config$atac$group_column, config$plots$base_size
-          ), 20, max(10, 4 * ceiling(length(unique(umap_data$trait)) / 2L))
+          ), if (length(unique(umap_data$trait)) > 1L) 16 else 10,
+          max(5, 0.3 * length(unique(umap_data$group)) + 2) *
+            max(1, ceiling(length(unique(umap_data$trait)) / 2L))
         )
       )
     } else {
@@ -180,8 +188,9 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
             config$plots$ld_heatmap_max_features
           )
           as_figure(plot_ld_heatmap(
-            matrix, paste(trait, "SNP-level local LD covariance"), config$plots$base_size
-          ), 7, 6.5)
+            matrix, paste(trait, "SNP local LD"), config$plots$base_size,
+            fill_label = expression(r^2)
+          ), 12, 7)
         }
       )
     }
@@ -195,8 +204,8 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
             model$sigma, model$block_indices, config$plots$ld_heatmap_max_features
           )
           as_figure(plot_ld_heatmap(
-            matrix, paste(trait, "peak-level local covariance"), config$plots$base_size
-          ), 7, 6.5)
+            matrix, paste(trait, "peak local covariance"), config$plots$base_size
+          ), 12, 7)
         }
       )
     }
@@ -218,7 +227,7 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
     for (key in names(wrs$tables)) {
       item <- wrs$tables[[key]]
       n_groups <- length(unique(item$data$group))
-      height <- max(7, 2.2 * ceiling(n_groups / 4L))
+      height <- max(6, 2.1 * ceiling(n_groups / 3L))
       registry$run(
         paste0(key, ".onesided_pvalue_hist"), "WRS", "04_wrs", item$path,
         function() as_figure(plot_wrs_histogram(
@@ -226,7 +235,7 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
           paste(item$trait, item$resolution, item$grouping, "one-sided WRS P-values"),
           "One-sided enriched WRS P-value", config$plots$wrs_histogram_bins,
           config$plots$base_size
-        ), 14, height)
+        ), 11, height)
       )
       registry$run(
         paste0(key, ".truncated_z_hist"), "WRS", "04_wrs", item$path,
@@ -235,7 +244,7 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
           paste(item$trait, item$resolution, item$grouping, "truncated WRS Z-scores"),
           "One-sided enriched truncated Z", config$plots$wrs_histogram_bins,
           config$plots$base_size
-        ), 14, height)
+        ), 11, height)
       )
     }
   } else registry$skip(
@@ -349,7 +358,8 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
         paste0("component_effects_", grouping), "Model", "05_models", component_path,
         function() as_figure(
           plot_component_effect_heatmap(components, grouping, base_size = config$plots$base_size),
-          16, max(5, 0.3 * length(unique(components$group)) + 3)
+          max(10, 6 * length(unique(components$trait))),
+          max(6, 0.3 * length(unique(components$group)) + 3)
         )
       )
     }
