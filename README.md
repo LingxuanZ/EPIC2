@@ -17,7 +17,7 @@ Rscript scripts/install_dependencies.R
 R CMD INSTALL .
 ```
 
-The dependency script installs missing CRAN and Bioconductor packages, including Seurat, Signac, GenomicRanges, SNPRelate, and BiocParallel. It installs a missing `presto` and retains existing package installations. Some dependencies require system libraries or compilers.
+The dependency script installs missing CRAN and Bioconductor packages, including Seurat, Signac, GenomicRanges, SNPRelate, and BiocParallel. The dependency script installs presto from GitHub if it is missing and retains existing package installations. Some dependencies require system libraries or compilers.
 
 Alternatively, install directly from GitHub using either `devtools` or `remotes`. Choose one of the following:
 
