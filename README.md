@@ -17,9 +17,21 @@ Rscript scripts/install_dependencies.R
 R CMD INSTALL .
 ```
 
-The dependency script installs missing CRAN and Bioconductor packages, including Seurat, Signac, GenomicRanges, SNPRelate, and BiocParallel. It installs a missing `presto` at commit `b5df6ee6097eb62522f2e557aa93ac21bab2d05f` and retains existing package installations. Some dependencies require system libraries or compilers.
+The dependency script installs missing CRAN and Bioconductor packages, including Seurat, Signac, GenomicRanges, SNPRelate, and BiocParallel. It installs a missing `presto` and retains existing package installations. Some dependencies require system libraries or compilers.
 
-For an R-only installation:
+Alternatively, install directly from GitHub using either `devtools` or `remotes`. Choose one of the following:
+
+**Using devtools**
+
+```r
+if (!requireNamespace("devtools", quietly = TRUE)) install.packages("devtools")
+devtools::install_github(
+  "LingxuanZ/EPIC2", dependencies = NA,
+  upgrade = "never", build_vignettes = FALSE
+)
+```
+
+**Using remotes**
 
 ```r
 if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
@@ -29,7 +41,7 @@ remotes::install_github(
 )
 ```
 
-This installs required package dependencies. The repository dependency script also installs the optional packages needed for all analysis stages. [DESCRIPTION](DESCRIPTION) lists these under `Suggests`; [environment.yml](environment.yml) provides a conda environment recipe. Record installed dependency versions with your analysis.
+Both commands install required package dependencies. The repository dependency script also installs the optional packages needed for all analysis stages. [DESCRIPTION](DESCRIPTION) lists these under `Suggests`; [environment.yml](environment.yml) provides a conda environment recipe. Record installed dependency versions with your analysis.
 
 ## Example
 
