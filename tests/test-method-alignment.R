@@ -5,7 +5,7 @@ expect_error <- function(expr, pattern) {
   stopifnot(!is.na(message), grepl(pattern, message, fixed = TRUE))
 }
 
-# V4: quantiles exclude infinite raw scores, then cap those scores.
+# Quantiles exclude infinite raw scores, then cap those scores.
 input <- data.frame(pval = c(seq(0.02, 0.98, length.out = 95), rep(0, 5), 0, NA),
                     auc = c(rep(0.7, 100), 0.3, 0.7))
 actual <- make_one_sided_wrs(input)
@@ -19,14 +19,14 @@ stopifnot(isTRUE(all.equal(actual$z_one_sided_enriched_trunc, expected)),
 expect_error(make_one_sided_wrs(data.frame(pval = c(0, 0), auc = c(0.7, 0.3))), "No finite")
 expect_error(make_one_sided_wrs(data.frame(pval = -0.1, auc = 0.7)), "[0, 1]")
 
-# V4: count threshold uses only cells already passing TSS and FRIP.
+# The count threshold uses only cells already passing TSS and FRIP.
 metadata <- data.frame(nCount_peaks = c(1, 1, 100, 101, 1000),
                        TSS.enrichment = c(0, 5, 5, 5, 5), FRIP = c(0.8, 0.1, 0.8, 0.8, 0.8))
 cutoff <- EPIC2:::atac_count_cutoff(metadata, 0.01, assay = "peaks")
 stopifnot(isTRUE(all.equal(cutoff, unname(quantile(c(100, 101, 1000), 0.01)))),
           cutoff > quantile(metadata$nCount_peaks, 0.01))
 
-# V4: all AVAILABLE valid nominal component P-values, equal weights.
+# Combine available valid nominal component P-values with equal weights.
 component <- function(p) data.frame(trait = "T", group = "G", p = p)
 out <- combine_component_tests(component(0.01), component(0.02), component(0.03), component(NA))
 expected <- pcauchy(mean(tan((0.5 - c(0.01, 0.02, 0.03)) * pi)), lower.tail = FALSE)
@@ -68,7 +68,7 @@ pruned <- harmonize_gwas(pruning_gwas, pruning_dosage, genotype_format = "dosage
 stopifnot(identical(pruned$gwas$rsid, "independent"), pruned$summary$n_after_ld_prune == 2,
           pruned$summary$n_after_ambiguous == 1)
 
-# Optional S-LDSC comparison tests the positive coefficient, as in V4.
+# Optional S-LDSC comparison tests the positive coefficient.
 sldsc <- EPIC2:::standardize_sldsc_summary(data.frame(trait = "T", group = c("a", "b"), coef_z = c(2, -2)))
 stopifnot(max(abs(sldsc$coefficient_p - pnorm(c(2, -2), lower.tail = FALSE))) < 1e-15)
 
@@ -87,4 +87,4 @@ stopifnot(abs(fit$beta - reference[1]) < 1e-12, abs(fit$se - reference[2]) < 1e-
 x[2] <- NA
 bad_fit <- fit_whitened_groups(y, list(G = x), b, W)
 stopifnot(is.na(bad_fit$p), grepl("rebuild covariance", bad_fit$status))
-message("Manuscript WRS, QC order, ACAT, allele orientation, MAF, and model consistency checks passed.")
+message("WRS, QC order, ACAT, allele orientation, MAF, and model consistency checks passed.")

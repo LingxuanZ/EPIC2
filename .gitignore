@@ -1,0 +1,9 @@
+.DS_Store
+._*
+.Rhistory
+.Rapp.history
+.RData
+.Rproj.user/
+*.Rcheck/
+EPIC2_*.tar.gz
+results/

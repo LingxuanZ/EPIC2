@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/plots.R.
 \name{run_plot_stage}
 \alias{run_plot_stage}
 \title{Generate publication figures from completed EPIC2 stages}

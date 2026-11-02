@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/genome.R.
 \name{validate_genome_coordinates}
 \alias{validate_genome_coordinates}
 \title{Validate human genomic coordinates against a declared build}

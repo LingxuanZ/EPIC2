@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/accessibility.R.
 \name{run_accessibility_stage}
 \alias{run_accessibility_stage}
 \title{Construct SNP and peak accessibility matrices}

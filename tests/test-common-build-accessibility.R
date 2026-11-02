@@ -53,7 +53,7 @@ same_numeric <- function(first, second) {
   )
 }
 
-# These helpers must never be called by the revised common-build workflow.
+# These helpers must never be called by the common-build workflow.
 for (name in c("lift_genomic_ranges", "resolve_chain_file", "harmonize_gwas_coordinates")) {
   assign(name, function(...) stop("Unexpected coordinate conversion helper call"), envir = modified)
 }

@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/ld.R.
 \name{compute_inverse_sqrt}
 \alias{compute_inverse_sqrt}
 \title{Compute a ridge-stabilized inverse square root}

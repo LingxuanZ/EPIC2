@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/atac.R.
 \name{add_frip}
 \alias{add_frip}
 \title{Add fraction-of-fragments-in-peaks metrics}

@@ -1,7 +1,7 @@
 # Configuration reference
 
-All paths may be absolute or relative to the YAML configuration file. Values
-shown below are defaults unless marked as required.
+Paths may be absolute or relative to the YAML configuration file. Values below
+are package defaults unless marked as required; the example YAML can override them.
 
 ## Project and execution
 
@@ -19,23 +19,14 @@ shown below are defaults unless marked as required.
 | `genome.build` | **required; no default** | Assembly already shared by GWAS, ATAC peaks, and fragment coordinates. Accepts hg19/GRCh37 or hg38/GRCh38. |
 | `genome.duplicate_action` | `drop` | `drop` removes all rows at duplicated coordinates; `error` rejects them. |
 
-EPIC2 does not convert coordinates in its analysis pipeline. Harmonize all
-coordinate-bearing inputs before running it. Missing `genome.build` is an error,
-even when old assembly fields are present. GRCh37/hg19 and GRCh38/hg38 aliases
-are normalized to hg19 and hg38, respectively.
+Set `genome.build` explicitly. GWAS, ATAC peaks, and fragments must already
+share that assembly. EPIC2 checks declarations and coordinate bounds but does
+not convert coordinates or infer the true assembly.
 
-Legacy `genome.target`, `atac.genome`, `gwas.genome`, and per-trait `genome`
-declarations are accepted only when each matches the common assembly. Missing
-legacy values inherit it. A conflicting, empty, or invalid explicit declaration
-is an error. Nonempty `genome.chains` is rejected; remove chain settings from
-pipeline configurations. The standalone `lift_genomic_ranges()` utility remains
-available for separate, explicitly requested preprocessing and is never called
-by the pipeline.
-
-Assembly metadata and chromosome bounds are checked where available. Missing
-metadata is reported as unavailable; coordinate bounds alone cannot identify a
-true assembly. Genotype dosage values do not require coordinate conversion, and
-variant identifier matching does not establish allele coding alignment.
+Optional `genome.target`, `atac.genome`, `gwas.genome`, and per-trait `genome`
+declarations must agree with `genome.build`. Nonempty `genome.chains` is rejected.
+The standalone `lift_genomic_ranges()` function is available for separate
+preprocessing.
 
 ## ATAC input and QC
 
@@ -49,6 +40,7 @@ variant identifier matching does not establish allele coding alignment.
 | `atac.group_column` | `tissue_cell_type` | Column used for minimum group-size QC. |
 | `atac.attach_fragments` | `false` | Attach files listed under `atac.fragment_files`. |
 | `atac.fragment_files` | null | Named tissue-to-fragment-file mapping. |
+| `atac.fragment_barcode_column` | null | Metadata column containing raw fragment-file barcodes when attaching files to renamed cells. |
 | `atac.validate_fragments` | `true` | Ask Signac to validate cell barcodes during attachment. |
 | `atac.compute_qc_metrics` | `false` | Compute nucleosome, TSS, FRIP, and blacklist metrics. |
 | `atac.recompute_embedding` | `false` | Re-run TF-IDF, LSI, UMAP, neighbors, and clustering after QC. |
@@ -65,11 +57,16 @@ variant identifier matching does not establish allele coding alignment.
 | `atac.qc.peak_autosomes_only` | `true` | Retain peaks on chromosomes 1-22 only. |
 | `atac.qc.peak_remove_blacklist` | `true` | Remove peaks using the Signac blacklist matching `genome.build`. |
 
-When `compute_qc_metrics` is false, the five QC metadata fields must already be
-present. The count field is derived from `atac.assay`: `nCount_ATAC` for `ATAC`,
-`nCount_peaks` for `peaks`, and likewise for other assay names. Fragment objects must be attached before the accessibility stage even
-if QC metrics are precomputed. The ATAC stage writes both the configured values
-and the data-derived ATAC count cutoff to `01_atac/qc_thresholds.tsv`.
+With `atac.compute_qc_metrics: false`, supply `TSS.enrichment`, `FRIP`,
+`nCount_<assay>`, `BlacklistRatio`, and `nucleosome_signal` in the input metadata.
+The count field follows the assay name, such as `nCount_ATAC` or `nCount_peaks`.
+Filtering still runs; TSS and FRIP filters precede the count-quantile calculation.
+The ATAC stage records settings and the resulting cutoff in `01_atac/qc_thresholds.tsv`.
+
+Fragment objects must be attached before accessibility calculations. When
+attaching files to renamed cells, set `atac.fragment_barcode_column`; for already
+attached files, EPIC2 uses their Signac barcode mappings. Complete, deduplicated
+fragments are required for FRIP and blacklist calculations. See [Methods](METHODS.md#quality-control).
 
 ## GWAS and reference genotypes
 
@@ -87,9 +84,9 @@ and the data-derived ATAC count cutoff to `01_atac/qc_thresholds.tsv`.
 | `gwas.genotype_missing_values` | `[-9]` | Additional missing-value codes; finite numeric GL states remain likelihood values (see below). |
 | `gwas.genotype_variant_id_column` | null | Variant ID column for genotype data-frame input. |
 | `gwas.reference_missing_rate_max` | `0.01` | Maximum missing reference genotypes per variant. |
-| `gwas.remove_ambiguous` | `true` | Remove A/T, T/A, C/G, and G/C variants after pruning (documented order). |
+| `gwas.remove_ambiguous` | `true` | Remove A/T, T/A, C/G, and G/C variants after LD pruning. |
 | `gwas.ld_prune` | `true` | Perform SNPRelate pruning. |
-| `gwas.ld_prune_tool` | `snprelate` | LD-pruning backend; only SNPRelate is integrated in this release. |
+| `gwas.ld_prune_tool` | `snprelate` | LD-pruning backend; accepts `snprelate`. |
 | `gwas.ld_prune_noninteger` | `error` | Reject continuous dosage during pruning, or `round` to opt into nearest hard calls. |
 | `gwas.ld_method` | `composite` | SNPRelate statistic: `composite`, `r`, `dprime`, or `corr`. |
 | `gwas.ld_threshold` | `0.8` | SNPRelate LD threshold. |
@@ -106,19 +103,18 @@ GWAS QC, genotype, and LD-pruning setting under `gwas.traits.<name>`. The
 effective settings and variant counts are written to each
 `02_gwas/<name>.gwas_qc.tsv` and to the combined QC summary.
 
-GWAS and genotype inputs may be `.rds`, `.rda/.RData`, `.csv[.gz]`,
-`.tsv[.gz]`, or `.txt[.gz]`. A text genotype table should place stable variant
-IDs in the configured `genotype_variant_id_column` and samples in the remaining
-columns. Genotype matrices require unique, nonmissing variant IDs in row names
-(or column names for transposed input) or the configured ID column. Anonymous
-variants are rejected even when dimensions match the GWAS or orientation is
-specified; GWAS IDs are orientation hints, not replacement reference IDs. If an
-upstream format omits names, assign the actual reference variant IDs only after
-verifying their order. Genotypes are joined by ID, genuinely absent variants are
-skipped, and retained rows are reordered together with the GWAS. Coordinates come
-from the already harmonized GWAS table, and dosage values are not converted.
-Native PLINK/VCF/BGEN/GDS containers still need to be read or exported to a
-supported matrix first.
+GWAS and genotype inputs may be `.rds`, `.rda`/`.RData`, `.csv[.gz]`,
+`.tsv[.gz]`, or `.txt[.gz]`. Text genotype tables can use
+`genotype_variant_id_column`; matrices require unique, nonmissing variant IDs
+in row names, or column names for transposed input. EPIC2 matches variants by ID,
+excludes those absent from the reference, and reorders matched rows with the
+GWAS. Anonymous reference variants are rejected even when dimensions agree.
+Export PLINK, VCF, BGEN, or GDS inputs to a supported matrix or table first.
+
+Dosage must count the GWAS effect allele (`a1`). GT and probability states must
+have that same counted-allele orientation. For allele-label input, EPIC2 verifies
+labels and flips dosage to the effect allele where needed. Strand alignment
+must be established upstream; numeric matrices alone cannot identify it.
 
 `auto` accepts numeric allele dosage, biallelic GT strings, allele labels, and
 well-formed GP probabilities. GL and PL must be declared explicitly because
@@ -134,8 +130,7 @@ likelihoods and are never replaced by numeric missing codes inside a likelihood
 vector, array, or state-matrix list. For example, `0,-9,-18` is a called genotype
 and `-9,-9,-9` is an uninformative called vector. Use `NA` or nonnumeric missing
 tokens for missing array/list states. A scalar text genotype cell consisting
-only of a configured code, such as `"-9"`, is still missing. Other genotype
-formats retain their existing missing-code behavior.
+only of a configured code, such as `"-9"`, is still missing. For dosage, GP, and PL, configured missing codes apply to numeric entries.
 
 Finite effect estimates, finite positive standard errors, and finite derived
 Z-scores are required before LD pruning, so an unusable summary-statistic row
@@ -148,18 +143,10 @@ polyploid values that do not map exactly require either
 retained unchanged for downstream LD calculations even when pruning uses the
 explicitly requested nearest hard calls.
 
-The first argument of `snpgdsLDpruning()` is an open GDS file handle created
-internally; it is not a token. The user-facing selector is `ld_prune_tool`, and
-the LD statistic is selected with `ld_method`. To prune with PLINK or another
-external program in this release, prepare matching pre-pruned GWAS and genotype
-inputs first and set `ld_prune: false`; arbitrary external commands are not run
-from YAML.
+To use externally pruned GWAS and reference inputs, set `gwas.ld_prune: false`.
+Other GWAS and reference QC filters still apply.
 
-The package does not infer allele flips from a dosage matrix without allele
-metadata. Summary statistics must be aligned to the reference panel before
-input.
-
-## Accessibility, LD, and tests
+## Accessibility, LD, and models
 
 | Key | Default | Purpose |
 | --- | --- | --- |
@@ -172,48 +159,35 @@ input.
 | `ld.max_dense_block_size` | `5000` | Reject a larger dense inverse-square-root block before allocation; applies to SNP/peak covariance components and within-peak SNP inverses. Positive integer, or `.inf` to deliberately disable the guard. |
 | `wrs.truncation_quantiles` | `[0.02, 0.98]` | Quantiles of finite raw enrichment-oriented Z-scores; then cap all scores, including infinities. |
 | `wrs.balanced.enabled` | `false` | Run repeated equal-size one-versus-rest sampling. |
-| `wrs.balanced.cells_per_side` | `[500, 1000]` | Target and background sample sizes. |
+| `wrs.balanced.cells_per_side` | `[500, 1000]` | Sample sizes to run separately; each uses this many target cells and this many background cells. |
 | `wrs.balanced.repeats` | `30` | Repeats at each sample size. |
 | `wrs.balanced.auc_cutoff` | `0.55` | Selection threshold for repeat-pair stability. |
 | `wrs.balanced.stability_frequency_cutoff` | `0.8` | Minimum selected-repeat proportion for a feature to be marked stable. |
 | `wrs.balanced.top_n` | `100` | Top-ranked features compared between repeat pairs. |
 | `model.groupings` | `[tissue_cell_type, tissue]` | Metadata resolutions modeled independently. |
-| `model.require_all_components` | `false` | Combine available valid P-values by default (default); set true to require all four. |
+| `model.require_all_components` | `false` | Combine available valid P-values; set true to require all four components. |
 
-Changing `ld.ridge`, `ld.window_bp`, Wilcoxon truncation, or group definitions
-changes the statistical model and should be treated as a new analysis rather
-than an execution-only option.
+Balanced WRS is optional. For `[500, 1000]`, one analysis samples 500 target
+and 500 background cells per repeat; another samples 1,000 from each. Groups
+without enough cells on either side are skipped for that sample size. The
+association models use ordinary WRS scores; balanced runs provide diagnostics.
 
-`ld.correlation_block_size` changes batching only. Block size 1 and larger
-blocks use the same standardized dosage values, local-distance mask, and output
-schema; numerical-equivalence tests cover this contract.
+The LD distance window limits pairwise connections, but a connected component
+can span a chromosome. Every component uses a dense eigendecomposition.
+`ld.max_dense_block_size` checks component dimensions before dense allocation
+and also limits within-peak SNP inverses. At 5,000 features, one double matrix
+uses about 0.19 GiB; actual process memory includes workspaces, copies, genotypes,
+and other retained matrices. The guard does not bound total RAM.
 
-A local LD distance window does not bound the size of a connected component:
-successive local connections can span a chromosome. Each component still uses
-a dense eigendecomposition. `ld.max_dense_block_size` checks every component
-before any component is converted to dense form, and checks each within-peak
-SNP block before allocating its dense LD matrix. A stopped run reports the
-dimension and memory estimates. At the default limit of 5000, one double matrix
-occupies approximately 0.19 GiB; an illustrative six-matrix working estimate is
-1.12 GiB. LAPACK workspaces, genotype data, retained blocks, covariance storage,
-and copies can require additional memory, so this is not a total-memory limit
-or a guarantee that a job will fit in RAM.
+Increase the limit only for jobs with sufficient resources, or set it to `.inf`
+to disable it (`Inf` in R). The guard does not split components or approximate
+accepted inverse square roots. Chromosome LD caching uses the smaller of
+`ld.max_snps_for_chr_ld` and `ld.max_dense_block_size`; above that limit, exact
+peak-pair correlations are computed on demand.
 
-The guard can stop large analyses that earlier versions attempted. After
-checking the resources available to the job, increase the limit explicitly or
-set `ld.max_dense_block_size: .inf` to disable it (`Inf` in R). The standalone
-`compute_inverse_sqrt()` and `build_peak_ld_model()` functions accept the same
-`max_dense_block_size` argument. The guard does not split components, remove LD
-connections, or approximate accepted inverse square roots. It is not a scalable
-replacement for the dense eigensolver. Reducing `ld.window_bp` to bypass a large
-block changes the statistical model.
-
-Chromosome LD caching uses the smaller of `ld.max_snps_for_chr_ld` and the dense
-block limit. Above it, the existing exact peak-pair calculation is used. This
-can increase runtime while avoiding the optional full chromosome LD matrix;
-it does not change the covariance definition. Sparse covariance construction
-and the accumulated output matrices can still exhaust memory independently of
-this guard.
+`ld.correlation_block_size` changes batching. In contrast, changes to the LD
+window, regularization, WRS truncation, or group definitions change the
+statistical analysis. See [Methods](METHODS.md#ld-adjusted-association-models).
 
 ## Publication figures
 
@@ -229,11 +203,15 @@ this guard.
 | `plots.top_features_per_group` | `3` | WRS-ranked features selected per trait and annotation group. |
 | `plots.pvalue_cap` | `12` | Display cap for `-log10(P)`; raw table values are unchanged. |
 | `plots.sldsc_summary` | null | Optional merged S-LDSC TSV/RDS/RData used for method-comparison figures. |
-| `plots.fail_on_error` | `false` | Stop immediately on a plotting error; use `true` for release runs. |
+| `plots.fail_on_error` | `false` | Stop on the first plotting error; otherwise record the error and continue. |
 
-The `plot` stage reads saved results and does not modify analytical objects.
-Every attempted figure is recorded in `figures/figure_manifest.tsv` with its
-source path, output paths, status, message, and elapsed time. S-LDSC computation
-is external; accepted summaries need `trait`, an annotation/group column, and a
-coefficient z-score. Common coefficient/enrichment P-value column names are
-standardized automatically.
+The plotting stage reads saved results and writes figures, supporting tables,
+and `figures/figure_manifest.tsv`, which records paths, statuses, messages, and
+timings. A skipped figure indicates missing optional inputs; review errors
+before using figures.
+
+S-LDSC summaries are optional and computed externally. Accepted tables need a
+trait column, an annotation/group column, and a coefficient Z-score. Comparison
+plots calculate positive-coefficient P-values as
+`pnorm(coefficient_z, lower.tail = FALSE)`; any supplied coefficient P-value is
+retained separately. No EPIC2 analysis stage requires S-LDSC.

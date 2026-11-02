@@ -14,13 +14,13 @@ Input GWAS summary statistics, reference genotypes, ATAC peaks, and fragments
 must already use the same declared genome assembly and compatible alleles.
 The required \code{genome.build} configuration value has no default; supported
 assemblies are hg19/GRCh37 and hg38/GRCh38. The main pipeline validates the
-common-build contract and never performs automatic liftOver. The standalone
+common assembly and never performs automatic liftOver. The standalone
 \code{\link{lift_genomic_ranges}} utility is available for explicit preprocessing.
 
 Use \code{\link{read_EPIC2_config}} and \code{\link{run_EPIC2}} for the staged
 workflow, or \code{\link{EPIC2_cli}} for its command-line interface. The package
 README and example YAML describe the file layout and complete configuration.
-Block permutation and S-LDSC estimation are outside this release.
+S-LDSC summaries can be imported for optional comparison plots; S-LDSC estimation is external.
 }
 \seealso{
 \code{\link{run_EPIC2}}, \code{\link{read_EPIC2_config}},

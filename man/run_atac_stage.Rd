@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/atac.R.
 \name{run_atac_stage}
 \alias{run_atac_stage}
 \title{ATAC preparation and QC}

@@ -1,9 +1,8 @@
-% Maintained against the exported function signature in R/atac.R.
 \name{filter_atac_cells}
 \alias{filter_atac_cells}
-\title{Filter nuclei using manuscript QC thresholds}
+\title{Filter nuclei using configured QC thresholds}
 \description{
-Filter nuclei using manuscript QC thresholds.
+Filter nuclei using configured QC thresholds.
 }
 \usage{
 filter_atac_cells(atac, thresholds = list(), group_column = "tissue_cell_type",

@@ -107,7 +107,7 @@ wrs:
 
 model:
   groupings: [tissue_cell_type, tissue]
-  # V4 combines all available valid component P-values.
+  # Combine all available valid component P-values.
   require_all_components: false
 
 plots:
@@ -122,5 +122,5 @@ plots:
   pvalue_cap: 12
   # Optional TSV/RDS/RData created by the external S-LDSC workflow.
   sldsc_summary: null
-  # Manuscript runs should normally set this to true.
+  # Set true to stop on the first plotting error.
   fail_on_error: false

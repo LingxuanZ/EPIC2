@@ -6,8 +6,8 @@ scale_genotype_for_ld <- function(genotype) {
   missing <- which(is.na(x), arr.ind = TRUE)
   if (nrow(missing)) {
     warning(
-      "LD mean-imputes missing reference genotypes; the original Rmd does not. ",
-      "Rmd numerical equivalence requires the same complete genotype input.",
+      "Missing reference genotypes are mean-imputed per variant before LD calculation. ",
+      "Check reference-panel missingness before interpreting LD results.",
       call. = FALSE
     )
     x[missing] <- means[missing[, "col"]]
@@ -289,7 +289,7 @@ build_peak_ld_model_impl <- function(gwas, genotype, peak_matrix, overlap,
     if (length(snps) == 0L) return(NULL)
     check_dense_ld_block(length(snps), max_dense_block_size, "Within-peak SNP LD")
     r <- ld_from_scaled(scaled, snps, snps)
-    # Match the Rmd's single-SNP shortcut while retaining the configured floor.
+    # Use the scalar inverse square root for a single SNP.
     inverse <- if (length(snps) == 1L) {
       matrix(1 / sqrt(max(r[[1L]], eigen_tolerance) + ridge),
              nrow = 1L, dimnames = dimnames(r))
@@ -356,8 +356,7 @@ build_peak_ld_model_impl <- function(gwas, genotype, peak_matrix, overlap,
         covariance_q <- 2 * sum(transformed * transformed)
         if (!is.finite(covariance_q) || covariance_q == 0) next
         count <- count + 1L
-        # Grow inline, as in the Rmd. A helper returning these vectors in a
-        # list keeps aliases alive and forces a full copy on every pair write.
+        # Grow vectors inline to avoid aliases and repeated copies.
         if (count > length(pair_i)) {
           new_capacity <- max(count, max(1024L, length(pair_i) * 2L))
           length(pair_i) <- new_capacity
@@ -461,7 +460,7 @@ run_ld_stage <- function(config, traits = names(config$gwas$traits)) {
       "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"
     )
     runtime <- c(
-      implementation = "ld-rmd-storage-v1",
+      implementation = "ld-covariance-v1",
       status = "RUNNING",
       started_utc = format(Sys.time(), tz = "UTC", usetz = TRUE),
       R = R.version.string,
@@ -486,7 +485,7 @@ run_ld_stage <- function(config, traits = names(config$gwas$traits)) {
       file.path(config$output_dir, "02_accessibility", paste0(trait, c(".snp_by_cell.rds", ".peak_by_cell.rds", ".snp_peak_overlap.tsv")))
     )
     input_hashes <- file_fingerprints(input_paths)
-    message("[LD] ", trait, ": ld-rmd-storage-v1; loading completed stage 02 inputs")
+    message("[LD] ", trait, ": ld-covariance-v1; loading completed stage 02 inputs")
     message("[LD] LD loops are serial; BLAS threading is determined at R startup. ",
             "OMP=", Sys.getenv("OMP_NUM_THREADS", unset = "not set"),
             ", MKL=", Sys.getenv("MKL_NUM_THREADS", unset = "not set"),

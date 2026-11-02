@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/accessibility.R.
 \name{build_group_accessibility}
 \alias{build_group_accessibility}
 \title{Aggregate library-size-adjusted accessibility by cell group}

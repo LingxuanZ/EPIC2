@@ -203,7 +203,7 @@ wrs_stage_settings <- function(config) {
        groupings = config$model$groupings, truncation_quantiles = config$wrs$truncation_quantiles)
 }
 
-#' Run section 4: SNP- and peak-level Wilcoxon analyses
+#' Run SNP- and peak-level Wilcoxon analyses
 #'
 #' @param config Parsed EPIC2 configuration.
 #' @param traits Optional trait subset.

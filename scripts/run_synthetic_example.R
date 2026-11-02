@@ -14,9 +14,9 @@ run_common_build_integration <- function(genome_build = "hg19") {
   )
   missing <- required[!vapply(required, requireNamespace, logical(1), quietly = TRUE)]
   if (length(missing)) {
-    stop("Common-build integration test is missing: ", paste(missing, collapse = ", "))
+    stop("Synthetic example requires: ", paste(missing, collapse = ", "))
   }
-  # Fail the test if the pipeline attempts to call the standalone converter.
+  # Verify that the example uses its declared assembly without conversion.
   trace("lift_genomic_ranges", tracer = quote(stop("Unexpected pipeline liftOver call")),
         where = asNamespace("EPIC2"), print = FALSE)
   on.exit(untrace("lift_genomic_ranges", where = asNamespace("EPIC2")), add = TRUE)

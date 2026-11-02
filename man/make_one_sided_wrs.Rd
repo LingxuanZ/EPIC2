@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/wrs.R.
 \name{make_one_sided_wrs}
 \alias{make_one_sided_wrs}
 \title{Convert two-sided Wilcoxon results to enrichment-oriented one-sided scores}

@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/model.R.
 \name{fit_whitened_groups}
 \alias{fit_whitened_groups}
 \title{Fit group-wise LD-whitened linear models}

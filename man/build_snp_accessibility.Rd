@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/accessibility.R.
 \name{build_snp_accessibility}
 \alias{build_snp_accessibility}
 \title{Build a trait-specific SNP-by-cell accessibility matrix}

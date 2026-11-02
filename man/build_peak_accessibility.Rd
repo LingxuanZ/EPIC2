@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/accessibility.R.
 \name{build_peak_accessibility}
 \alias{build_peak_accessibility}
 \title{Build a trait-specific peak-by-cell accessibility matrix}
@@ -28,7 +27,7 @@ build_peak_accessibility(atac, gwas, columns = EPIC2_defaults()$gwas$columns,
 \details{
 EPIC2 requires one explicitly declared common human genome assembly for GWAS, reference genotypes, ATAC peaks, and fragments. The main workflow validates declarations and coordinate bounds; it does not perform liftOver. Coordinate bounds alone cannot establish that inputs use the same assembly. Users must harmonize assemblies and allele orientation before analysis.
 
-This function selects existing post-QC ATAC peak-count rows overlapped by eligible GWAS SNPs. It does not recalculate peak counts from fragments and does not impose an additional 20-cells-per-peak or 20-peaks-per-cell filter.
+This function selects existing post-QC ATAC peak-count rows overlapped by eligible GWAS SNPs. Peak counts are taken directly from the supplied object.
 }
 \value{
 A list with a sparse peak matrix and SNP-to-peak overlap table.

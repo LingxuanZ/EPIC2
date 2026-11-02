@@ -21,7 +21,7 @@ for (stage in c("atac", "gwas", "accessibility", "ld", "wrs", "model", "plot")) 
   stopifnot(!dir.exists(config$output_dir))
 }
 
-# New matrix metadata prevents reuse under a conflicting assembly declaration.
+# Matrix metadata prevents reuse under a conflicting assembly declaration.
 matrix <- matrix(1, 2L, 2L)
 attr(matrix, "genome_build") <- "hg19"
 expect_error(EPIC2:::check_accessibility_matrix_build(matrix, "hg38"), "matrix_genome")

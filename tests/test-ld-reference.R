@@ -10,9 +10,8 @@ expect_named_matrix_equal <- function(actual, expected, tolerance = 1e-8) {
   stopifnot(max(abs(actual - as.matrix(expected))) < tolerance)
 }
 
-# Notebook reference on complete genotypes. Missing-genotype policies are not
-# equivalent: the package mean-imputes, whereas the notebook retains NA values.
-rmd_scale_complete_genotype <- function(genotype) {
+# Independent reference equations for complete genotypes.
+reference_scale_complete_genotype <- function(genotype) {
   stopifnot(all(is.finite(genotype)))
   x <- t(as.matrix(genotype))
   standard_deviation <- apply(x, 2, stats::sd)
@@ -22,7 +21,7 @@ rmd_scale_complete_genotype <- function(genotype) {
   scaled
 }
 
-rmd_inverse_sqrt <- function(x, ridge = 0.01, eigen_tolerance = 1e-8) {
+reference_inverse_sqrt <- function(x, ridge = 0.01, eigen_tolerance = 1e-8) {
   x <- as.matrix(x)
   decomposition <- eigen((x + t(x)) / 2, symmetric = TRUE)
   values <- pmax(decomposition$values, eigen_tolerance) + ridge
@@ -33,14 +32,14 @@ rmd_inverse_sqrt <- function(x, ridge = 0.01, eigen_tolerance = 1e-8) {
   result
 }
 
-# Independent scalar-focal reference from the active 5 Mb SNP notebook cell.
+# Independent scalar-focal reference for local SNP covariance.
 # A smaller window makes the inclusive boundary easy to exercise in a fixture.
-rmd_snp_covariance <- function(genotype, gwas, window_bp, factor_two = FALSE) {
+reference_snp_covariance <- function(genotype, gwas, window_bp, factor_two = FALSE) {
   genotype <- genotype[match(gwas$coord_id, rownames(genotype)), , drop = FALSE]
   ord <- order(as.integer(gwas$chr), gwas$pos)
   gwas <- gwas[ord, , drop = FALSE]
   genotype <- genotype[ord, , drop = FALSE]
-  scaled <- rmd_scale_complete_genotype(genotype)
+  scaled <- reference_scale_complete_genotype(genotype)
   gwas <- gwas[gwas$coord_id %in% colnames(scaled), , drop = FALSE]
   scaled <- scaled[, gwas$coord_id, drop = FALSE]
   sigma <- matrix(
@@ -87,7 +86,7 @@ ld_gwas <- data.frame(
 ld_genotype <- ld_genotype[c(6, 3, 1, 5, 2, 4), , drop = FALSE]
 ld_gwas <- ld_gwas[c(5, 2, 6, 4, 1, 3), , drop = FALSE]
 
-expected_snp <- rmd_snp_covariance(ld_genotype, ld_gwas, window_bp = 500)
+expected_snp <- reference_snp_covariance(ld_genotype, ld_gwas, window_bp = 500)
 for (block_size in c(1L, 2L, 256L)) {
   actual_snp <- compute_snp_ld_covariance(
     ld_genotype, ld_gwas,
@@ -101,16 +100,14 @@ for (block_size in c(1L, 2L, 256L)) {
     actual_snp[ld_ids[1], ld_ids[5]] == 0
   )
   actual_inverse <- EPIC2:::inverse_sqrt_components(actual_snp, 0.01, 1e-8)
-  expect_named_matrix_equal(actual_inverse$matrix, rmd_inverse_sqrt(expected_snp))
+  expect_named_matrix_equal(actual_inverse$matrix, reference_inverse_sqrt(expected_snp))
 }
 actual_factor_two <- compute_snp_ld_covariance(
   ld_genotype, ld_gwas, window_bp = 500, factor_two = TRUE
 )
 expect_named_matrix_equal(actual_factor_two, 2 * expected_snp, tolerance = 1e-12)
 
-# Explicit stored zeros must not become graph edges. The notebook's sparse
-# logical conversion can retain FALSE entries; reproducing that bug is not needed
-# for equality of the named covariance/inverse-square-root results.
+# Explicit stored zeros must not become graph edges.
 isolated <- Matrix::sparseMatrix(
   i = c(1, 1, 2, 2, 3), j = c(1, 2, 1, 2, 3),
   x = c(1, 0, 0, 1, 1),
@@ -118,8 +115,8 @@ isolated <- Matrix::sparseMatrix(
 )
 isolated_inverse <- EPIC2:::inverse_sqrt_components(isolated, 0.01, 1e-8)
 stopifnot(all(lengths(isolated_inverse$indices) == 1L))
-expect_named_matrix_equal(isolated_inverse$matrix, rmd_inverse_sqrt(isolated))
-message("LD notebook regression: SNP covariance and inverse-square-root checks passed.")
+expect_named_matrix_equal(isolated_inverse$matrix, reference_inverse_sqrt(isolated))
+message("LD reference regression: SNP covariance and inverse-square-root checks passed.")
 
 # Stage-level checkpoint ordering is testable without Bioconductor peak parsing.
 # Clone the stage function and fail exactly at entry to peak LD, after SNP saves.
@@ -180,23 +177,23 @@ local({
   )
   expect_named_matrix_equal(readRDS(paste0(prefix, ".snp_sigma.rds")), expected_snp)
   expect_named_matrix_equal(
-    readRDS(paste0(prefix, ".snp_inverse_sqrt.rds")), rmd_inverse_sqrt(expected_snp)
+    readRDS(paste0(prefix, ".snp_inverse_sqrt.rds")), reference_inverse_sqrt(expected_snp)
   )
   runtime <- utils::read.delim(paste0(prefix, ".ld_runtime.tsv"), stringsAsFactors = FALSE)
   stopifnot(identical(runtime$value[runtime$setting == "status"], "RUNNING"))
 })
-message("LD notebook regression: SNP files persist after simulated peak-stage failure.")
+message("LD reference regression: SNP files persist after simulated peak-stage failure.")
 
 peak_dependencies <- c("Signac", "GenomicRanges")
 if (!all(vapply(peak_dependencies, requireNamespace, logical(1), quietly = TRUE))) {
-  message("Skipping peak LD notebook regression: Signac/GenomicRanges are unavailable.")
+  message("Skipping peak LD reference regression: Signac/GenomicRanges are unavailable.")
 } else {
-  # Independent dense reference for the finite-input notebook peak equations.
+  # Independent dense reference for the peak equations on finite inputs.
   # Peak pairs use start(next) <= end(current) + window, not start-to-start distance.
-  rmd_peak_reference <- function(genotype, gwas, peaks, overlap,
+  reference_peak_reference <- function(genotype, gwas, peaks, overlap,
                                   window_bp = 500, ridge = 0.01,
                                   eigen_tolerance = 1e-8) {
-    scaled <- rmd_scale_complete_genotype(genotype)
+    scaled <- reference_scale_complete_genotype(genotype)
     z_lookup <- setNames(gwas$Z, gwas$coord_id)
     overlap <- unique(overlap[
       overlap$snp %in% colnames(scaled) & overlap$peak %in% peaks,
@@ -209,7 +206,7 @@ if (!all(vapply(peak_dependencies, requireNamespace, logical(1), quietly = TRUE)
       if (length(ids) == 1L) {
         matrix(1 / sqrt(r[1, 1] + ridge), 1, 1, dimnames = list(ids, ids))
       } else {
-        rmd_inverse_sqrt(r, ridge, eigen_tolerance)
+        reference_inverse_sqrt(r, ridge, eigen_tolerance)
       }
     })
     k <- lengths(snp_sets)
@@ -243,7 +240,7 @@ if (!all(vapply(peak_dependencies, requireNamespace, logical(1), quietly = TRUE)
     sigma <- covariance_q / outer(k, k)
     list(
       response = response, covariance_q = covariance_q, sigma = sigma,
-      inverse_sqrt = rmd_inverse_sqrt(sigma, ridge, eigen_tolerance)
+      inverse_sqrt = reference_inverse_sqrt(sigma, ridge, eigen_tolerance)
     )
   }
 
@@ -275,7 +272,7 @@ if (!all(vapply(peak_dependencies, requireNamespace, logical(1), quietly = TRUE)
   )
   peak_genotype <- peak_genotype[c(6, 3, 1, 5, 2, 4), , drop = FALSE]
   peak_gwas <- peak_gwas[c(5, 2, 6, 4, 1, 3), , drop = FALSE]
-  expected_peak <- rmd_peak_reference(
+  expected_peak <- reference_peak_reference(
     peak_genotype, peak_gwas, rownames(peak_matrix), peak_overlap
   )
 
@@ -318,7 +315,7 @@ if (!all(vapply(peak_dependencies, requireNamespace, logical(1), quietly = TRUE)
   )
   expect_named_matrix_equal(growth_model$sigma, expected_growth_sigma, tolerance = 1e-12)
   expect_named_matrix_equal(
-    growth_model$inverse_sqrt, rmd_inverse_sqrt(expected_growth_sigma)
+    growth_model$inverse_sqrt, reference_inverse_sqrt(expected_growth_sigma)
   )
 
   # A simulated failure in the final inverse step must leave earlier checkpoints.
@@ -347,5 +344,5 @@ if (!all(vapply(peak_dependencies, requireNamespace, logical(1), quietly = TRUE)
       file.exists(paste0(prefix, ".peak_covariance.rds"))
     )
   })
-  message("LD notebook regression: peak equations, cache/fallback and early checkpoints passed.")
+  message("LD reference regression: peak equations, cache/fallback and early checkpoints passed.")
 }

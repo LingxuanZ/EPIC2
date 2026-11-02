@@ -1,9 +1,8 @@
-% Maintained against the exported function signature in R/atac.R.
 \name{filter_atac_peaks}
 \alias{filter_atac_peaks}
-\title{Filter ATAC peaks using manuscript QC thresholds}
+\title{Filter ATAC peaks using configured QC thresholds}
 \description{
-Filter ATAC peaks using manuscript QC thresholds.
+Filter ATAC peaks using configured QC thresholds.
 }
 \usage{
 filter_atac_peaks(atac, thresholds = list(), assay = "ATAC", blacklist = NULL, 

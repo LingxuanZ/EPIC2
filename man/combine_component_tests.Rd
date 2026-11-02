@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/model.R.
 \name{combine_component_tests}
 \alias{combine_component_tests}
 \title{Combine SNP/peak count and Wilcoxon component tests with ACAT}

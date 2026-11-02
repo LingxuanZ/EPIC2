@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/genome.R.
 \name{lift_genomic_ranges}
 \alias{lift_genomic_ranges}
 \title{Lift genomic ranges between hg19 and hg38}

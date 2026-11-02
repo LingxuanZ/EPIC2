@@ -204,7 +204,7 @@ atac_count_cutoff <- function(metadata, count_quantile_min, assay = "ATAC",
   )
 }
 
-#' Filter nuclei using manuscript QC thresholds
+#' Filter nuclei using configured QC thresholds
 #'
 #' @param atac A Seurat/Signac object.
 #' @param thresholds Named list of cell-level thresholds.
@@ -239,7 +239,7 @@ filter_atac_cells <- function(atac, thresholds = list(), group_column = "tissue_
   atac[, rownames(metadata)[keep]]
 }
 
-#' Filter ATAC peaks using manuscript QC thresholds
+#' Filter ATAC peaks using configured QC thresholds
 #'
 #' @param atac A Seurat/Signac object.
 #' @param thresholds Named list containing peak width thresholds.

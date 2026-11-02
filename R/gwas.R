@@ -308,7 +308,7 @@ harmonize_gwas <- function(gwas, genotype, columns = EPIC2_defaults()$gwas$colum
   }
   after_ld_prune <- nrow(gwas)
 
-  # Supplementary Methods: prune first, then exclude strand-ambiguous SNPs.
+  # Remove strand-ambiguous SNPs after pruning.
   if (remove_ambiguous) {
     ambiguous <- is_strand_ambiguous(gwas[[columns$a1]], gwas[[columns$a2]])
     ambiguous[is.na(ambiguous)] <- TRUE

@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/config.R.
 \name{read_EPIC2_config}
 \alias{read_EPIC2_config}
 \title{Read an EPIC2 YAML configuration}

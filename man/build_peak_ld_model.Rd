@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/ld.R.
 \name{build_peak_ld_model}
 \alias{build_peak_ld_model}
 \title{Build peak-level GWAS response and local LD covariance}
@@ -22,7 +21,7 @@ build_peak_ld_model(gwas, genotype, peak_matrix, overlap, window_bp = 5000000L,
   \item{max_dense_block_size}{Maximum dense block dimension for within-peak inverses and peak covariance components. A positive integer, or \code{Inf} to deliberately disable the guard. Also caps optional chromosome LD caching.}
 }
 \details{
-Oversized within-peak SNP blocks are rejected before constructing their dense LD matrix. All covariance component sizes are checked before any component is converted to dense form. Above the smaller of the two cache limits, chromosome LD is calculated through the existing exact peak-pair path, potentially increasing runtime. Accepted inverse square roots are unchanged. The guard does not bound total process memory or split the statistical covariance model.
+Oversized within-peak SNP blocks are rejected before constructing their dense LD matrix. All covariance component sizes are checked before any component is converted to dense form. Above the smaller of the two cache limits, chromosome LD is calculated through exact peak-pair calculations, potentially increasing runtime. Accepted blocks use the full eigendecomposition. The guard does not bound total process memory or split the statistical covariance model.
 }
 \value{
 List containing peak response, covariance, and inverse square root.

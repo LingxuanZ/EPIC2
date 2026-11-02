@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/gwas.R.
 \name{run_gwas_stage}
 \alias{run_gwas_stage}
 \title{GWAS harmonization and LD pruning}

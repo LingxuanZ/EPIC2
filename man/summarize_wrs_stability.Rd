@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/wrs.R.
 \name{summarize_wrs_stability}
 \alias{summarize_wrs_stability}
 \title{Summarize repeat-to-repeat WRS feature stability}

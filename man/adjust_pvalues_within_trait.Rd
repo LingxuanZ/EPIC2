@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/model.R.
 \name{adjust_pvalues_within_trait}
 \alias{adjust_pvalues_within_trait}
 \title{Add within-trait multiple-testing corrections}

@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/ld.R.
 \name{compute_snp_ld_covariance}
 \alias{compute_snp_ld_covariance}
 \title{Construct local SNP-level LD response covariance}

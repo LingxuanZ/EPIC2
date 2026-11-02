@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/pipeline.R.
 \name{run_EPIC2}
 \alias{run_EPIC2}
 \title{Run the EPIC2 analysis and publication-figure workflow}

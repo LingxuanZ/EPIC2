@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/genome.R.
 \name{normalize_genome_build}
 \alias{normalize_genome_build}
 \title{Normalize a human genome-build name}

@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/atac.R.
 \name{add_blacklist_ratio}
 \alias{add_blacklist_ratio}
 \title{Add blacklist-overlap ratios}

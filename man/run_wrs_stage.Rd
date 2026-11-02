@@ -1,9 +1,8 @@
-% Maintained against the exported function signature in R/wrs.R.
 \name{run_wrs_stage}
 \alias{run_wrs_stage}
-\title{Run section 4: SNP- and peak-level Wilcoxon analyses}
+\title{Run SNP- and peak-level Wilcoxon analyses}
 \description{
-Run section 4: SNP- and peak-level Wilcoxon analyses.
+Run SNP- and peak-level Wilcoxon analyses.
 }
 \usage{
 run_wrs_stage(config, traits = names(config$gwas$traits)) 

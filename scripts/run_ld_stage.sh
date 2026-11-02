@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# Run only stage 03 with the thread environment used by the Rmd LD job.
+# Run the LD stage with thread limits set before R starts.
 # Load the appropriate R module and set R_LIBS_USER before calling this script.
-# Install the updated package separately; this script never installs packages.
+# Install EPIC2 before using this script.
 #
 # Usage:
 #   bash scripts/run_ld_stage.sh "/path with spaces/config.yml" [HDL]
@@ -60,14 +60,14 @@ if [[ -n "$ld_allocated_threads" ]] && (( ld_threads > ld_allocated_threads )); 
 fi
 
 if ! command -v Rscript >/dev/null 2>&1; then
-  printf 'Rscript was not found. Load the same R module used for the Rmd first.\n' >&2
+  printf 'Rscript was not found. Install R or load the appropriate R module first.\n' >&2
   exit 127
 fi
 
 # Set these BEFORE R starts: changing them inside an existing R session may
 # not reconfigure an already initialized BLAS library. The LD loops remain
 # serial; the linked BLAS/OpenMP implementation decides which operations
-# actually use these threads. This is not four parallel R workers.
+# use these threads.
 export OMP_NUM_THREADS="$ld_threads"
 export MKL_NUM_THREADS="$ld_threads"
 export OPENBLAS_NUM_THREADS="$ld_threads"
@@ -86,7 +86,7 @@ args <- commandArgs(trailingOnly = TRUE)
 if (!requireNamespace("EPIC2", quietly = TRUE)) {
   stop(
     "EPIC2 cannot be loaded from the selected R libraries. ",
-    "Install the updated local EPIC2 source into R_LIBS_USER before submission.\n",
+    "Install EPIC2 into R_LIBS_USER before submission.\n",
     "Libraries searched: ", paste(.libPaths(), collapse = "; "),
     call. = FALSE
   )

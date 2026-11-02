@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/ld.R.
 \name{run_ld_stage}
 \alias{run_ld_stage}
 \title{Build local SNP- and peak-level LD models}

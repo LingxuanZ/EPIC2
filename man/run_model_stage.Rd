@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/model.R.
 \name{run_model_stage}
 \alias{run_model_stage}
 \title{LD-adjusted models and Cauchy combination}

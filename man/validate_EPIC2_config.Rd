@@ -1,4 +1,3 @@
-% Maintained against the exported function signature in R/config.R.
 \name{validate_EPIC2_config}
 \alias{validate_EPIC2_config}
 \title{Validate an EPIC2 configuration}

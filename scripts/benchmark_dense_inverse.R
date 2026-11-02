@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-# Run with the candidate EPIC2 installed:
+# Run after installing EPIC2:
 # Rscript scripts/benchmark_dense_inverse.R [output.tsv] [250,500,1000]
 # Memory columns are planning estimates, not measured peak RSS.
 if (!requireNamespace("EPIC2", quietly = TRUE) ||
