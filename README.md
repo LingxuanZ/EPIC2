@@ -22,9 +22,9 @@ devtools::install_github(
 
 ## Vignette
 
-[Read the HTML vignette](https://LingxuanZ.github.io/EPIC2/EPIC2_vignette_knit.html) · [View the Markdown version on GitHub](docs/EPIC2_vignette_knit.md)
+[Read the HTML vignette](https://LingxuanZ.github.io/EPIC2/EPIC2_vignette.html) · [View the Markdown version on GitHub](docs/EPIC2_vignette.md)
 
-The vignette demonstrates a total cholesterol (TC) analysis using sampled real single-cell ATAC-seq data and all eligible TC SNPs. It provides input downloads, analysis code, result tables, and figures. Use its supplied `config_knit.yml` and data preparation steps to reproduce the example.
+The vignette demonstrates a total cholesterol (TC) analysis using sampled real single-cell ATAC-seq data and all eligible TC SNPs. It provides input downloads, analysis code, result tables, and figures. Use its supplied `config.yml` and data preparation steps to reproduce the example.
 
 ## Required inputs
 
@@ -145,7 +145,7 @@ Dense LD blocks are limited to 5,000 features by default. A local distance windo
 
 Tests cover fragment counting, genotype normalization, GWAS filtering, covariance calculations, transformed regression, WRS, ACAT, and saved-result validation. The optional integration test runs both supported assemblies using synthetic inputs.
 
-Automated checks run through [GitHub Actions](https://github.com/LingxuanZ/EPIC2/actions/workflows/R-CMD-check.yaml). For a worked analysis, see the [vignette](https://LingxuanZ.github.io/EPIC2/EPIC2_vignette_knit.html).
+Automated checks run through [GitHub Actions](https://github.com/LingxuanZ/EPIC2/actions/workflows/R-CMD-check.yaml). For a worked analysis, see the [vignette](https://LingxuanZ.github.io/EPIC2/EPIC2_vignette.html).
 
 ## Support and citation
 
