@@ -17,7 +17,7 @@ devtools::install_github(
 
 The analysis also requires Seurat, Signac, BiocParallel, Rsamtools and presto. The repository provides an [analysis dependency installer](https://github.com/LingxuanZ/EPIC2/blob/main/scripts/install_dependencies.R).
 
-# Example data
+# Example data and required inputs
 
 [Download the all-SNPs inputs (115.4 MB)](https://www.dropbox.com/scl/fi/waibphblujax44w9h0rvt/EPIC2_inputs_TC_SCZ_all_snps_raw.tar.gz?rlkey=hsg9z8hd94v1s2y4m5a8h8ck1&st=xy9u9vlc&dl=1).
 
@@ -273,68 +273,22 @@ The stage outputs and their contents are shown below. Choose the stage-by-stage 
 
 ## 2. Run one stage at a time
 
-**You can run an individual stage if its required upstream results already exist.** These may come from a previous run or the precomputed files supplied with this tutorial. **EPIC2 does not automatically run missing prerequisite stages.** The completed intermediate results are included in `output/`, so you can rerun an individual stage in a new R session without executing all earlier code chunks in that session.
+Run an individual stage once its upstream results exist; **EPIC2 does not run missing prerequisite stages**. Use the complete `config.yml` and the matching output directory, with your R working directory set to the folder containing `config.yml`.
 
-For a fresh analysis, follow the stages below. To rerun selected stages, first check their dependencies and keep the existing configuration and results together. Set your R working directory to the folder containing `config.yml` before running the linked scripts or the example below.
-
-**Files required by each stage**
-
-Intermediate paths in this table are relative to `project.output_dir`, which is `output/` in this tutorial. These are the direct data inputs; completion records impose additional checks described after the table.
-
-| Stage | Direct data inputs |
-|:---|:---|
-| **ATAC QC (optional)** | The Seurat/Signac object at `atac.input`, with the configured assay and metadata annotations. Computing QC metrics also requires complete, indexed fragments and gene annotations; see the optional ATAC step below. This tutorial uses an already prepared `01_atac/atac.qc.rds` checkpoint. |
-| **GWAS** | The original GWAS summary statistics and reference genotypes specified by `gwas.traits.TC.summary` and `gwas.traits.TC.genotype`. GWAS processing itself does not depend on ATAC QC. |
-| **Accessibility** | `01_atac/atac.qc.rds`, its attached fragment files and `.tbi` indexes; `02_gwas/TC.gwas.rds` and `02_gwas/TC.genotype.rds`. |
-| **LD** | `02_gwas/TC.gwas.rds` and `02_gwas/TC.genotype.rds`; `02_accessibility/TC.snp_by_cell.rds`, `02_accessibility/TC.peak_by_cell.rds` and `02_accessibility/TC.snp_peak_overlap.tsv`. |
-| **WRS** | `01_atac/atac.qc.rds`, including the metadata annotations to test; `02_accessibility/TC.snp_by_cell.rds` and `02_accessibility/TC.peak_by_cell.rds`. **LD results are not required.** |
-| **Models** | `01_atac/atac.qc.rds`; `02_gwas/TC.gwas.rds`; both accessibility matrices listed above; `03_ld/TC.snp_inverse_sqrt.rds` and `03_ld/TC.peak_ld_model.rds`; `04_wrs/TC.snp.<grouping>.rds` and `04_wrs/TC.peak.<grouping>.rds` for every column in `model.groupings`. **Both LD and WRS must be complete.** |
-| **Plots** | Inputs depend on the figure. Nominal and BH-adjusted association heatmaps use `05_models/tissue_cell_type.cauchy_results.tsv`; component-effect plots also need `05_models/tissue_cell_type.component_results.tsv`. UMAP, LD and WRS figures read their respective ATAC, matrix or WRS outputs. Plotting does not rerun statistical analyses. |
-
-After Accessibility, **LD and WRS can be run independently; Models uses results from both.** The workflow is therefore not a strictly linear chain.
-
-**Keep completion records and their associated files**
-
-The supplied results include `*.receipt.rds` completion records. Downstream stages validate recorded file paths, checksums, software versions and relevant settings. These checks may require files beyond the direct inputs listed above:
-
-- GWAS records include the original GWAS and reference-genotype files as well as their processed outputs.
-- Accessibility records include the ATAC checkpoint, processed GWAS and genotypes, accessibility matrices, SNP–peak mapping and aligned genotypes.
-- Models requires `03_ld/TC.ld_receipt.rds`, `04_wrs/TC.wrs_receipt.rds` and a `COMPLETED` status in `03_ld/TC.ld_runtime.tsv`. The LD receipt also checks the saved SNP covariance and blocks files.
-
-**Keep the complete `inputs/` and `output/` directories when reusing these results.** An isolated LD matrix or WRS table is generally insufficient to resume Models. Preserve the paths recorded in the receipts; simply moving files does not update those records.
-
-**Configure a partial run**
-
-Continue using the complete [config.yml](config.yml); do not remove the configuration blocks for stages you want to skip.
-
-1.  Keep `project.output_dir` pointed at the directory containing the saved intermediate results (`output` here). An empty directory has no upstream results to reuse.
-2.  Keep the original input paths. For example, do not replace `gwas.traits.TC.summary` with `output/02_gwas/TC.gwas.rds` to skip GWAS processing; later stages read intermediate files from their fixed subdirectories under the output directory.
-3.  Keep settings consistent with the saved results, including genome assembly, assay, LD parameters and WRS settings. If inputs or settings change, rerun the affected stage and its downstream stages. Changing `model.groupings` requires matching WRS results before rerunning Models.
-4.  Select stages in the R command rather than deleting YAML blocks.
-
-For example, run only WRS using existing inputs:
-
-``` r
-config <- EPIC2::read_EPIC2_config("config.yml", check_files = TRUE)
-
-EPIC2::run_EPIC2(
-  config,
-  stages = "wrs",
-  gwas_name = "TC"
-)
-```
-
-This recalculates WRS without running GWAS, Accessibility or LD. Replace `"wrs"` with `"ld"`, `"model"`, `"plot"` or `c("model", "plot")` to select other stages. This example is not executed when knitting the tutorial. Using `run_EPIC2()` also updates `run_manifest.txt`, `config.used.yml`, `config.used.rds` and `run_history/`. Calling the individual `run_*_stage()` functions shown below does not update these global run records.
-
-`check_files = TRUE` checks the original input files listed in the configuration, even when the selected stage does not directly read them. For plotting from saved outputs when the original inputs are unavailable, you can use `check_files = FALSE`. **This only disables the configuration’s file-existence check; it does not bypass stage completion-record checks or make missing plotting inputs available.**
-
-To **inspect existing results without recalculating them**, run the `readRDS()`, `read.delim()` and inspection code shown below each stage. Calling `run_*_stage()` actually reruns that stage.
+Intermediate paths below are relative to `project.output_dir` (`output/` here). **LD and WRS can run independently after Accessibility; Models needs both.** See [Shared requirements for partial runs](#shared-requirements-for-partial-runs) for completion checks, configuration settings and a single-stage example.
 
 ### 2.1 ATAC processing and QC (optional)
 
 **This step is not run in this tutorial because the supplied ATAC object has already passed QC.** If your own scATAC-seq object has not been filtered and you want to follow the EPIC2 QC pipeline, run this stage before accessibility construction. Use it in place of the post-QC checkpoint preparation above.
 
-Start from a Seurat/Signac object containing peak counts and cell annotations, with complete, deduplicated, indexed fragment files. Computing TSS enrichment also requires gene annotations in the chromatin assay, using the same genome assembly. The tutorial’s locus-restricted fragments are intended for SNP accessibility and should not be used to recompute genome-wide QC metrics.
+#### Required inputs
+
+- The Seurat/Signac object at `atac.input`, containing the configured chromatin assay, peak counts and cell annotations.
+- To compute QC metrics: complete, deduplicated fragment files with `.tbi` indexes; TSS enrichment also requires gene annotations in the chromatin assay, using the same genome assembly.
+
+The tutorial’s locus-restricted fragments are intended for SNP accessibility and should not be used to recompute genome-wide QC metrics.
+
+#### Run
 
 The [EPIC2 QC pipeline](https://github.com/LingxuanZ/EPIC2/blob/main/METHODS.md#quality-control) uses the following default filters:
 
@@ -384,7 +338,9 @@ config <- EPIC2::read_EPIC2_config("config.yml", check_files = TRUE)
 EPIC2::run_EPIC2(config, stages = "atac")
 ```
 
-This dispatches `run_atac_stage()`, which computes the requested QC metrics, calls `filter_atac_cells()` and `filter_atac_peaks()`, and writes the following files under `project.output_dir/01_atac/`:
+This dispatches `run_atac_stage()`, which computes the requested QC metrics, calls `filter_atac_cells()` and `filter_atac_peaks()`.
+
+#### Outputs in `project.output_dir/01_atac/`
 
 - `atac.qc.rds`: the filtered object used by downstream stages.
 - `qc_dimensions.tsv`: cell and peak counts before and after QC.
@@ -398,9 +354,24 @@ Continue downstream using the same configuration and output directory. For a sin
 
 Match GWAS variants to reference genotypes, apply the configured MAF and missingness filters, and validate coordinates and effect statistics. LD pruning and ambiguous-variant removal are disabled for these preprocessed inputs. [GWAS script](scripts/01_gwas.R).
 
+#### Required inputs
+
+- GWAS summary statistics: `gwas.traits.TC.summary` (`inputs/data/gwas/TC.rds` in this tutorial).
+- Reference genotypes: `gwas.traits.TC.genotype` (`inputs/data/genotypes/TC.rds` in this tutorial). Multiple traits can use the same compatible reference genotype file by pointing their `genotype` entries to that file; EPIC2 automatically matches SNP IDs to each trait's GWAS and retains the matched subset, reducing unnecessary downstream computation.
+
+The GWAS calculation does not require an ATAC checkpoint.
+
+#### Run
+
 ``` r
 EPIC2::run_gwas_stage(config, gwas_name = "TC")
 ```
+
+#### Outputs in `output/02_gwas/`
+
+- `TC.gwas.rds`: 63,224 harmonized SNPs, including Z-scores and coordinate IDs.
+- `TC.genotype.rds`: matched reference dosages for 503 individuals.
+- `TC.gwas_qc.tsv`: counts and effective QC settings. Here, 643 input SNPs fail the reference-panel MAF threshold.
 
 ``` r
 gwas_qc <- read.delim("output/02_gwas/TC.gwas_qc.tsv")
@@ -410,19 +381,30 @@ gwas_qc[, c("n_input", "n_reference_matched", "n_after_maf", "n_final")]
     ##   n_input n_reference_matched n_after_maf n_final
     ## 1   63867               63867       63224   63224
 
-Outputs in `output/02_gwas/`:
-
-- `TC.gwas.rds`: 63,224 harmonized SNPs, including Z-scores and coordinate IDs.
-- `TC.genotype.rds`: matched reference dosages for 503 individuals.
-- `TC.gwas_qc.tsv`: counts and effective QC settings. Here, 643 input SNPs fail the reference-panel MAF threshold.
-
 ### 2.3 SNP and peak accessibility
 
 Count fragments at SNPs and obtain peak accessibility from the stored peak counts. [Accessibility script](scripts/02_accessibility.R).
 
+#### Required inputs
+
+- `01_atac/atac.qc.rds`, containing peak counts and cell metadata.
+- The fragment files attached to that object, with their `.tbi` indexes.
+- `02_gwas/TC.gwas.rds` and `02_gwas/TC.genotype.rds`.
+
+#### Run
+
 ``` r
 EPIC2::run_accessibility_stage(config, traits = "TC")
 ```
+
+#### Outputs in `output/02_accessibility/`
+
+- `TC.snp_by_cell.rds`: SNP-by-cell fragment counts at retained GWAS SNP positions.
+- `TC.peak_by_cell.rds`: peak-by-cell counts selected from the ATAC object's stored counts for peaks overlapping retained GWAS SNPs.
+- `TC.snp_genotype.rds`: reference genotypes aligned to accessible SNPs.
+- `TC.snp_peak_overlap.tsv`: SNP-to-peak mapping used by the LD stage.
+
+Both accessibility matrices retain individual cells; group-level predictors are constructed during model fitting.
 
 ``` r
 snp_accessibility <- readRDS("output/02_accessibility/TC.snp_by_cell.rds")
@@ -438,19 +420,45 @@ data.frame(
     ## 1    SNP    58390  4788
     ## 2   Peak    57713  4788
 
-Outputs in `output/02_accessibility/`:
-
-- `TC.snp_by_cell.rds` and `TC.peak_by_cell.rds`: feature-by-cell accessibility matrices.
-- `TC.snp_genotype.rds`: reference genotypes aligned to accessible SNPs.
-- `TC.snp_peak_overlap.tsv`: SNP-to-peak mapping used by the LD stage.
-
 ### 2.4 Local LD and inverse square roots
 
 Construct SNP covariance and peak LD models, including inverse-square-root transformations. This is the most time-consuming stage in this example; the completed LD files are supplied so they can be inspected without recomputing them. [LD script](scripts/03_ld.R).
 
+LD-based working matrices account for dependence between GWAS statistics:
+
+- **SNPs:** The local working matrix has $`\Sigma_{jj}=1`$ and $`\Sigma_{jj'}=R_{jj'}^2`$ for distinct SNPs on the same chromosome separated by at most 5 Mb; all remaining entries are set to zero. Here, $`R_{jj'}`$ is the reference-genotype correlation.
+- **Peaks:** within-peak LD determines the peak GWAS statistic; cross-peak LD determines covariance between peak statistics.
+
+For each connected LD component $`b`$, let $`\Sigma_b=U_b\operatorname{diag}(d_b)U_b^\mathsf{T}`$. The ridge-stabilized inverse square root is
+
+``` math
+W_b=U_b\operatorname{diag}\!\left[
+\{\max(d_{bi},\epsilon)+\lambda\}^{-1/2}
+\right]U_b^\mathsf{T}.
+```
+
+Here, $`\epsilon`$ is the eigenvalue floor (`ld.eigen_tolerance`, $`10^{-8}`$ in this tutorial), and $`\lambda`$ is the ridge parameter (`ld.ridge`, $`0.01`$). These settings stabilize the transformation when eigenvalues are small or non-positive.
+
+The ridge-stabilized inverse square root transforms the **response and full design matrix (intercept, focal predictor and baseline)** before ordinary least-squares fitting.
+
+#### Required inputs
+
+- `02_gwas/TC.gwas.rds` and `02_gwas/TC.genotype.rds`.
+- `02_accessibility/TC.snp_by_cell.rds` and `02_accessibility/TC.peak_by_cell.rds`.
+- `02_accessibility/TC.snp_peak_overlap.tsv`.
+
+#### Run
+
 ``` r
 EPIC2::run_ld_stage(config, traits = "TC")
 ```
+
+#### Outputs in `output/03_ld/`
+
+- `TC.snp_sigma.rds`: SNP covariance matrix.
+- `TC.snp_inverse_sqrt.rds` and `TC.snp_blocks.rds`: SNP transformation and connected-component membership.
+- `TC.peak_ld_model.rds`: completed peak LD model; `TC.peak_covariance.rds` and `TC.peak_response.rds` are its saved intermediate outputs.
+- `TC.ld_runtime.tsv`: completion status and LD settings.
 
 ``` r
 ld_status <- read.delim("output/03_ld/TC.ld_runtime.tsv")
@@ -471,20 +479,49 @@ data.frame(
     ##   SNP_blocks largest_block
     ## 1         28          3952
 
-Outputs in `output/03_ld/`:
-
-- `TC.snp_sigma.rds`: SNP covariance matrix.
-- `TC.snp_inverse_sqrt.rds` and `TC.snp_blocks.rds`: SNP transformation and connected-component membership.
-- `TC.peak_ld_model.rds`: completed peak LD model; `TC.peak_covariance.rds` and `TC.peak_response.rds` are its saved intermediate outputs.
-- `TC.ld_runtime.tsv`: completion status and LD settings.
-
 ### 2.5 Wilcoxon rank-sum scores
 
 Calculate SNP and peak WRS statistics for each selected metadata grouping, then construct and truncate one-sided enrichment scores. [WRS script](scripts/04_wrs.R).
 
+For each feature, WRS compares the focal group with all other labelled cells. Here, `liver_Hepatoblasts` is compared with the other 23 groups. **This measures accessibility specificity, not TC association.**
+
+For each SNP or peak, the one-sided WRS test uses:
+
+- **$`H_0`$:** Accessibility counts have the same distribution in the focal group and the remaining labelled cells.
+- **$`H_1`$:** Accessibility counts tend to be higher in the focal group than in the remaining labelled cells.
+
+For the two-sided WRS P-value $`p_2`$ and its AUC:
+
+``` math
+p^{(+)} =
+\begin{cases}
+p_2/2, & \mathrm{AUC}\geq 0.5,\\
+1-p_2/2, & \mathrm{AUC}<0.5,
+\end{cases}
+\qquad
+Z^{\mathrm{WRS}}=\Phi^{-1}\!\left(1-p^{(+)}\right).
+```
+
+Here, $`\Phi`$ is the standard normal CDF. Within each trait, resolution and annotation grouping, scores are capped at the 2nd/98th percentiles of finite scores pooled across feature–group pairs, then used as predictors.
+
+#### Required inputs
+
+- `01_atac/atac.qc.rds`, including the metadata columns selected by `model.groupings`.
+- `02_accessibility/TC.snp_by_cell.rds` and `02_accessibility/TC.peak_by_cell.rds`.
+
+**LD results are not required.**
+
+#### Run
+
 ``` r
 EPIC2::run_wrs_stage(config, traits = "TC")
 ```
+
+#### Outputs in `output/04_wrs/`
+
+Files include `TC.snp.tissue_cell_type.rds` and `TC.peak.tissue_cell_type.rds`, with matching `.tsv` tables. Each row represents one feature–cell-group comparison. The tables contain 1,401,360 SNP comparisons and 1,385,112 peak comparisons across 24 groups. The configured `tissue` grouping also has separate outputs.
+
+`pval_one_sided_enriched` is $`p^{(+)}`$; `z_one_sided_enriched_trunc` is the capped WRS score used for model fitting.
 
 ``` r
 snp_wrs <- readRDS("output/04_wrs/TC.snp.tissue_cell_type.rds")
@@ -501,15 +538,73 @@ head(snp_wrs[, c("feature", "group", "pval_one_sided_enriched",
     ## 2                 -0.5523500
     ## 3                 -0.6928772
 
-Outputs in `output/04_wrs/` include `TC.snp.tissue_cell_type.rds` and `TC.peak.tissue_cell_type.rds`, with matching `.tsv` tables. Each row represents one feature–cell-group comparison. The tables contain 1,401,360 SNP comparisons and 1,385,112 peak comparisons across 24 groups. The configured `tissue` grouping also has separate outputs.
-
 ### 2.6 Association models and ACAT
 
 Fit SNP accessibility, SNP WRS, peak accessibility and peak WRS components, then combine their P-values using ACAT. [Model script](scripts/05_models.R).
 
+**Four component models**
+
+The SNP and peak responses summarize GWAS association strength:
+
+``` math
+Y_j=Z_j^2,
+\qquad
+Y_p=\frac{\mathbf{Z}_p^{\mathsf T}\Omega_p\mathbf{Z}_p}{n_p}.
+```
+
+$`Z_j`$ is a GWAS Z-score; $`\mathbf{Z}_p`$ contains the $`n_p`$ retained SNP Z-scores in peak $`p`$, and $`\Omega_p`$ is their ridge-regularized inverse LD matrix. The SNP response uses squared Z-scores so either effect direction can contribute.
+
+| Component  | Response | Focal predictor           | Baseline |
+|:-----------|:---------|:--------------------------|:---------|
+| SNP-count  | $`Y_j`$  | $`A_{kj}`$                | $`A_j`$  |
+| SNP-WRS    | $`Y_j`$  | $`Z^{\mathrm{WRS}}_{kj}`$ | $`A_j`$  |
+| Peak-count | $`Y_p`$  | $`A_{kp}`$                | $`A_p`$  |
+| Peak-WRS   | $`Y_p`$  | $`Z^{\mathrm{WRS}}_{kp}`$ | $`A_p`$  |
+
+**Count predictors and baseline.** For a SNP or peak $`f`$:
+
+``` math
+s_c=\frac{L_c}{\operatorname{median}_{c'}L_{c'}},
+\qquad
+A_{kf}=\sum_{c\in\mathcal{C}_k}\frac{C_{fc}}{s_c},
+\qquad
+A_f=\frac{1}{K}\sum_{k=1}^{K}A_{kf}.
+```
+
+$`C_{fc}`$ is the feature count in cell $`c`$; $`L_c`$ is its total count across retained autosomal peaks; $`\mathcal{C}_k`$ contains cells in group $`k`$; $`K`$ is the number of groups. Thus, accessibility is **summed within groups** after library-size adjustment, then averaged across groups for the baseline. **WRS models retain this count-based baseline.**
+
+**Enrichment test.** Each component is fitted separately:
+
+``` math
+Y_f=\beta_0+\beta_k X_{kf}+\gamma_k A_f+\epsilon_f.
+```
+
+$`X_{kf}`$ is the focal predictor in the table. Test $`H_0:\beta_k\leq0`$ against $`H_1:\beta_k>0`$ using a one-sided t-test with the whitened fit’s residual degrees of freedom. A positive coefficient associates greater group accessibility or specificity with stronger GWAS signals, adjusting for baseline accessibility and LD.
+
+**ACAT and multiple testing**
+
+ACAT equally weights the **available nominal, one-sided association-model P-values**; all four are valid here. It does not combine feature-level WRS P-values or BH-adjusted P-values. BH correction is applied across the 24 TC groups to the combined P-values, and separately to each component.
+
+#### Required inputs
+
+- ATAC and GWAS: `01_atac/atac.qc.rds` and `02_gwas/TC.gwas.rds`.
+- Accessibility: `02_accessibility/TC.snp_by_cell.rds` and `02_accessibility/TC.peak_by_cell.rds`.
+- LD: `03_ld/TC.snp_inverse_sqrt.rds` and `03_ld/TC.peak_ld_model.rds`.
+- WRS: `04_wrs/TC.snp.<grouping>.rds` and `04_wrs/TC.peak.<grouping>.rds` for every column in `model.groupings`.
+
+**Both LD and WRS must be complete.** Their completion records must also pass the [shared checks](#shared-requirements-for-partial-runs).
+
+#### Run
+
 ``` r
 EPIC2::run_model_stage(config, traits = "TC")
 ```
+
+#### Outputs in `output/05_models/`
+
+- `tissue_cell_type.component_results.tsv`: 96 rows, covering four components for each of 24 groups.
+- `tissue_cell_type.cauchy_results.tsv`: 24 combined association results.
+- Matching `.rds` files and separate `tissue` tables are also saved. Copies of the result tables are provided in `results/`.
 
 ``` r
 results <- read.delim("output/05_models/tissue_cell_type.cauchy_results.tsv")
@@ -530,19 +625,49 @@ The six cell groups with the lowest TC ACAT P-values:
 
 `p_cauchy` is the Cauchy-combined P-value; `p_cauchy_bh_within_trait` is the Benjamini–Hochberg (BH)-adjusted P-value across tissue–cell-type groups for TC.
 
-Outputs in `output/05_models/`:
+Select `liver_Hepatoblasts` from the complete saved table to retain that 24-group BH adjustment:
 
-- `tissue_cell_type.component_results.tsv`: 96 rows, covering four components for each of 24 groups.
-- `tissue_cell_type.cauchy_results.tsv`: 24 combined association results.
-- Matching `.rds` files and separate `tissue` tables are also saved. Copies of the result tables are provided in `results/`.
+``` r
+example_result <- results[
+  results$trait == "TC" & results$group == "liver_Hepatoblasts",
+  c("p_snp_accessibility", "p_snp_wrs",
+    "p_peak_accessibility", "p_peak_wrs",
+    "p_cauchy", "p_cauchy_bh_within_trait")
+]
+```
+
+| Test                 | P-value     |
+|:---------------------|:------------|
+| SNP-count nominal P  | 0.18467     |
+| SNP-WRS nominal P    | 0.165032    |
+| Peak-count nominal P | 6.1888e-05  |
+| Peak-WRS nominal P   | 0.0576905   |
+| ACAT combined P      | 0.000247132 |
+| ACAT BH-adjusted P   | 0.00296559  |
+
+Peak-count provides the strongest evidence here. ACAT significance does not require every component to be individually significant.
 
 ### 2.7 Generate figures
 
 Read the completed analysis outputs and generate the package figures. [Plotting script](scripts/06_plots.R).
 
+#### Required inputs
+
+- Association P-value plots: `05_models/tissue_cell_type.cauchy_results.tsv`.
+- Component-effect plots also require: `05_models/tissue_cell_type.component_results.tsv`.
+- UMAP, LD and WRS figures require their corresponding ATAC checkpoint, matrices or WRS outputs from the stages above.
+
+The required files depend on the figure. Plotting reads saved results and does not rerun statistical analyses.
+
+#### Run
+
 ``` r
 EPIC2::run_plot_stage(config, traits = "TC")
 ```
+
+#### Outputs in `output/figures/`
+
+The stage saves 37 PNG/PDF figure pairs, plus `figure_manifest.tsv`, which records generated and skipped figures. The 14 selected figures below use files from `figures/`.
 
 ``` r
 figure_manifest <- read.delim("output/figures/figure_manifest.tsv")
@@ -553,7 +678,50 @@ table(figure_manifest$status)
     ## generated   skipped 
     ##        37         7
 
-Outputs: 37 PNG/PDF figure pairs in `output/figures/`, plus `figure_manifest.tsv`, which records generated and skipped figures. The 14 selected figures below use files from `figures/`.
+### Shared requirements for partial runs
+
+<details>
+
+<summary>Configuration, completion records and a partial-run example</summary>
+
+**Keep completion records and their associated files**
+
+The supplied results include `*.receipt.rds` completion records. Downstream stages validate recorded file paths, checksums, software versions and relevant settings. These checks may require files beyond the direct inputs listed at each stage:
+
+- GWAS records include the original GWAS and reference-genotype files as well as their processed outputs.
+- Accessibility records include the ATAC checkpoint, processed GWAS and genotypes, accessibility matrices, SNP–peak mapping and aligned genotypes.
+- Models requires `03_ld/TC.ld_receipt.rds`, `04_wrs/TC.wrs_receipt.rds` and a `COMPLETED` status in `03_ld/TC.ld_runtime.tsv`. The LD receipt also checks the saved SNP covariance and blocks files.
+
+**Keep the complete `inputs/` and `output/` directories when reusing these results.** An isolated LD matrix or WRS table is generally insufficient to resume Models. Preserve the paths recorded in the receipts; simply moving files does not update those records.
+
+**Configure a partial run**
+
+Continue using the complete [config.yml](config.yml); do not remove the configuration blocks for stages you want to skip.
+
+1.  Keep `project.output_dir` pointed at the directory containing the saved intermediate results (`output` here). An empty directory has no upstream results to reuse.
+2.  Keep the original input paths. For example, do not replace `gwas.traits.TC.summary` with `output/02_gwas/TC.gwas.rds` to skip GWAS processing; later stages read intermediate files from their fixed subdirectories under the output directory.
+3.  Keep settings consistent with the saved results, including genome assembly, assay, LD parameters and WRS settings. If inputs or settings change, rerun the affected stage and its downstream stages. Changing `model.groupings` requires matching WRS results before rerunning Models.
+4.  Select stages in the R command rather than deleting YAML blocks.
+
+For example, run only WRS using existing inputs:
+
+``` r
+config <- EPIC2::read_EPIC2_config("config.yml", check_files = TRUE)
+
+EPIC2::run_EPIC2(
+  config,
+  stages = "wrs",
+  gwas_name = "TC"
+)
+```
+
+This recalculates WRS without running GWAS, Accessibility or LD. Replace `"wrs"` with `"ld"`, `"model"`, `"plot"` or `c("model", "plot")` to select other stages. This example is not executed when knitting the tutorial. Using `run_EPIC2()` also updates `run_manifest.txt`, `config.used.yml`, `config.used.rds` and `run_history/`. Calling the individual `run_*_stage()` functions shown above does not update these global run records.
+
+`check_files = TRUE` checks the original input files listed in the configuration, even when the selected stage does not directly read them. For plotting from saved outputs when the original inputs are unavailable, you can use `check_files = FALSE`. **This only disables the configuration’s file-existence check; it does not bypass stage completion-record checks or make missing plotting inputs available.**
+
+To **inspect existing results without recalculating them**, run the `readRDS()`, `read.delim()` and inspection code provided with each stage. Calling `run_*_stage()` actually reruns that stage.
+
+</details>
 
 ## Which EPIC2 functions run here?
 

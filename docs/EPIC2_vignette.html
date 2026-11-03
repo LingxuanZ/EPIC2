@@ -1468,6 +1468,9 @@ border-radius: 0px;
 
 
 
+<script>
+$(function () { $("#header .author, #header .date").addClass("toc-ignore"); });
+</script>
 </head>
 
 <body>
@@ -1514,8 +1517,8 @@ devtools::install_github(
 and presto. The repository provides an <a href="https://github.com/LingxuanZ/EPIC2/blob/main/scripts/install_dependencies.R">analysis
 dependency installer</a>.</p>
 </div>
-<div id="example-data" class="section level1">
-<h1>Example data</h1>
+<div id="example-data-and-required-inputs" class="section level1">
+<h1>Example data and required inputs</h1>
 <p><a href="https://www.dropbox.com/scl/fi/waibphblujax44w9h0rvt/EPIC2_inputs_TC_SCZ_all_snps_raw.tar.gz?rlkey=hsg9z8hd94v1s2y4m5a8h8ck1&amp;st=xy9u9vlc&amp;dl=1">Download
 the all-SNPs inputs (115.4 MB)</a>.</p>
 <p>This tutorial uses <strong>a sampled subset of real scATAC-seq
@@ -1852,168 +1855,18 @@ calculations.</p>
 </div>
 <div id="run-one-stage-at-a-time" class="section level2">
 <h2>2. Run one stage at a time</h2>
-<p><strong>You can run an individual stage if its required upstream
-results already exist.</strong> These may come from a previous run or
-the precomputed files supplied with this tutorial. <strong>EPIC2 does
-not automatically run missing prerequisite stages.</strong> The
-completed intermediate results are included in <code>output/</code>, so
-you can rerun an individual stage in a new R session without executing
-all earlier code chunks in that session.</p>
-<p>For a fresh analysis, follow the stages below. To rerun selected
-stages, first check their dependencies and keep the existing
-configuration and results together. Set your R working directory to the
-folder containing <code>config.yml</code> before running the linked
-scripts or the example below.</p>
-<p><strong>Files required by each stage</strong></p>
-<p>Intermediate paths in this table are relative to
-<code>project.output_dir</code>, which is <code>output/</code> in this
-tutorial. These are the direct data inputs; completion records impose
-additional checks described after the table.</p>
-<table>
-<colgroup>
-<col width="18%" />
-<col width="82%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th align="left">Stage</th>
-<th align="left">Direct data inputs</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left"><strong>ATAC QC (optional)</strong></td>
-<td align="left">The Seurat/Signac object at <code>atac.input</code>,
-with the configured assay and metadata annotations. Computing QC metrics
-also requires complete, indexed fragments and gene annotations; see the
-optional ATAC step below. This tutorial uses an already prepared
-<code>01_atac/atac.qc.rds</code> checkpoint.</td>
-</tr>
-<tr class="even">
-<td align="left"><strong>GWAS</strong></td>
-<td align="left">The original GWAS summary statistics and reference
-genotypes specified by <code>gwas.traits.TC.summary</code> and
-<code>gwas.traits.TC.genotype</code>. GWAS processing itself does not
-depend on ATAC QC.</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Accessibility</strong></td>
-<td align="left"><code>01_atac/atac.qc.rds</code>, its attached fragment
-files and <code>.tbi</code> indexes; <code>02_gwas/TC.gwas.rds</code>
-and <code>02_gwas/TC.genotype.rds</code>.</td>
-</tr>
-<tr class="even">
-<td align="left"><strong>LD</strong></td>
-<td align="left"><code>02_gwas/TC.gwas.rds</code> and
-<code>02_gwas/TC.genotype.rds</code>;
-<code>02_accessibility/TC.snp_by_cell.rds</code>,
-<code>02_accessibility/TC.peak_by_cell.rds</code> and
-<code>02_accessibility/TC.snp_peak_overlap.tsv</code>.</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>WRS</strong></td>
-<td align="left"><code>01_atac/atac.qc.rds</code>, including the
-metadata annotations to test;
-<code>02_accessibility/TC.snp_by_cell.rds</code> and
-<code>02_accessibility/TC.peak_by_cell.rds</code>. <strong>LD results
-are not required.</strong></td>
-</tr>
-<tr class="even">
-<td align="left"><strong>Models</strong></td>
-<td align="left"><code>01_atac/atac.qc.rds</code>;
-<code>02_gwas/TC.gwas.rds</code>; both accessibility matrices listed
-above; <code>03_ld/TC.snp_inverse_sqrt.rds</code> and
-<code>03_ld/TC.peak_ld_model.rds</code>;
-<code>04_wrs/TC.snp.&lt;grouping&gt;.rds</code> and
-<code>04_wrs/TC.peak.&lt;grouping&gt;.rds</code> for every column in
-<code>model.groupings</code>. <strong>Both LD and WRS must be
-complete.</strong></td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Plots</strong></td>
-<td align="left">Inputs depend on the figure. Nominal and BH-adjusted
-association heatmaps use
-<code>05_models/tissue_cell_type.cauchy_results.tsv</code>;
-component-effect plots also need
-<code>05_models/tissue_cell_type.component_results.tsv</code>. UMAP, LD
-and WRS figures read their respective ATAC, matrix or WRS outputs.
-Plotting does not rerun statistical analyses.</td>
-</tr>
-</tbody>
-</table>
-<p>After Accessibility, <strong>LD and WRS can be run independently;
-Models uses results from both.</strong> The workflow is therefore not a
-strictly linear chain.</p>
-<p><strong>Keep completion records and their associated
-files</strong></p>
-<p>The supplied results include <code>*.receipt.rds</code> completion
-records. Downstream stages validate recorded file paths, checksums,
-software versions and relevant settings. These checks may require files
-beyond the direct inputs listed above:</p>
-<ul>
-<li>GWAS records include the original GWAS and reference-genotype files
-as well as their processed outputs.</li>
-<li>Accessibility records include the ATAC checkpoint, processed GWAS
-and genotypes, accessibility matrices, SNP–peak mapping and aligned
-genotypes.</li>
-<li>Models requires <code>03_ld/TC.ld_receipt.rds</code>,
-<code>04_wrs/TC.wrs_receipt.rds</code> and a <code>COMPLETED</code>
-status in <code>03_ld/TC.ld_runtime.tsv</code>. The LD receipt also
-checks the saved SNP covariance and blocks files.</li>
-</ul>
-<p><strong>Keep the complete <code>inputs/</code> and
-<code>output/</code> directories when reusing these results.</strong> An
-isolated LD matrix or WRS table is generally insufficient to resume
-Models. Preserve the paths recorded in the receipts; simply moving files
-does not update those records.</p>
-<p><strong>Configure a partial run</strong></p>
-<p>Continue using the complete <a href="config.yml">config.yml</a>; do
-not remove the configuration blocks for stages you want to skip.</p>
-<ol style="list-style-type: decimal">
-<li>Keep <code>project.output_dir</code> pointed at the directory
-containing the saved intermediate results (<code>output</code> here). An
-empty directory has no upstream results to reuse.</li>
-<li>Keep the original input paths. For example, do not replace
-<code>gwas.traits.TC.summary</code> with
-<code>output/02_gwas/TC.gwas.rds</code> to skip GWAS processing; later
-stages read intermediate files from their fixed subdirectories under the
-output directory.</li>
-<li>Keep settings consistent with the saved results, including genome
-assembly, assay, LD parameters and WRS settings. If inputs or settings
-change, rerun the affected stage and its downstream stages. Changing
-<code>model.groupings</code> requires matching WRS results before
-rerunning Models.</li>
-<li>Select stages in the R command rather than deleting YAML
-blocks.</li>
-</ol>
-<p>For example, run only WRS using existing inputs:</p>
-<pre class="r"><code>config &lt;- EPIC2::read_EPIC2_config(&quot;config.yml&quot;, check_files = TRUE)
-
-EPIC2::run_EPIC2(
-  config,
-  stages = &quot;wrs&quot;,
-  gwas_name = &quot;TC&quot;
-)</code></pre>
-<p>This recalculates WRS without running GWAS, Accessibility or LD.
-Replace <code>"wrs"</code> with <code>"ld"</code>, <code>"model"</code>,
-<code>"plot"</code> or <code>c("model", "plot")</code> to select other
-stages. This example is not executed when knitting the tutorial. Using
-<code>run_EPIC2()</code> also updates <code>run_manifest.txt</code>,
-<code>config.used.yml</code>, <code>config.used.rds</code> and
-<code>run_history/</code>. Calling the individual
-<code>run_*_stage()</code> functions shown below does not update these
-global run records.</p>
-<p><code>check_files = TRUE</code> checks the original input files
-listed in the configuration, even when the selected stage does not
-directly read them. For plotting from saved outputs when the original
-inputs are unavailable, you can use <code>check_files = FALSE</code>.
-<strong>This only disables the configuration’s file-existence check; it
-does not bypass stage completion-record checks or make missing plotting
-inputs available.</strong></p>
-<p>To <strong>inspect existing results without recalculating
-them</strong>, run the <code>readRDS()</code>, <code>read.delim()</code>
-and inspection code shown below each stage. Calling
-<code>run_*_stage()</code> actually reruns that stage.</p>
+<p>Run an individual stage once its upstream results exist;
+<strong>EPIC2 does not run missing prerequisite stages</strong>. Use the
+complete <code>config.yml</code> and the matching output directory, with
+your R working directory set to the folder containing
+<code>config.yml</code>.</p>
+<p>Intermediate paths below are relative to
+<code>project.output_dir</code> (<code>output/</code> here). <strong>LD
+and WRS can run independently after Accessibility; Models needs
+both.</strong> See <a
+href="#shared-requirements-for-partial-runs">Shared requirements for
+partial runs</a> for completion checks, configuration settings and a
+single-stage example.</p>
 <div id="atac-processing-and-qc-optional" class="section level3">
 <h3>2.1 ATAC processing and QC (optional)</h3>
 <p><strong>This step is not run in this tutorial because the supplied
@@ -2021,12 +1874,21 @@ ATAC object has already passed QC.</strong> If your own scATAC-seq
 object has not been filtered and you want to follow the EPIC2 QC
 pipeline, run this stage before accessibility construction. Use it in
 place of the post-QC checkpoint preparation above.</p>
-<p>Start from a Seurat/Signac object containing peak counts and cell
-annotations, with complete, deduplicated, indexed fragment files.
-Computing TSS enrichment also requires gene annotations in the chromatin
-assay, using the same genome assembly. The tutorial’s locus-restricted
+<div id="required-inputs" class="section level4">
+<h4>Required inputs</h4>
+<ul>
+<li>The Seurat/Signac object at <code>atac.input</code>, containing the
+configured chromatin assay, peak counts and cell annotations.</li>
+<li>To compute QC metrics: complete, deduplicated fragment files with
+<code>.tbi</code> indexes; TSS enrichment also requires gene annotations
+in the chromatin assay, using the same genome assembly.</li>
+</ul>
+<p>The tutorial’s locus-restricted
 fragments are intended for SNP accessibility and should not be used to
 recompute genome-wide QC metrics.</p>
+</div>
+<div id="run" class="section level4">
+<h4>Run</h4>
 <p>The <a href="https://github.com/LingxuanZ/EPIC2/blob/main/METHODS.md#quality-control">EPIC2
 QC pipeline</a> uses the following default filters:</p>
 <ol style="list-style-type: decimal">
@@ -2100,8 +1962,10 @@ QC:</p>
 EPIC2::run_EPIC2(config, stages = &quot;atac&quot;)</code></pre>
 <p>This dispatches <code>run_atac_stage()</code>, which computes the
 requested QC metrics, calls <code>filter_atac_cells()</code> and
-<code>filter_atac_peaks()</code>, and writes the following files under
-<code>project.output_dir/01_atac/</code>:</p>
+<code>filter_atac_peaks()</code>.</p>
+</div>
+<div id="outputs-in-project.output_dir01_atac" class="section level4">
+<h4>Outputs in <code>project.output_dir/01_atac/</code></h4>
 <ul>
 <li><code>atac.qc.rds</code>: the filtered object used by downstream
 stages.</li>
@@ -2120,18 +1984,29 @@ directory. For a single-command run on your own unfiltered data, include
 <code>stages</code> vector. The TC tutorial’s supplied configuration,
 run commands and saved results continue to skip this stage.</p>
 </div>
+</div>
 <div id="gwas-processing" class="section level3">
 <h3>2.2 GWAS processing</h3>
 <p>Match GWAS variants to reference genotypes, apply the configured MAF
 and missingness filters, and validate coordinates and effect statistics.
 LD pruning and ambiguous-variant removal are disabled for these
 preprocessed inputs. <a href="scripts/01_gwas.R">GWAS script</a>.</p>
+<div id="required-inputs-1" class="section level4">
+<h4>Required inputs</h4>
+<ul>
+<li>GWAS summary statistics: <code>gwas.traits.TC.summary</code>
+(<code>inputs/data/gwas/TC.rds</code> in this tutorial).</li>
+<li>Reference genotypes: <code>gwas.traits.TC.genotype</code>
+(<code>inputs/data/genotypes/TC.rds</code> in this tutorial). Multiple traits can use the same compatible reference genotype file by pointing their <code>genotype</code> entries to that file; EPIC2 automatically matches SNP IDs to each trait's GWAS and retains the matched subset, reducing unnecessary downstream computation.</li>
+</ul>
+<p>The GWAS calculation does not require an ATAC checkpoint.</p>
+</div>
+<div id="run-1" class="section level4">
+<h4>Run</h4>
 <pre class="r"><code>EPIC2::run_gwas_stage(config, gwas_name = &quot;TC&quot;)</code></pre>
-<pre class="r"><code>gwas_qc &lt;- read.delim(&quot;output/02_gwas/TC.gwas_qc.tsv&quot;)
-gwas_qc[, c(&quot;n_input&quot;, &quot;n_reference_matched&quot;, &quot;n_after_maf&quot;, &quot;n_final&quot;)]</code></pre>
-<pre><code>##   n_input n_reference_matched n_after_maf n_final
-## 1   63867               63867       63224   63224</code></pre>
-<p>Outputs in <code>output/02_gwas/</code>:</p>
+</div>
+<div id="outputs-in-output02_gwas" class="section level4">
+<h4>Outputs in <code>output/02_gwas/</code></h4>
 <ul>
 <li><code>TC.gwas.rds</code>: 63,224 harmonized SNPs, including Z-scores
 and coordinate IDs.</li>
@@ -2140,13 +2015,44 @@ individuals.</li>
 <li><code>TC.gwas_qc.tsv</code>: counts and effective QC settings. Here,
 643 input SNPs fail the reference-panel MAF threshold.</li>
 </ul>
+<pre class="r"><code>gwas_qc &lt;- read.delim(&quot;output/02_gwas/TC.gwas_qc.tsv&quot;)
+gwas_qc[, c(&quot;n_input&quot;, &quot;n_reference_matched&quot;, &quot;n_after_maf&quot;, &quot;n_final&quot;)]</code></pre>
+<pre><code>##   n_input n_reference_matched n_after_maf n_final
+## 1   63867               63867       63224   63224</code></pre>
+
+</div>
 </div>
 <div id="snp-and-peak-accessibility" class="section level3">
 <h3>2.3 SNP and peak accessibility</h3>
 <p>Count fragments at SNPs and obtain peak accessibility from the stored
 peak counts. <a href="scripts/02_accessibility.R">Accessibility
 script</a>.</p>
+<div id="required-inputs-2" class="section level4">
+<h4>Required inputs</h4>
+<ul>
+<li><code>01_atac/atac.qc.rds</code>, containing peak counts and cell
+metadata.</li>
+<li>The fragment files attached to that object, with their
+<code>.tbi</code> indexes.</li>
+<li><code>02_gwas/TC.gwas.rds</code> and
+<code>02_gwas/TC.genotype.rds</code>.</li>
+</ul>
+</div>
+<div id="run-2" class="section level4">
+<h4>Run</h4>
 <pre class="r"><code>EPIC2::run_accessibility_stage(config, traits = &quot;TC&quot;)</code></pre>
+</div>
+<div id="outputs-in-output02_accessibility" class="section level4">
+<h4>Outputs in <code>output/02_accessibility/</code></h4>
+<ul>
+<li><code>TC.snp_by_cell.rds</code>: SNP-by-cell fragment counts at retained GWAS SNP positions.</li>
+<li><code>TC.peak_by_cell.rds</code>: peak-by-cell counts selected from the ATAC object's stored counts for peaks overlapping retained GWAS SNPs.</li>
+<li><code>TC.snp_genotype.rds</code>: reference genotypes aligned to
+accessible SNPs.</li>
+<li><code>TC.snp_peak_overlap.tsv</code>: SNP-to-peak mapping used by
+the LD stage.</li>
+</ul>
+<p>Both accessibility matrices retain individual cells; group-level predictors are constructed during model fitting.</p>
 <pre class="r"><code>snp_accessibility &lt;- readRDS(&quot;output/02_accessibility/TC.snp_by_cell.rds&quot;)
 peak_accessibility &lt;- readRDS(&quot;output/02_accessibility/TC.peak_by_cell.rds&quot;)
 data.frame(
@@ -2157,16 +2063,8 @@ data.frame(
 <pre><code>##   branch features cells
 ## 1    SNP    58390  4788
 ## 2   Peak    57713  4788</code></pre>
-<p>Outputs in <code>output/02_accessibility/</code>:</p>
-<ul>
-<li><code>TC.snp_by_cell.rds</code> and
-<code>TC.peak_by_cell.rds</code>: feature-by-cell accessibility
-matrices.</li>
-<li><code>TC.snp_genotype.rds</code>: reference genotypes aligned to
-accessible SNPs.</li>
-<li><code>TC.snp_peak_overlap.tsv</code>: SNP-to-peak mapping used by
-the LD stage.</li>
-</ul>
+
+</div>
 </div>
 <div id="local-ld-and-inverse-square-roots" class="section level3">
 <h3>2.4 Local LD and inverse square roots</h3>
@@ -2175,19 +2073,41 @@ inverse-square-root transformations. This is the most time-consuming
 stage in this example; the completed LD files are supplied so they can
 be inspected without recomputing them. <a href="scripts/03_ld.R">LD
 script</a>.</p>
+<p>LD-based working matrices account for dependence between GWAS
+statistics:</p>
+<ul>
+<li><strong>SNPs:</strong> The local working matrix has <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="normal">Σ</mi><mrow><mi>j</mi><mi>j</mi></mrow></msub><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\Sigma_{jj}=1</annotation></semantics></math> and <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="normal">Σ</mi><mrow><mi>j</mi><msup><mi>j</mi><mo>′</mo></msup></mrow></msub><mo>=</mo><msubsup><mi>R</mi><mrow><mi>j</mi><msup><mi>j</mi><mo>′</mo></msup></mrow><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">\Sigma_{jj&#39;}=R_{jj&#39;}^2</annotation></semantics></math> for distinct SNPs on the same chromosome separated by at most 5 Mb; all remaining entries are set to zero. Here, <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>R</mi><mrow><mi>j</mi><msup><mi>j</mi><mo>′</mo></msup></mrow></msub><annotation encoding="application/x-tex">R_{jj&#39;}</annotation></semantics></math> is the reference-genotype correlation.</li>
+<li><strong>Peaks:</strong> within-peak LD determines the peak GWAS
+statistic; cross-peak LD determines covariance between peak
+statistics.</li>
+</ul>
+<p>For each connected LD component <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>b</mi><annotation encoding="application/x-tex">b</annotation></semantics></math>, let <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="normal">Σ</mi><mi>b</mi></msub><mo>=</mo><msub><mi>U</mi><mi>b</mi></msub><mrow><mi mathvariant="normal">diag</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>d</mi><mi>b</mi></msub><mo stretchy="false" form="postfix">)</mo><msubsup><mi>U</mi><mi>b</mi><mi mathvariant="sans-serif">𝖳</mi></msubsup></mrow><annotation encoding="application/x-tex">\Sigma_b=U_b\operatorname{diag}(d_b)U_b^\mathsf{T}</annotation></semantics></math>. The ridge-stabilized inverse square root is</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>W</mi><mi>b</mi></msub><mo>=</mo><msub><mi>U</mi><mi>b</mi></msub><mrow><mi mathvariant="normal">diag</mi><mo>&#8289;</mo></mrow><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">[</mo><mo stretchy="false" form="prefix">{</mo><mi mathvariant="normal">max</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>d</mi><mrow><mi>b</mi><mi>i</mi></mrow></msub><mo>,</mo><mi>ϵ</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>λ</mi><msup><mo stretchy="false" form="postfix">}</mo><mrow><mi>−</mi><mn>1</mn><mi>/</mi><mn>2</mn></mrow></msup><mo stretchy="true" form="postfix">]</mo></mrow><msubsup><mi>U</mi><mi>b</mi><mi mathvariant="sans-serif">𝖳</mi></msubsup><mi>.</mi></mrow><annotation encoding="application/x-tex">
+W_b=U_b\operatorname{diag}\!\left[
+\{\max(d_{bi},\epsilon)+\lambda\}^{-1/2}
+\right]U_b^\mathsf{T}.
+</annotation></semantics></math></p>
+<p>Here, <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ϵ</mi><annotation encoding="application/x-tex">\epsilon</annotation></semantics></math> is the eigenvalue floor (<code>ld.eigen_tolerance</code>, <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mn>10</mn><mrow><mi>−</mi><mn>8</mn></mrow></msup><annotation encoding="application/x-tex">10^{-8}</annotation></semantics></math> in this tutorial), and <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>λ</mi><annotation encoding="application/x-tex">\lambda</annotation></semantics></math> is the ridge parameter (<code>ld.ridge</code>, <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.01</mn><annotation encoding="application/x-tex">0.01</annotation></semantics></math>). These settings stabilize the transformation when eigenvalues are small or non-positive.</p>
+
+<p>The ridge-stabilized inverse square root transforms the
+<strong>response and full design matrix (intercept, focal predictor and
+baseline)</strong> before ordinary least-squares fitting.</p>
+<div id="required-inputs-3" class="section level4">
+<h4>Required inputs</h4>
+<ul>
+<li><code>02_gwas/TC.gwas.rds</code> and
+<code>02_gwas/TC.genotype.rds</code>.</li>
+<li><code>02_accessibility/TC.snp_by_cell.rds</code> and
+<code>02_accessibility/TC.peak_by_cell.rds</code>.</li>
+<li><code>02_accessibility/TC.snp_peak_overlap.tsv</code>.</li>
+</ul>
+</div>
+<div id="run-3" class="section level4">
+<h4>Run</h4>
 <pre class="r"><code>EPIC2::run_ld_stage(config, traits = &quot;TC&quot;)</code></pre>
-<pre class="r"><code>ld_status &lt;- read.delim(&quot;output/03_ld/TC.ld_runtime.tsv&quot;)
-ld_status[ld_status$setting == &quot;status&quot;, , drop = FALSE]</code></pre>
-<pre><code>##   setting     value
-## 2  status COMPLETED</code></pre>
-<pre class="r"><code>snp_blocks &lt;- readRDS(&quot;output/03_ld/TC.snp_blocks.rds&quot;)
-data.frame(
-  SNP_blocks = length(snp_blocks),
-  largest_block = max(lengths(snp_blocks))
-)</code></pre>
-<pre><code>##   SNP_blocks largest_block
-## 1         28          3952</code></pre>
-<p>Outputs in <code>output/03_ld/</code>:</p>
+</div>
+<div id="outputs-in-output03_ld" class="section level4">
+<h4>Outputs in <code>output/03_ld/</code></h4>
 <ul>
 <li><code>TC.snp_sigma.rds</code>: SNP covariance matrix.</li>
 <li><code>TC.snp_inverse_sqrt.rds</code> and
@@ -2200,12 +2120,78 @@ outputs.</li>
 <li><code>TC.ld_runtime.tsv</code>: completion status and LD
 settings.</li>
 </ul>
+<pre class="r"><code>ld_status &lt;- read.delim(&quot;output/03_ld/TC.ld_runtime.tsv&quot;)
+ld_status[ld_status$setting == &quot;status&quot;, , drop = FALSE]</code></pre>
+<pre><code>##   setting     value
+## 2  status COMPLETED</code></pre>
+<pre class="r"><code>snp_blocks &lt;- readRDS(&quot;output/03_ld/TC.snp_blocks.rds&quot;)
+data.frame(
+  SNP_blocks = length(snp_blocks),
+  largest_block = max(lengths(snp_blocks))
+)</code></pre>
+<pre><code>##   SNP_blocks largest_block
+## 1         28          3952</code></pre>
+
+</div>
 </div>
 <div id="wilcoxon-rank-sum-scores" class="section level3">
 <h3>2.5 Wilcoxon rank-sum scores</h3>
 <p>Calculate SNP and peak WRS statistics for each selected metadata
 grouping, then construct and truncate one-sided enrichment scores. <a href="scripts/04_wrs.R">WRS script</a>.</p>
+<p>For each feature, WRS compares the focal group with all other
+labelled cells. Here, <code>liver_Hepatoblasts</code> is compared with
+the other 23 groups. <strong>This measures accessibility specificity,
+not TC association.</strong></p>
+<p>For each SNP or peak, the one-sided WRS test uses:</p>
+<ul>
+<li><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>H</mi><mn>0</mn></msub><annotation encoding="application/x-tex">H_0</annotation></semantics></math>:</strong> Accessibility counts have the same distribution in the focal group and the remaining labelled cells.</li>
+<li><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>H</mi><mn>1</mn></msub><annotation encoding="application/x-tex">H_1</annotation></semantics></math>:</strong> Accessibility counts tend to be higher in the focal group than in the remaining labelled cells.</li>
+</ul>
+
+<p>For the two-sided WRS P-value
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>p</mi><mn>2</mn></msub><annotation encoding="application/x-tex">p_2</annotation></semantics></math>
+and its AUC:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>p</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>+</mi><mo stretchy="false" form="postfix">)</mo></mrow></msup><mo>=</mo><mrow><mo stretchy="true" form="prefix">{</mo><mtable><mtr><mtd columnalign="left" style="text-align: left"><msub><mi>p</mi><mn>2</mn></msub><mi>/</mi><mn>2</mn><mo>,</mo></mtd><mtd columnalign="left" style="text-align: left"><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">U</mi><mi mathvariant="normal">C</mi></mrow><mo>≥</mo><mn>0.5</mn><mo>,</mo></mtd></mtr><mtr><mtd columnalign="left" style="text-align: left"><mn>1</mn><mo>−</mo><msub><mi>p</mi><mn>2</mn></msub><mi>/</mi><mn>2</mn><mo>,</mo></mtd><mtd columnalign="left" style="text-align: left"><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">U</mi><mi mathvariant="normal">C</mi></mrow><mo>&lt;</mo><mn>0.5</mn><mo>,</mo></mtd></mtr></mtable></mrow><mspace width="2.0em"></mspace><msup><mi>Z</mi><mrow><mi mathvariant="normal">W</mi><mi mathvariant="normal">R</mi><mi mathvariant="normal">S</mi></mrow></msup><mo>=</mo><msup><mi mathvariant="normal">Φ</mi><mrow><mi>−</mi><mn>1</mn></mrow></msup><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><msup><mi>p</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>+</mi><mo stretchy="false" form="postfix">)</mo></mrow></msup><mo stretchy="true" form="postfix">)</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
+p^{(+)} =
+\begin{cases}
+p_2/2, &amp; \mathrm{AUC}\geq 0.5,\\
+1-p_2/2, &amp; \mathrm{AUC}&lt;0.5,
+\end{cases}
+\qquad
+Z^{\mathrm{WRS}}=\Phi^{-1}\!\left(1-p^{(+)}\right).
+</annotation></semantics></math></p>
+<p>Here,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Φ</mi><annotation encoding="application/x-tex">\Phi</annotation></semantics></math>
+is the standard normal CDF. Within each trait, resolution and annotation
+grouping, scores are capped at the 2nd/98th percentiles of finite scores
+pooled across feature–group pairs, then used as predictors.</p>
+<div id="required-inputs-4" class="section level4">
+<h4>Required inputs</h4>
+<ul>
+<li><code>01_atac/atac.qc.rds</code>, including the metadata columns
+selected by <code>model.groupings</code>.</li>
+<li><code>02_accessibility/TC.snp_by_cell.rds</code> and
+<code>02_accessibility/TC.peak_by_cell.rds</code>.</li>
+</ul>
+<p><strong>LD results are not required.</strong></p>
+</div>
+<div id="run-4" class="section level4">
+<h4>Run</h4>
 <pre class="r"><code>EPIC2::run_wrs_stage(config, traits = &quot;TC&quot;)</code></pre>
+</div>
+<div id="outputs-in-output04_wrs" class="section level4">
+<h4>Outputs in <code>output/04_wrs/</code></h4>
+<p>Files include
+<code>TC.snp.tissue_cell_type.rds</code> and
+<code>TC.peak.tissue_cell_type.rds</code>, with matching
+<code>.tsv</code> tables. Each row represents one feature–cell-group
+comparison. The tables contain 1,401,360 SNP comparisons and 1,385,112
+peak comparisons across 24 groups. The configured <code>tissue</code>
+grouping also has separate outputs.</p>
+<p><code>pval_one_sided_enriched</code> is
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>p</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>+</mi><mo stretchy="false" form="postfix">)</mo></mrow></msup><annotation encoding="application/x-tex">p^{(+)}</annotation></semantics></math>;
+<code>z_one_sided_enriched_trunc</code> is the capped WRS score used for
+model fitting.</p>
 <pre class="r"><code>snp_wrs &lt;- readRDS(&quot;output/04_wrs/TC.snp.tissue_cell_type.rds&quot;)
 head(snp_wrs[, c(&quot;feature&quot;, &quot;group&quot;, &quot;pval_one_sided_enriched&quot;,
                  &quot;z_one_sided_enriched_trunc&quot;)], 3)</code></pre>
@@ -2217,19 +2203,159 @@ head(snp_wrs[, c(&quot;feature&quot;, &quot;group&quot;, &quot;pval_one_sided_en
 ## 1                  3.2387043
 ## 2                 -0.5523500
 ## 3                 -0.6928772</code></pre>
-<p>Outputs in <code>output/04_wrs/</code> include
-<code>TC.snp.tissue_cell_type.rds</code> and
-<code>TC.peak.tissue_cell_type.rds</code>, with matching
-<code>.tsv</code> tables. Each row represents one feature–cell-group
-comparison. The tables contain 1,401,360 SNP comparisons and 1,385,112
-peak comparisons across 24 groups. The configured <code>tissue</code>
-grouping also has separate outputs.</p>
+
+</div>
 </div>
 <div id="association-models-and-acat" class="section level3">
 <h3>2.6 Association models and ACAT</h3>
 <p>Fit SNP accessibility, SNP WRS, peak accessibility and peak WRS
 components, then combine their P-values using ACAT. <a href="scripts/05_models.R">Model script</a>.</p>
+<p><strong>Four component models</strong></p>
+<p>The SNP and peak responses summarize GWAS association strength:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Y</mi><mi>j</mi></msub><mo>=</mo><msubsup><mi>Z</mi><mi>j</mi><mn>2</mn></msubsup><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>Y</mi><mi>p</mi></msub><mo>=</mo><mfrac><mrow><msubsup><mi mathvariant="bold-italic">𝒁</mi><mi>p</mi><mi mathvariant="sans-serif">𝖳</mi></msubsup><msub><mi mathvariant="normal">Ω</mi><mi>p</mi></msub><msub><mi mathvariant="bold-italic">𝒁</mi><mi>p</mi></msub></mrow><msub><mi>n</mi><mi>p</mi></msub></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
+Y_j=Z_j^2,
+\qquad
+Y_p=\frac{\mathbf{Z}_p^{\mathsf T}\Omega_p\mathbf{Z}_p}{n_p}.
+</annotation></semantics></math></p>
+<p><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>Z</mi><mi>j</mi></msub><annotation encoding="application/x-tex">Z_j</annotation></semantics></math>
+is a GWAS Z-score;
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi mathvariant="bold-italic">𝒁</mi><mi>p</mi></msub><annotation encoding="application/x-tex">\mathbf{Z}_p</annotation></semantics></math>
+contains the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>n</mi><mi>p</mi></msub><annotation encoding="application/x-tex">n_p</annotation></semantics></math>
+retained SNP Z-scores in peak
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>,
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi mathvariant="normal">Ω</mi><mi>p</mi></msub><annotation encoding="application/x-tex">\Omega_p</annotation></semantics></math>
+is their ridge-regularized inverse LD matrix. The SNP response uses
+squared Z-scores so either effect direction can contribute.</p>
+<table>
+<colgroup>
+<col width="24%" />
+<col width="18%" />
+<col width="34%" />
+<col width="24%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Component</th>
+<th align="left">Response</th>
+<th align="left">Focal predictor</th>
+<th align="left">Baseline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">SNP-count</td>
+<td
+align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>Y</mi><mi>j</mi></msub><annotation encoding="application/x-tex">Y_j</annotation></semantics></math></td>
+<td
+align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>A</mi><mrow><mi>k</mi><mi>j</mi></mrow></msub><annotation encoding="application/x-tex">A_{kj}</annotation></semantics></math></td>
+<td
+align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>A</mi><mi>j</mi></msub><annotation encoding="application/x-tex">A_j</annotation></semantics></math></td>
+</tr>
+<tr class="even">
+<td align="left">SNP-WRS</td>
+<td
+align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>Y</mi><mi>j</mi></msub><annotation encoding="application/x-tex">Y_j</annotation></semantics></math></td>
+<td
+align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>Z</mi><mrow><mi>k</mi><mi>j</mi></mrow><mrow><mi mathvariant="normal">W</mi><mi mathvariant="normal">R</mi><mi mathvariant="normal">S</mi></mrow></msubsup><annotation encoding="application/x-tex">Z^{\mathrm{WRS}}_{kj}</annotation></semantics></math></td>
+<td
+align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>A</mi><mi>j</mi></msub><annotation encoding="application/x-tex">A_j</annotation></semantics></math></td>
+</tr>
+<tr class="odd">
+<td align="left">Peak-count</td>
+<td
+align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>Y</mi><mi>p</mi></msub><annotation encoding="application/x-tex">Y_p</annotation></semantics></math></td>
+<td
+align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>A</mi><mrow><mi>k</mi><mi>p</mi></mrow></msub><annotation encoding="application/x-tex">A_{kp}</annotation></semantics></math></td>
+<td
+align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>A</mi><mi>p</mi></msub><annotation encoding="application/x-tex">A_p</annotation></semantics></math></td>
+</tr>
+<tr class="even">
+<td align="left">Peak-WRS</td>
+<td
+align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>Y</mi><mi>p</mi></msub><annotation encoding="application/x-tex">Y_p</annotation></semantics></math></td>
+<td
+align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>Z</mi><mrow><mi>k</mi><mi>p</mi></mrow><mrow><mi mathvariant="normal">W</mi><mi mathvariant="normal">R</mi><mi mathvariant="normal">S</mi></mrow></msubsup><annotation encoding="application/x-tex">Z^{\mathrm{WRS}}_{kp}</annotation></semantics></math></td>
+<td
+align="left"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>A</mi><mi>p</mi></msub><annotation encoding="application/x-tex">A_p</annotation></semantics></math></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Count predictors and baseline.</strong> For a SNP or peak
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>f</mi><annotation encoding="application/x-tex">f</annotation></semantics></math>:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>c</mi></msub><mo>=</mo><mfrac><msub><mi>L</mi><mi>c</mi></msub><mrow><msub><mrow><mi mathvariant="normal">median</mi><mo>&#8289;</mo></mrow><msup><mi>c</mi><mo>′</mo></msup></msub><msub><mi>L</mi><msup><mi>c</mi><mo>′</mo></msup></msub></mrow></mfrac><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>A</mi><mrow><mi>k</mi><mi>f</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>c</mi><mo>∈</mo><msub><mi mathvariant="script">𝒞</mi><mi>k</mi></msub></mrow></munder><mfrac><msub><mi>C</mi><mrow><mi>f</mi><mi>c</mi></mrow></msub><msub><mi>s</mi><mi>c</mi></msub></mfrac><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>A</mi><mi>f</mi></msub><mo>=</mo><mfrac><mn>1</mn><mi>K</mi></mfrac><munderover><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>1</mn></mrow><mi>K</mi></munderover><msub><mi>A</mi><mrow><mi>k</mi><mi>f</mi></mrow></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
+s_c=\frac{L_c}{\operatorname{median}_{c&#39;}L_{c&#39;}},
+\qquad
+A_{kf}=\sum_{c\in\mathcal{C}_k}\frac{C_{fc}}{s_c},
+\qquad
+A_f=\frac{1}{K}\sum_{k=1}^{K}A_{kf}.
+</annotation></semantics></math></p>
+<p><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>C</mi><mrow><mi>f</mi><mi>c</mi></mrow></msub><annotation encoding="application/x-tex">C_{fc}</annotation></semantics></math>
+is the feature count in cell
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math>;
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>L</mi><mi>c</mi></msub><annotation encoding="application/x-tex">L_c</annotation></semantics></math>
+is its total count across retained autosomal peaks;
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi mathvariant="script">𝒞</mi><mi>k</mi></msub><annotation encoding="application/x-tex">\mathcal{C}_k</annotation></semantics></math>
+contains cells in group
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>;
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>K</mi><annotation encoding="application/x-tex">K</annotation></semantics></math>
+is the number of groups. Thus, accessibility is <strong>summed within
+groups</strong> after library-size adjustment, then averaged across
+groups for the baseline. <strong>WRS models retain this count-based
+baseline.</strong></p>
+<p><strong>Enrichment test.</strong> Each component is fitted
+separately:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Y</mi><mi>f</mi></msub><mo>=</mo><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mi>k</mi></msub><msub><mi>X</mi><mrow><mi>k</mi><mi>f</mi></mrow></msub><mo>+</mo><msub><mi>γ</mi><mi>k</mi></msub><msub><mi>A</mi><mi>f</mi></msub><mo>+</mo><msub><mi>ϵ</mi><mi>f</mi></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
+Y_f=\beta_0+\beta_k X_{kf}+\gamma_k A_f+\epsilon_f.
+</annotation></semantics></math></p>
+<p><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>X</mi><mrow><mi>k</mi><mi>f</mi></mrow></msub><annotation encoding="application/x-tex">X_{kf}</annotation></semantics></math>
+is the focal predictor in the table. Test
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>H</mi><mn>0</mn></msub><mo>:</mo><msub><mi>β</mi><mi>k</mi></msub><mo>≤</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">H_0:\beta_k\leq0</annotation></semantics></math>
+against
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>H</mi><mn>1</mn></msub><mo>:</mo><msub><mi>β</mi><mi>k</mi></msub><mo>&gt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">H_1:\beta_k&gt;0</annotation></semantics></math>
+using a one-sided t-test with the whitened fit’s residual degrees of
+freedom. A positive coefficient associates greater group accessibility
+or specificity with stronger GWAS signals, adjusting for baseline
+accessibility and LD.</p>
+<p><strong>ACAT and multiple testing</strong></p>
+<p>ACAT equally weights the <strong>available nominal, one-sided
+association-model P-values</strong>; all four are valid here. It does
+not combine feature-level WRS P-values or BH-adjusted P-values. BH
+correction is applied across the 24 TC groups to the combined P-values,
+and separately to each component.</p>
+<div id="required-inputs-5" class="section level4">
+<h4>Required inputs</h4>
+<ul>
+<li>ATAC and GWAS: <code>01_atac/atac.qc.rds</code> and
+<code>02_gwas/TC.gwas.rds</code>.</li>
+<li>Accessibility: <code>02_accessibility/TC.snp_by_cell.rds</code> and
+<code>02_accessibility/TC.peak_by_cell.rds</code>.</li>
+<li>LD: <code>03_ld/TC.snp_inverse_sqrt.rds</code> and
+<code>03_ld/TC.peak_ld_model.rds</code>.</li>
+<li>WRS: <code>04_wrs/TC.snp.&lt;grouping&gt;.rds</code> and
+<code>04_wrs/TC.peak.&lt;grouping&gt;.rds</code> for every column in
+<code>model.groupings</code>.</li>
+</ul>
+<p><strong>Both LD and WRS must be complete.</strong> Their completion
+records must also pass the <a
+href="#shared-requirements-for-partial-runs">shared checks</a>.</p>
+</div>
+<div id="run-5" class="section level4">
+<h4>Run</h4>
 <pre class="r"><code>EPIC2::run_model_stage(config, traits = &quot;TC&quot;)</code></pre>
+</div>
+<div id="outputs-in-output05_models" class="section level4">
+<h4>Outputs in <code>output/05_models/</code></h4>
+<ul>
+<li><code>tissue_cell_type.component_results.tsv</code>: 96 rows,
+covering four components for each of 24 groups.</li>
+<li><code>tissue_cell_type.cauchy_results.tsv</code>: 24 combined
+association results.</li>
+<li>Matching <code>.rds</code> files and separate <code>tissue</code>
+tables are also saved. Copies of the result tables are provided in
+<code>results/</code>.</li>
+</ul>
 <pre class="r"><code>results &lt;- read.delim(&quot;output/05_models/tissue_cell_type.cauchy_results.tsv&quot;)
 head(results[order(results$p_cauchy),
   c(&quot;group&quot;, &quot;p_cauchy&quot;, &quot;p_cauchy_bh_within_trait&quot;)], 6)</code></pre>
@@ -2278,30 +2404,164 @@ head(results[order(results$p_cauchy),
 <p><code>p_cauchy</code> is the Cauchy-combined P-value;
 <code>p_cauchy_bh_within_trait</code> is the Benjamini–Hochberg
 (BH)-adjusted P-value across tissue–cell-type groups for TC.</p>
-<p>Outputs in <code>output/05_models/</code>:</p>
-<ul>
-<li><code>tissue_cell_type.component_results.tsv</code>: 96 rows,
-covering four components for each of 24 groups.</li>
-<li><code>tissue_cell_type.cauchy_results.tsv</code>: 24 combined
-association results.</li>
-<li>Matching <code>.rds</code> files and separate <code>tissue</code>
-tables are also saved. Copies of the result tables are provided in
-<code>results/</code>.</li>
-</ul>
+<p>Select <code>liver_Hepatoblasts</code> from the complete saved table
+to retain that 24-group BH adjustment:</p>
+<pre class="r"><code>example_result &lt;- results[
+  results$trait == &quot;TC&quot; &amp; results$group == &quot;liver_Hepatoblasts&quot;,
+  c(&quot;p_snp_accessibility&quot;, &quot;p_snp_wrs&quot;,
+    &quot;p_peak_accessibility&quot;, &quot;p_peak_wrs&quot;,
+    &quot;p_cauchy&quot;, &quot;p_cauchy_bh_within_trait&quot;)
+]</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Test</th>
+<th align="left">P-value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">SNP-count nominal P</td>
+<td align="left">0.18467</td>
+</tr>
+<tr class="even">
+<td align="left">SNP-WRS nominal P</td>
+<td align="left">0.165032</td>
+</tr>
+<tr class="odd">
+<td align="left">Peak-count nominal P</td>
+<td align="left">6.1888e-05</td>
+</tr>
+<tr class="even">
+<td align="left">Peak-WRS nominal P</td>
+<td align="left">0.0576905</td>
+</tr>
+<tr class="odd">
+<td align="left">ACAT combined P</td>
+<td align="left">0.000247132</td>
+</tr>
+<tr class="even">
+<td align="left">ACAT BH-adjusted P</td>
+<td align="left">0.00296559</td>
+</tr>
+</tbody>
+</table>
+<p>Peak-count provides the strongest evidence here. ACAT significance
+does not require every component to be individually significant.</p>
+
+</div>
 </div>
 <div id="generate-figures" class="section level3">
 <h3>2.7 Generate figures</h3>
 <p>Read the completed analysis outputs and generate the package figures.
 <a href="scripts/06_plots.R">Plotting script</a>.</p>
+<div id="required-inputs-6" class="section level4">
+<h4>Required inputs</h4>
+<ul>
+<li>Association P-value plots:
+<code>05_models/tissue_cell_type.cauchy_results.tsv</code>.</li>
+<li>Component-effect plots also require:
+<code>05_models/tissue_cell_type.component_results.tsv</code>.</li>
+<li>UMAP, LD and WRS figures require their corresponding ATAC
+checkpoint, matrices or WRS outputs from the stages above.</li>
+</ul>
+<p>The required files depend on the figure. Plotting reads saved results
+and does not rerun statistical analyses.</p>
+</div>
+<div id="run-6" class="section level4">
+<h4>Run</h4>
 <pre class="r"><code>EPIC2::run_plot_stage(config, traits = &quot;TC&quot;)</code></pre>
+</div>
+<div id="outputs-in-outputfigures" class="section level4">
+<h4>Outputs in <code>output/figures/</code></h4>
+<p>The stage saves 37 PNG/PDF figure pairs,
+plus <code>figure_manifest.tsv</code>, which records generated and
+skipped figures. The 14 selected figures below use files from <code>figures/</code>.</p>
 <pre class="r"><code>figure_manifest &lt;- read.delim(&quot;output/figures/figure_manifest.tsv&quot;)
 table(figure_manifest$status)</code></pre>
 <pre><code>## 
 ## generated   skipped 
 ##        37         7</code></pre>
-<p>Outputs: 37 PNG/PDF figure pairs in <code>output/figures/</code>,
-plus <code>figure_manifest.tsv</code>, which records generated and
-skipped figures. The 14 selected figures below use files from <code>figures/</code>.</p>
+
+</div>
+</div>
+<div id="shared-requirements-for-partial-runs" class="section level3">
+<h3>Shared requirements for partial runs</h3>
+<details>
+<summary>
+Configuration, completion records and a partial-run example
+</summary>
+<p><strong>Keep completion records and their associated
+files</strong></p>
+<p>The supplied results include <code>*.receipt.rds</code> completion
+records. Downstream stages validate recorded file paths, checksums,
+software versions and relevant settings. These checks may require files
+beyond the direct inputs listed at each stage:</p>
+<ul>
+<li>GWAS records include the original GWAS and reference-genotype files
+as well as their processed outputs.</li>
+<li>Accessibility records include the ATAC checkpoint, processed GWAS
+and genotypes, accessibility matrices, SNP–peak mapping and aligned
+genotypes.</li>
+<li>Models requires <code>03_ld/TC.ld_receipt.rds</code>,
+<code>04_wrs/TC.wrs_receipt.rds</code> and a <code>COMPLETED</code>
+status in <code>03_ld/TC.ld_runtime.tsv</code>. The LD receipt also
+checks the saved SNP covariance and blocks files.</li>
+</ul>
+<p><strong>Keep the complete <code>inputs/</code> and
+<code>output/</code> directories when reusing these results.</strong> An
+isolated LD matrix or WRS table is generally insufficient to resume
+Models. Preserve the paths recorded in the receipts; simply moving files
+does not update those records.</p>
+<p><strong>Configure a partial run</strong></p>
+<p>Continue using the complete <a href="config.yml">config.yml</a>; do
+not remove the configuration blocks for stages you want to skip.</p>
+<ol style="list-style-type: decimal">
+<li>Keep <code>project.output_dir</code> pointed at the directory
+containing the saved intermediate results (<code>output</code> here). An
+empty directory has no upstream results to reuse.</li>
+<li>Keep the original input paths. For example, do not replace
+<code>gwas.traits.TC.summary</code> with
+<code>output/02_gwas/TC.gwas.rds</code> to skip GWAS processing; later
+stages read intermediate files from their fixed subdirectories under the
+output directory.</li>
+<li>Keep settings consistent with the saved results, including genome
+assembly, assay, LD parameters and WRS settings. If inputs or settings
+change, rerun the affected stage and its downstream stages. Changing
+<code>model.groupings</code> requires matching WRS results before
+rerunning Models.</li>
+<li>Select stages in the R command rather than deleting YAML
+blocks.</li>
+</ol>
+<p>For example, run only WRS using existing inputs:</p>
+<pre class="r"><code>config &lt;- EPIC2::read_EPIC2_config(&quot;config.yml&quot;, check_files = TRUE)
+
+EPIC2::run_EPIC2(
+  config,
+  stages = &quot;wrs&quot;,
+  gwas_name = &quot;TC&quot;
+)</code></pre>
+<p>This recalculates WRS without running GWAS, Accessibility or LD.
+Replace <code>"wrs"</code> with <code>"ld"</code>, <code>"model"</code>,
+<code>"plot"</code> or <code>c("model", "plot")</code> to select other
+stages. This example is not executed when knitting the tutorial. Using
+<code>run_EPIC2()</code> also updates <code>run_manifest.txt</code>,
+<code>config.used.yml</code>, <code>config.used.rds</code> and
+<code>run_history/</code>. Calling the individual
+<code>run_*_stage()</code> functions shown above does not update these
+global run records.</p>
+<p><code>check_files = TRUE</code> checks the original input files
+listed in the configuration, even when the selected stage does not
+directly read them. For plotting from saved outputs when the original
+inputs are unavailable, you can use <code>check_files = FALSE</code>.
+<strong>This only disables the configuration’s file-existence check; it
+does not bypass stage completion-record checks or make missing plotting
+inputs available.</strong></p>
+<p>To <strong>inspect existing results without recalculating
+them</strong>, run the <code>readRDS()</code>, <code>read.delim()</code>
+and inspection code provided with each stage. Calling
+<code>run_*_stage()</code> actually reruns that stage.</p>
+</details>
 </div>
 </div>
 <div id="which-epic2-functions-run-here" class="section level2">
@@ -2595,7 +2855,7 @@ $(document).ready(function ()  {
 
     // establish options
     var options = {
-      selectors: "h1,h2,h3",
+      selectors: "h1,h2,h3,h4",
       theme: "bootstrap3",
       context: '.toc-content',
       hashGenerator: function (text) {
