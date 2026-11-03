@@ -1,0 +1,69 @@
+project:
+  name: EPIC2 TC all-SNPs vignette
+  output_dir: output_knit
+parameters:
+  seed: 1000
+  workers: 1
+genome:
+  build: hg19
+  duplicate_action: drop
+atac:
+  input: inputs_knit/data/atac.rds
+  assay: ATAC
+  tissue_column: tissue
+  group_column: tissue_cell_type
+  attach_fragments: no
+  compute_qc_metrics: no
+  recompute_embedding: no
+gwas:
+  columns:
+    rsid: rsid
+    chr: chr
+    pos: pos
+    a1: A1
+    a2: A2
+    maf: MAF
+    p: P
+    beta: beta
+    se: se
+  genotype_format: dosage
+  genotype_orientation: variants_by_samples
+  genotype_ploidy: 2
+  maf_min: 0.05
+  reference_missing_rate_max: 0.01
+  ld_prune: no
+  remove_ambiguous: no
+  traits:
+    TC:
+      summary: inputs_knit/data/gwas/TC.rds
+      genotype: inputs_knit/data/genotypes/TC.rds
+accessibility:
+  chunks: 20
+ld:
+  window_bp: 5000000
+  ridge: 0.01
+  eigen_tolerance: 1.0e-08
+  correlation_block_size: 256
+  max_snps_for_chr_ld: 15000
+  max_dense_block_size: 6000
+wrs:
+  truncation_quantiles:
+  - 0.02
+  - 0.98
+  balanced:
+    enabled: no
+model:
+  groupings:
+  - tissue_cell_type
+  - tissue
+  require_all_components: no
+plots:
+  formats:
+  - png
+  - pdf
+  dpi: 220
+  fail_on_error: yes
+  max_umap_cells: 4788
+  ld_heatmap_max_features: 400
+  base_size: 13
+  pvalue_cap: 5.0
