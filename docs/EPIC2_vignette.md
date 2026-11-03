@@ -93,7 +93,7 @@ assay name: `nCount_<assay>` (`nCount_ATAC` here).
 the downstream accessibility, WRS or association calculations when the ATAC
 QC stage is skipped.** Retain them to reproduce the tutorial's QC figures.
 If you run ATAC QC, supply the metrics or compute them from the appropriate
-inputs as described in [2.1 ATAC processing and QC](#atac-processing-and-qc-optional).
+inputs as described in [2.1 ATAC processing and QC](#21-atac-processing-and-qc-optional).
 `compute_qc_metrics: false` reuses existing metrics; it does not skip filtering.
 
 **UMAP is optional for statistical analysis.** To reproduce the UMAP figures,
