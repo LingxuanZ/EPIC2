@@ -2181,13 +2181,12 @@ selected by <code>model.groupings</code>.</li>
 </div>
 <div id="outputs-in-output04_wrs" class="section level4">
 <h4>Outputs in <code>output/04_wrs/</code></h4>
-<p>Files include
-<code>TC.snp.tissue_cell_type.rds</code> and
-<code>TC.peak.tissue_cell_type.rds</code>, with matching
-<code>.tsv</code> tables. Each row represents one feature–cell-group
-comparison. The tables contain 1,401,360 SNP comparisons and 1,385,112
-peak comparisons across 24 groups. The configured <code>tissue</code>
-grouping also has separate outputs.</p>
+<ul>
+<li><code>TC.snp.tissue_cell_type.rds</code> and matching <code>.tsv</code>: 1,401,360 SNP–cell-group comparisons across 24 groups.</li>
+<li><code>TC.peak.tissue_cell_type.rds</code> and matching <code>.tsv</code>: 1,385,112 peak–cell-group comparisons across 24 groups.</li>
+<li>Separate outputs are also saved for the configured <code>tissue</code> grouping.</li>
+</ul>
+<p>Each row represents one feature–cell-group comparison.</p>
 <p><code>pval_one_sided_enriched</code> is
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>p</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>+</mi><mo stretchy="false" form="postfix">)</mo></mrow></msup><annotation encoding="application/x-tex">p^{(+)}</annotation></semantics></math>;
 <code>z_one_sided_enriched_trunc</code> is the capped WRS score used for

@@ -653,11 +653,11 @@ EPIC2::run_wrs_stage(config, traits = "TC")
 
 #### Outputs in `output/04_wrs/`
 
-Files include
-`TC.snp.tissue_cell_type.rds` and `TC.peak.tissue_cell_type.rds`, with matching
-`.tsv` tables. Each row represents one feature–cell-group comparison.
-The tables contain 1,401,360 SNP comparisons and 1,385,112 peak comparisons
-across 24 groups. The configured `tissue` grouping also has separate outputs.
+- `TC.snp.tissue_cell_type.rds` and matching `.tsv`: 1,401,360 SNP–cell-group comparisons across 24 groups.
+- `TC.peak.tissue_cell_type.rds` and matching `.tsv`: 1,385,112 peak–cell-group comparisons across 24 groups.
+- Separate outputs are also saved for the configured `tissue` grouping.
+
+Each row represents one feature–cell-group comparison.
 
 `pval_one_sided_enriched` is $p^{(+)}$;
 `z_one_sided_enriched_trunc` is the capped WRS score used for model fitting.
