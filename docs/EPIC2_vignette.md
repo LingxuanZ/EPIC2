@@ -2,7 +2,7 @@ EPIC2: TC all-SNPs vignette
 ================
 Lingxuan Zhu, Yuchao Jiang
 
-EPIC2 integrates scATAC-seq accessibility with GWAS summary statistics to test trait associations in cell groups. This vignette analyzes total cholesterol (**TC**) using all eligible SNPs in the example inputs.
+EPIC2 integrates scATAC-seq accessibility with GWAS summary statistics to test trait associations in cell groups. This vignette analyzes total cholesterol (**TC**) using all eligible SNPs in the example inputs. To reproduce this example, use the supplied `config.yml` and follow the data preparation steps below.
 
 # Install EPIC2
 
@@ -27,18 +27,53 @@ The full data used in the manuscript are available on [Dropbox](https://www.drop
 
 EPIC2 requires GWAS summary statistics, an annotated scATAC-seq object, indexed fragments for SNP accessibility, and LD reference genotypes:
 
-<div class="epic2-input-table">
-
-| Input | Contents |
-|:---|:---|
-| `inputs/data/atac.rds` | A Seurat object with a Signac chromatin assay (`ATAC` here), full post-QC peak counts, genomic peak coordinates and per-cell metadata; requirements are detailed below |
-| `inputs/data/gwas/TC.rds` | TC GWAS statistics: `rsid`, `chr`, `pos`, `A1`, `A2`, `MAF`, `P`, `beta` and `se` |
-| `inputs/data/genotypes/TC.rds` | LD reference genotypes: a 63,867-variant by 503-individual dosage matrix, with variant IDs in row names |
-| `inputs/data/fragments.tsv.gz` and its `.tbi` index | Indexed ATAC fragments used to count accessibility at SNPs; fragment barcodes must map to cells in the object |
-
+<div class="epic2-input-categories">
+<table>
+<colgroup>
+<col class="input-group-col" />
+<col class="input-type-col" />
+<col class="input-file-col" />
+<col class="input-contents-col" />
+</colgroup>
+<thead>
+<tr>
+<th colspan="2" scope="colgroup">Input category</th>
+<th scope="col">Example file</th>
+<th scope="col">Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th rowspan="4" scope="rowgroup">Data input</th>
+<th scope="row">ATAC object</th>
+<td><code>inputs/data/atac.rds</code></td>
+<td>A Seurat/Signac object with a chromatin assay (<code>ATAC</code> here), full post-QC peak counts in the <code>counts</code> layer, genomic peak coordinates and per-cell grouping annotations; requirements are detailed below.</td>
+</tr>
+<tr>
+<th scope="row">Fragments</th>
+<td><code>inputs/data/fragments.tsv.gz</code> and its <code>.tbi</code> index</td>
+<td>Indexed ATAC fragments used to count accessibility at SNPs, attached to the assay or supplied through configuration. Files must be accessible, and fragment barcodes must map to cells in the object.</td>
+</tr>
+<tr>
+<th scope="row">GWAS</th>
+<td><code>inputs/data/gwas/TC.rds</code></td>
+<td>TC GWAS statistics: <code>rsid</code>, <code>chr</code>, <code>pos</code>, <code>A1</code>, <code>A2</code>, <code>MAF</code>, <code>P</code>, <code>beta</code> and <code>se</code>. Column names are configurable.</td>
+</tr>
+<tr>
+<th scope="row">Reference genotypes</th>
+<td><code>inputs/data/genotypes/TC.rds</code></td>
+<td>A 63,867-variant by 503-individual dosage matrix, with unique variant IDs in row names matching the GWAS. Dosage must count the GWAS effect allele (<code>A1</code>).</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<th colspan="2" scope="row">Configuration</th>
+<td><a href="config.yml"><code>config.yml</code></a></td>
+<td>A YAML file required for the stage-based workflow, defining input paths and analysis settings. See <a href="#configuration-and-cell-type-annotations">Configuration and cell-type annotations</a> for this tutorial's complete settings.</td>
+</tr>
+</tbody>
+</table>
 </div>
-
-Alongside these data files, **the stage-based workflow requires a YAML configuration file (`config.yml`)** to define input paths and analysis settings. The complete file for this tutorial is provided in [Configuration and cell-type annotations](#configuration-and-cell-type-annotations).
 
 **Required ATAC contents**
 
@@ -203,7 +238,7 @@ plots:
 
 ## Multiple traits (optional)
 
-**This tutorial runs TC only; all results shown below are for TC.** The input archive also includes SCZ. To analyze both traits, replace the `traits` block under `gwas` in `config.yml` with the following entries, keeping the other GWAS settings:
+**This tutorial runs TC only; all results shown below are for TC.** The input archive also includes schizophrenia (SCZ) GWAS summary statistics from the 2014 Psychiatric Genomics Consortium study ([Schizophrenia Working Group of the Psychiatric Genomics Consortium 2014](#ref-ripke2014biological)). To analyze both traits, replace the `traits` block under `gwas` in `config.yml` with the following entries, keeping the other GWAS settings:
 
 ``` yaml
 gwas:
@@ -347,9 +382,9 @@ Run an individual stage once its upstream results exist; **EPIC2 does not run mi
 
 Intermediate paths below are relative to `project.output_dir` (`output/` here). **LD and WRS can run independently after Accessibility; Models needs both.** See [Shared requirements for partial runs](#shared-requirements-for-partial-runs) for completion checks, configuration settings and a single-stage example.
 
-**The Outputs sections below describe files generated and saved by the stage functions.** Displayed tutorial results were read from these saved outputs.
+For routine analyses, use the **stage functions with YAML**, which automatically save the files described under **Outputs**. Displayed tutorial results were read from these saved files.
 
-The **Core functions without YAML** examples return R objects. Run them from this tutorial folder using the listed input files. **To keep their results on disk, create the required output directories and save the objects yourself**, using `saveRDS()`, `write.table()` or `ggplot2::ggsave()` as appropriate. Alternatively, pass the returned objects directly to subsequent functions. These examples do not write stage completion records and are not executed while knitting.
+Use the **Core functions (without YAML)** examples to debug or inspect intermediate calculations within a stage. They return R objects. Run them from this tutorial folder using the listed input files. **To keep their results on disk, create the required output directories and save the objects yourself**, using `saveRDS()`, `write.table()` or `ggplot2::ggsave()` as appropriate. Alternatively, pass the returned objects directly to subsequent functions. These examples do not write stage completion records and are not executed while knitting.
 
 ### 2.1 ATAC processing and QC (optional)
 
@@ -416,7 +451,7 @@ EPIC2::run_EPIC2(config, stages = "atac")
 
 This dispatches `run_atac_stage()`, which computes the requested QC metrics, calls `filter_atac_cells()` and `filter_atac_peaks()`.
 
-**Core functions without YAML**
+**Core functions (without YAML)**
 
 For your own unfiltered object, replace the paths and `my_tissue` key below. Use complete indexed fragments and gene annotations in the same assembly. Omit the fragment-attachment lines if the correct fragments are already attached.
 
@@ -468,7 +503,7 @@ The GWAS calculation does not require an ATAC checkpoint.
 EPIC2::run_gwas_stage(config, gwas_name = "TC")
 ```
 
-**Core functions without YAML**
+**Core functions (without YAML)**
 
 ``` r
 gwas_input <- readRDS("inputs/data/gwas/TC.rds") # GWAS summary statistics
@@ -514,7 +549,7 @@ Count fragments at SNPs and obtain peak accessibility from the stored peak count
 EPIC2::run_accessibility_stage(config, traits = "TC")
 ```
 
-**Core functions without YAML**
+**Core functions (without YAML)**
 
 ``` r
 atac <- readRDS("output/01_atac/atac.qc.rds") # Peak counts, metadata and attached fragments with .tbi indexes
@@ -559,10 +594,10 @@ Construct SNP covariance and peak LD models, including inverse-square-root trans
 
 LD-based working matrices account for dependence between GWAS statistics:
 
-- **SNPs:** The local working matrix has $`\Sigma_{jj}=1`$ and $`\Sigma_{jj'}=R_{jj'}^2`$ for distinct SNPs on the same chromosome separated by at most 5 Mb; all remaining entries are set to zero. Here, $`R_{jj'}`$ is the reference-genotype correlation.
+- **SNPs:** The local working matrix has $`\Sigma_{jj}=1`$ and $`\Sigma_{jj'}=R_{jj'}^2`$ for distinct SNPs on the same chromosome separated by at most 5 Mb; all remaining entries are set to zero. Here, $`j`$ and $`j'`$ index retained SNPs, and $`R_{jj'}`$ is their reference-genotype correlation.
 - **Peaks:** within-peak LD determines the peak GWAS statistic; cross-peak LD determines covariance between peak statistics.
 
-For each connected LD component $`b`$, let $`\Sigma_b=U_b\operatorname{diag}(d_b)U_b^\mathsf{T}`$. The ridge-stabilized inverse square root is
+For each connected LD component $`b`$, let $`\Sigma_b=U_b\operatorname{diag}(d_b)U_b^\mathsf{T}`$. The columns of $`U_b`$ are eigenvectors, and $`d_b`$ contains the eigenvalues; $`d_{bi}`$ is the $`i`$th eigenvalue in component $`b`$. The superscript $`\mathsf{T}`$ denotes transpose. The ridge-stabilized inverse square root is
 
 ``` math
 W_b=U_b\operatorname{diag}\!\left[
@@ -588,7 +623,7 @@ The ridge-stabilized inverse square root transforms the **response and full desi
 EPIC2::run_ld_stage(config, traits = "TC")
 ```
 
-**Core functions without YAML**
+**Core functions (without YAML)**
 
 `split_sparse_components()` is the internal EPIC2 helper used by this stage; it groups SNPs using nonzero off-diagonal covariance entries. The code below recomputes LD. The model example in 2.6 reads the saved LD objects instead.
 
@@ -646,14 +681,14 @@ data.frame(
 
 Calculate SNP and peak WRS statistics for each selected metadata grouping, then construct and truncate one-sided enrichment scores. [WRS script](scripts/04_wrs.R).
 
-For each feature, WRS compares the focal group with all other labelled cells. Here, `liver_Hepatoblasts` is compared with the other 23 groups. **This measures accessibility specificity, not TC association.**
+For each feature, WRS compares the focal group with all other labelled cells. For example, `liver_Hepatoblasts` is compared with cells pooled from the other 23 groups. **This measures accessibility specificity, not TC association.**
 
 For each SNP or peak, the one-sided WRS test uses:
 
 - **$`H_0`$:** Accessibility counts have the same distribution in the focal group and the remaining labelled cells.
 - **$`H_1`$:** Accessibility counts tend to be higher in the focal group than in the remaining labelled cells.
 
-For the two-sided WRS P-value $`p_2`$ and its AUC:
+For each feature–group comparison (indices omitted), let $`p_2`$ denote the two-sided WRS P-value and AUC the area under the receiver operating characteristic curve:
 
 ``` math
 p^{(+)} =
@@ -665,7 +700,7 @@ p_2/2, & \mathrm{AUC}\geq 0.5,\\
 Z^{\mathrm{WRS}}=\Phi^{-1}\!\left(1-p^{(+)}\right).
 ```
 
-Here, $`\Phi`$ is the standard normal CDF. Within each trait, resolution and annotation grouping, scores are capped at the 2nd/98th percentiles of finite scores pooled across feature–group pairs, then used as predictors.
+Here, $`p^{(+)}`$ is the one-sided P-value for greater accessibility in the focal group, and $`\Phi`$ is the standard normal CDF. Within each trait, resolution and annotation grouping, scores are capped at the 2nd/98th percentiles of finite scores pooled across feature–group pairs, then used as predictors.
 
 #### Required inputs
 
@@ -682,7 +717,7 @@ Here, $`\Phi`$ is the standard normal CDF. Within each trait, resolution and ann
 EPIC2::run_wrs_stage(config, traits = "TC")
 ```
 
-**Core functions without YAML**
+**Core functions (without YAML)**
 
 Set `grouping` to the metadata column to test. This example uses `tissue_cell_type`; use `tissue` to reproduce the other grouping separately.
 
@@ -731,7 +766,7 @@ Fit SNP accessibility, SNP WRS, peak accessibility and peak WRS components, then
 
 **Four component models**
 
-The SNP and peak responses summarize GWAS association strength:
+Let $`j`$ index retained SNPs, $`p`$ peaks and $`k`$ cell groups. The SNP and peak responses summarize GWAS association strength:
 
 ``` math
 Y_j=Z_j^2,
@@ -739,7 +774,7 @@ Y_j=Z_j^2,
 Y_p=\frac{\mathbf{Z}_p^{\mathsf T}\Omega_p\mathbf{Z}_p}{n_p}.
 ```
 
-$`Z_j`$ is a GWAS Z-score; $`\mathbf{Z}_p`$ contains the $`n_p`$ retained SNP Z-scores in peak $`p`$, and $`\Omega_p`$ is their ridge-regularized inverse LD matrix. The SNP response uses squared Z-scores so either effect direction can contribute.
+$`Z_j`$ is the GWAS Z-score for SNP $`j`$; $`\mathbf{Z}_p`$ contains the $`n_p`$ retained SNP Z-scores in peak $`p`$, and $`\Omega_p`$ is their ridge-regularized inverse LD matrix. The SNP response uses squared Z-scores so either effect direction can contribute.
 
 | Component  | Response | Focal predictor           | Baseline |
 |:-----------|:---------|:--------------------------|:---------|
@@ -748,7 +783,7 @@ $`Z_j`$ is a GWAS Z-score; $`\mathbf{Z}_p`$ contains the $`n_p`$ retained SNP Z-
 | Peak-count | $`Y_p`$  | $`A_{kp}`$                | $`A_p`$  |
 | Peak-WRS   | $`Y_p`$  | $`Z^{\mathrm{WRS}}_{kp}`$ | $`A_p`$  |
 
-**Count predictors and baseline.** For a SNP or peak $`f`$:
+**Count predictors and baseline.** Let $`f`$ index features (SNPs or peaks) and $`c,c'`$ index cells; $`c'`$ runs over cells in the median below:
 
 ``` math
 s_c=\frac{L_c}{\operatorname{median}_{c'}L_{c'}},
@@ -758,15 +793,15 @@ A_{kf}=\sum_{c\in\mathcal{C}_k}\frac{C_{fc}}{s_c},
 A_f=\frac{1}{K}\sum_{k=1}^{K}A_{kf}.
 ```
 
-$`C_{fc}`$ is the feature count in cell $`c`$; $`L_c`$ is its total count across retained autosomal peaks; $`\mathcal{C}_k`$ contains cells in group $`k`$; $`K`$ is the number of groups. Thus, accessibility is **summed within groups** after library-size adjustment, then averaged across groups for the baseline. **WRS models retain this count-based baseline.**
+$`C_{fc}`$ is the count for feature $`f`$ in cell $`c`$; $`L_c`$ is that cell's total count across retained autosomal peaks; $`s_c`$ is its library-size factor. $`\mathcal{C}_k`$ contains cells in group $`k`$, and $`K`$ is the number of groups. Thus, accessibility is **summed within groups** after library-size adjustment, then averaged across groups for the baseline. **WRS models retain this count-based baseline.**
 
-**Enrichment test.** Each component is fitted separately:
+**Enrichment test.** Each component is fitted separately for each cell group $`k`$:
 
 ``` math
 Y_f=\beta_0+\beta_k X_{kf}+\gamma_k A_f+\epsilon_f.
 ```
 
-$`X_{kf}`$ is the focal predictor in the table. Test $`H_0:\beta_k\leq0`$ against $`H_1:\beta_k>0`$ using a one-sided t-test with the whitened fit’s residual degrees of freedom. A positive coefficient associates greater group accessibility or specificity with stronger GWAS signals, adjusting for baseline accessibility and LD.
+$`X_{kf}`$ is the focal predictor for group $`k`$ and feature $`f`$ in the table. $`\beta_0`$ is the intercept; $`\beta_k`$ and $`\gamma_k`$ are the focal and baseline coefficients for group $`k`$, respectively; $`\epsilon_f`$ is the residual for feature $`f`$. Test $`H_0:\beta_k\leq0`$ against $`H_1:\beta_k>0`$ using a one-sided t-test with the whitened fit's residual degrees of freedom. A positive coefficient associates greater group accessibility or specificity with stronger GWAS signals, adjusting for baseline accessibility and LD.
 
 **ACAT and multiple testing**
 
@@ -789,7 +824,7 @@ ACAT equally weights the **available nominal, one-sided association-model P-valu
 EPIC2::run_model_stage(config, traits = "TC")
 ```
 
-**Core functions without YAML**
+**Core functions (without YAML)**
 
 This example reads the saved accessibility, WRS and LD results for TC. Choose `grouping` explicitly; matching WRS files must exist for that column.
 
@@ -894,7 +929,7 @@ EPIC2::run_plot_stage(config, traits = "TC")
 ```
 
 <details class="epic2-stage-notes" id="executable-examples-by-figure-family">
-<summary>Core functions without YAML — show plotting code</summary>
+<summary>Core functions (without YAML) — show plotting code</summary>
 
 The examples below rebuild the tutorial figures from saved analysis outputs. Run **Inputs and settings** first, then the figure families you need. All examples are excluded from knitting with `eval=FALSE`.
 
@@ -1239,7 +1274,7 @@ How the internal stage helpers map to the core calls
 
 # Selected figures
 
-The completed TC analysis generated **37 figures**, saved as **37 PNG/PDF pairs (74 files in total)**. The table summarizes the complete figure set.
+The completed TC analysis generated **37 figures**, saved as **37 PNG/PDF pairs (74 files in total)**. Browse the complete collection in the [GitHub figures folder](https://github.com/LingxuanZ/EPIC2/tree/main/docs/figures). The table summarizes the complete figure set.
 
 | Figure category | Count | Overview |
 |:---|---:|:---|
@@ -1250,63 +1285,18 @@ The completed TC analysis generated **37 figures**, saved as **37 PNG/PDF pairs 
 | WRS | 12 | SNP/peak P-value and score distributions, cell-group and tissue summaries, and top-ranked features. |
 | Association results | 10 | ACAT associations, nominal and adjusted component-test P-values, and component effect statistics for cell groups and tissues. |
 
-**14 selected figures are shown below**, with a PDF link for each figure. Displayed images use files from `figures/`. All generated PNG/PDF files are saved in `output/figures/`.
+**4 selected figures are shown below**, with a PDF link for each figure. Displayed images use files from `figures/`. All generated PNG/PDF files are saved in `output/figures/`.
 
 Association P-value color scales span −log10(P) = 0–5.
 
-
-## ATAC data and QC
-
-### ATAC QC metrics
-
-![ATAC QC metrics](figures/00_atac_qc/atac_qc_metric_distributions.png)\
-Distributions of the available cell-level QC metrics. [PDF](figures/00_atac_qc/atac_qc_metric_distributions.pdf)
-
-### ATAC counts and TSS enrichment
-
-![ATAC counts and TSS enrichment](figures/00_atac_qc/density_scatter_nCount_TSS.png)\
-Relationship between ATAC counts and TSS enrichment. [PDF](figures/00_atac_qc/density_scatter_nCount_TSS.pdf)
+## ATAC data
 
 ### Cell annotations
 
-![Cell annotations](figures/UMAP_tissue_and_tissue_cell_type.cellQC.peakQC.png)\
-UMAP of all supplied cells, colored by tissue and tissue–cell-type group. [PDF](figures/UMAP_tissue_and_tissue_cell_type.cellQC.peakQC.pdf)
-
-## Accessibility
-
-### SNP accessibility on UMAP
-
-![SNP accessibility on UMAP](figures/all_traits_GWAS_SNP_count_FeaturePlot.png)\
-TC SNP accessibility counts on the cell embedding; colors use the package display scaling. [PDF](figures/all_traits_GWAS_SNP_count_FeaturePlot.pdf)
-
-### Peak accessibility on UMAP
-
-![Peak accessibility on UMAP](figures/all_traits_GWAS_peak_count_FeaturePlot.png)\
-TC peak accessibility counts on the cell embedding; colors use the package display scaling. [PDF](figures/all_traits_GWAS_peak_count_FeaturePlot.pdf)
-
-## LD
-
-### LD block sizes
-
-![LD block sizes](figures/03_ld/ld_block_size_distribution.png)\
-Sizes of the TC SNP and peak LD components. [PDF](figures/03_ld/ld_block_size_distribution.pdf)
-
-### SNP LD heatmap
-
-![SNP LD heatmap](figures/03_ld/TC.snp_ld_heatmap.png)\
-The same 400 contiguous SNPs, centered in the largest component, are shown in both panels. Left: full r² with linear colors. Right: diagonal masked and square-root colors to reveal off-diagonal structure. The full matrix is used for analysis. [PDF](figures/03_ld/TC.snp_ld_heatmap.pdf)
-
-### Peak covariance heatmap
-
-![Peak covariance heatmap](figures/03_ld/TC.peak_ld_heatmap.png)\
-The same 400 contiguous peaks, centered in the largest component, are shown in both panels. Left: full covariance with linear colors. Right: diagonal masked and square-root colors. The full matrix is used for analysis. [PDF](figures/03_ld/TC.peak_ld_heatmap.pdf)
+![Cell annotations](figures/UMAP_tissue_cell_type.cellQC.peakQC.png)\
+UMAP of all supplied cells, colored by tissue–cell-type group. [PDF](figures/UMAP_tissue_cell_type.cellQC.peakQC.pdf)
 
 ## WRS
-
-### WRS summary by cell group
-
-![WRS summary by cell group](figures/04_wrs/wrs_group_summary.tissue_cell_type.png)\
-Point size shows the fraction of features with WRS P \< 0.05; color shows the 95th percentile of −log10(P). [PDF](figures/04_wrs/wrs_group_summary.tissue_cell_type.pdf)
 
 ### Top SNP features
 
@@ -1320,22 +1310,12 @@ Accessibility of WRS-ranked peak features for TC, selecting up to three features
 
 ## Association results
 
-### ACAT associations by cell group
-
-![ACAT associations by cell group](figures/05_models/cauchy_tissue_cell_type_dotplot.png)\
-Color shows nominal −log10(P); point size shows the number of combined tests. \* BH-adjusted P \< 0.05; \*\* Bonferroni-adjusted P \< 0.05. [PDF](figures/05_models/cauchy_tissue_cell_type_dotplot.pdf)
-
-### Nominal component and ACAT tests by cell group
-
-![Nominal component and ACAT tests by cell group](figures/05_models/cauchy_tissue_cell_type_component_heatmap_nominal.png)\
-Nominal P-values for the four components and ACAT; stars indicate displayed P \< 0.05. [PDF](figures/05_models/cauchy_tissue_cell_type_component_heatmap_nominal.pdf)
-
 ### BH-adjusted component and ACAT tests by cell group
 
 ![BH-adjusted component and ACAT tests by cell group](figures/05_models/cauchy_tissue_cell_type_component_heatmap_bh.png)\
 BH-adjusted P-values for the four components and ACAT; stars indicate displayed P \< 0.05. [PDF](figures/05_models/cauchy_tissue_cell_type_component_heatmap_bh.pdf)
 
-Because this tutorial uses a sampled subset of real scATAC-seq data, with up to 200 cells per tissue–cell-type group, the nominal and BH-adjusted results may differ slightly from the manuscript results obtained using the complete dataset. The main enrichment signals remain consistent.
+Because this tutorial uses a sampled subset of real scATAC-seq data, with up to 200 cells per tissue–cell-type group, the BH-adjusted results shown here may differ slightly from the manuscript results obtained using the complete dataset. The main enrichment signals remain consistent.
 
 # References
 
@@ -1374,6 +1354,12 @@ Korsunsky, Ilya, Aparna Nathan, Nghia Millard, and Soumya Raychaudhuri. 2022. *P
 <div id="ref-liu2020cauchy" class="csl-entry">
 
 Liu, Yaowu, and Jun Xie. 2020. “Cauchy Combination Test: A Powerful Test with Analytic p-Value Calculation Under Arbitrary Dependency Structures.” *Journal of the American Statistical Association* 115 (529): 393–402. <https://doi.org/10.1080/01621459.2018.1554485>.
+
+</div>
+
+<div id="ref-ripke2014biological" class="csl-entry">
+
+Schizophrenia Working Group of the Psychiatric Genomics Consortium. 2014. “Biological Insights from 108 Schizophrenia-Associated Genetic Loci.” *Nature* 511 (7510): 421–27. <https://doi.org/10.1038/nature13595>.
 
 </div>
 
