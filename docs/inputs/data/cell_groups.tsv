@@ -1,0 +1,25 @@
+tissue	tissue_cell_type	n_cells
+adrenal	adrenal_Adrenocortical cells	200
+adrenal	adrenal_Chromaffin cells	200
+adrenal	adrenal_Stromal cells	188
+cerebrum	cerebrum_Astrocytes	200
+cerebrum	cerebrum_Astrocytes/Oligodendrocytes	200
+cerebrum	cerebrum_Excitatory neurons	200
+cerebrum	cerebrum_Inhibitory neurons	200
+heart	heart_Cardiomyocytes	200
+intestine	intestine_ENS neurons	200
+intestine	intestine_Intestinal epithelial cells	200
+intestine	intestine_Lymphoid cells	200
+intestine	intestine_Smooth muscle cells	200
+intestine	intestine_Stromal cells	200
+kidney	kidney_Mesangial cells	200
+kidney	kidney_Metanephric cells	200
+kidney	kidney_Ureteric bud cells	200
+kidney	kidney_Vascular endothelial cells	200
+liver	liver_Erythroblasts	200
+liver	liver_Hepatoblasts	200
+liver	liver_Lymphoid cells	200
+liver	liver_Myeloid cells	200
+liver	liver_Vascular endothelial cells	200
+lung	lung_Bronchiolar and alveolar epithelial cells	200
+lung	lung_Stromal cells	200

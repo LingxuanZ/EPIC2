@@ -1,0 +1,27 @@
+{
+  "rendered_from_existing_outputs": true,
+  "analysis_recomputed": false,
+  "selected_figures_verified": 14,
+  "figure_png_pdf_files_verified": 74,
+  "outline_depth": 3,
+  "public_stage_examples": 6,
+  "relative_links_verified": true,
+  "configuration_matches_display": true,
+  "result_tables_unchanged": true,
+  "source_documents_unchanged": true,
+  "copied_output_files": 129,
+  "relocated_metadata_files": 13,
+  "html_bytes": 7740124,
+  "default_recompute": false,
+  "figure_overview_counts": {
+    "ATAC QC and annotations": 4,
+    "GWAS QC": 2,
+    "Accessibility": 6,
+    "Local LD": 3,
+    "WRS": 12,
+    "Association results": 10
+  },
+  "optional_atac_qc_example": true,
+  "optional_atac_qc_executed": false,
+  "optional_atac_qc_settings_match_defaults": true
+}

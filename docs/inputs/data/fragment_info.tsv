@@ -1,0 +1,8 @@
+source_fragment_file	n_mapped_cells	n_observed_cells	n_retained_records	n_query_intervals
+sample_14_heart.fragments.txt.gz	200	200	105559	89600
+sample_21_intestine.fragments.txt.gz	1000	1000	510142	89600
+sample_27_adrenal.fragments.txt.gz	588	588	281737	89600
+sample_35_liver.fragments.txt.gz	1000	1000	466850	89600
+sample_3_kidney.fragments.txt.gz	800	800	377961	89600
+sample_44_lung.fragments.txt.gz	400	400	190197	89600
+sample_6_cerebrum.fragments.txt.gz	800	800	324722	89600

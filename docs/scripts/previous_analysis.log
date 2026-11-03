@@ -1,0 +1,481 @@
+
+[EPIC2] Starting stage: gwas
+ 
+GWAS stage complete for TC: 63224 variants
+ 
+[EPIC2] Finished stage: gwas in 0.11 minutes
+ 
+
+[EPIC2] Starting stage: accessibility
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Extracting reads overlapping genomic regions
+ 
+Accessibility stage complete for TC: 58390 SNPs and 57713 peaks
+ 
+[EPIC2] Finished stage: accessibility in 0.63 minutes
+ 
+
+[EPIC2] Starting stage: ld
+ 
+[LD] TC: ld-covariance-v1; loading completed stage 02 inputs
+ 
+[LD] LD loops are serial; BLAS threading is determined at R startup. OMP=not set, MKL=not set, OPENBLAS=not set
+ 
+[LD] Inputs: 503 reference samples, 58390 accessible SNPs, 57713 accessible peaks, 63224 overlap rows
+ 
+[LD] SNP covariance: 1, 4456 variants
+ 
+[LD] SNP covariance: 1 finished in 0.1 seconds
+ 
+[LD] SNP covariance: 2, 4625 variants
+ 
+[LD] SNP covariance: 2 finished in 0.1 seconds
+ 
+[LD] SNP covariance: 3, 3952 variants
+ 
+[LD] SNP covariance: 3 finished in 0.3 seconds
+ 
+[LD] SNP covariance: 4, 3410 variants
+ 
+[LD] SNP covariance: 4 finished in 0 seconds
+ 
+[LD] SNP covariance: 5, 3745 variants
+ 
+[LD] SNP covariance: 5 finished in 0 seconds
+ 
+[LD] SNP covariance: 6, 3849 variants
+ 
+[LD] SNP covariance: 6 finished in 0.1 seconds
+ 
+[LD] SNP covariance: 7, 3253 variants
+ 
+[LD] SNP covariance: 7 finished in 0 seconds
+ 
+[LD] SNP covariance: 8, 3249 variants
+ 
+[LD] SNP covariance: 8 finished in 0 seconds
+ 
+[LD] SNP covariance: 9, 2868 variants
+ 
+[LD] SNP covariance: 9 finished in 0 seconds
+ 
+[LD] SNP covariance: 10, 3235 variants
+ 
+[LD] SNP covariance: 10 finished in 0.1 seconds
+ 
+[LD] SNP covariance: 11, 2910 variants
+ 
+[LD] SNP covariance: 11 finished in 0 seconds
+ 
+[LD] SNP covariance: 12, 2835 variants
+ 
+[LD] SNP covariance: 12 finished in 0 seconds
+ 
+[LD] SNP covariance: 13, 2157 variants
+ 
+[LD] SNP covariance: 13 finished in 0 seconds
+ 
+[LD] SNP covariance: 14, 1988 variants
+ 
+[LD] SNP covariance: 14 finished in 0 seconds
+ 
+[LD] SNP covariance: 15, 1870 variants
+ 
+[LD] SNP covariance: 15 finished in 0 seconds
+ 
+[LD] SNP covariance: 16, 1817 variants
+ 
+[LD] SNP covariance: 16 finished in 0 seconds
+ 
+[LD] SNP covariance: 17, 1679 variants
+ 
+[LD] SNP covariance: 17 finished in 0 seconds
+ 
+[LD] SNP covariance: 18, 1999 variants
+ 
+[LD] SNP covariance: 18 finished in 0 seconds
+ 
+[LD] SNP covariance: 19, 1033 variants
+ 
+[LD] SNP covariance: 19 finished in 0 seconds
+ 
+[LD] SNP covariance: 20, 1652 variants
+ 
+[LD] SNP covariance: 20 finished in 0 seconds
+ 
+[LD] SNP covariance: 21, 821 variants
+ 
+[LD] SNP covariance: 21 finished in 0 seconds
+ 
+[LD] SNP covariance: 22, 987 variants
+ 
+[LD] SNP covariance: 22 finished in 0 seconds
+ 
+[LD] Saved SNP covariance; starting SNP inverse square root
+ 
+[LD] Inverse square root: 28 connected components; largest = 3952 features
+ 
+[LD] Dense eigen block 1/28: 2272 x 2272 (one dense matrix ~0.04 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 1 finished in 1.3 seconds
+ 
+[LD] Dense eigen block 2/28: 2184 x 2184 (one dense matrix ~0.04 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 2 finished in 1.1 seconds
+ 
+[LD] Dense eigen block 3/28: 2056 x 2056 (one dense matrix ~0.03 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 3 finished in 1 seconds
+ 
+[LD] Dense eigen block 4/28: 2569 x 2569 (one dense matrix ~0.05 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 4 finished in 1.6 seconds
+ 
+[LD] Dense eigen block 5/28: 3952 x 3952 (one dense matrix ~0.12 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 5 finished in 5.1 seconds
+ 
+[LD] Dense eigen block 6/28: 3410 x 3410 (one dense matrix ~0.09 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 6 finished in 3.3 seconds
+ 
+[LD] Dense eigen block 7/28: 3745 x 3745 (one dense matrix ~0.1 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 7 finished in 5.4 seconds
+ 
+[LD] Dense eigen block 8/28: 3849 x 3849 (one dense matrix ~0.11 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 8 finished in 5.3 seconds
+ 
+[LD] Dense eigen block 9/28: 1578 x 1578 (one dense matrix ~0.02 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 9 finished in 0.5 seconds
+ 
+[LD] Dense eigen block 10/28: 1675 x 1675 (one dense matrix ~0.02 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 10 finished in 0.6 seconds
+ 
+[LD] Dense eigen block 11/28: 1302 x 1302 (one dense matrix ~0.01 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 11 finished in 0.3 seconds
+ 
+[LD] Dense eigen block 12/28: 1947 x 1947 (one dense matrix ~0.03 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 12 finished in 0.8 seconds
+ 
+[LD] Dense eigen block 13/28: 1060 x 1060 (one dense matrix ~0.01 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 13 finished in 0.2 seconds
+ 
+[LD] Dense eigen block 14/28: 1808 x 1808 (one dense matrix ~0.02 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 14 finished in 0.6 seconds
+ 
+[LD] Dense eigen block 15/28: 3235 x 3235 (one dense matrix ~0.08 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 15 finished in 3.1 seconds
+ 
+[LD] Dense eigen block 16/28: 2910 x 2910 (one dense matrix ~0.06 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 16 finished in 2.2 seconds
+ 
+[LD] Dense eigen block 17/28: 2835 x 2835 (one dense matrix ~0.06 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 17 finished in 2.1 seconds
+ 
+[LD] Dense eigen block 18/28: 2157 x 2157 (one dense matrix ~0.03 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 18 finished in 1 seconds
+ 
+[LD] Dense eigen block 19/28: 1988 x 1988 (one dense matrix ~0.03 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 19 finished in 1 seconds
+ 
+[LD] Dense eigen block 20/28: 1870 x 1870 (one dense matrix ~0.03 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 20 finished in 0.7 seconds
+ 
+[LD] Dense eigen block 22/28: 1241 x 1241 (one dense matrix ~0.01 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 22 finished in 0.3 seconds
+ 
+[LD] Dense eigen block 23/28: 1679 x 1679 (one dense matrix ~0.02 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 23 finished in 0.6 seconds
+ 
+[LD] Dense eigen block 24/28: 1999 x 1999 (one dense matrix ~0.03 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 24 finished in 1.1 seconds
+ 
+[LD] Dense eigen block 25/28: 1033 x 1033 (one dense matrix ~0.01 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 25 finished in 0.2 seconds
+ 
+[LD] Dense eigen block 26/28: 1652 x 1652 (one dense matrix ~0.02 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 26 finished in 0.5 seconds
+ 
+[LD] Dense eigen block 28/28: 987 x 987 (one dense matrix ~0.01 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 28 finished in 0.2 seconds
+ 
+[LD] Saved SNP inverse square root and blocks; starting peak LD
+ 
+[LD] Peak response: 57713 candidate peaks
+ 
+[LD] Peak response complete: 57713 peaks in 85.6 seconds
+ 
+[LD] Peak covariance: chr1, 4387 peaks, 4782 SNPs; cached LD
+ 
+[LD] Peak covariance: chr1 finished in 37.3 seconds; 463808 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr2, 4599 peaks, 4979 SNPs; cached LD
+ 
+[LD] Peak covariance: chr2 finished in 70.1 seconds; 477472 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr3, 3928 peaks, 4269 SNPs; cached LD
+ 
+[LD] Peak covariance: chr3 finished in 87 seconds; 437919 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr4, 3534 peaks, 3800 SNPs; cached LD
+ 
+[LD] Peak covariance: chr4 finished in 97 seconds; 381157 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr5, 3758 peaks, 4099 SNPs; cached LD
+ 
+[LD] Peak covariance: chr5 finished in 132.9 seconds; 433448 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr6, 3805 peaks, 4168 SNPs; cached LD
+ 
+[LD] Peak covariance: chr6 finished in 170.9 seconds; 473915 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr7, 3294 peaks, 3571 SNPs; cached LD
+ 
+[LD] Peak covariance: chr7 finished in 157.9 seconds; 388593 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr8, 3194 peaks, 3523 SNPs; cached LD
+ 
+[LD] Peak covariance: chr8 finished in 179.4 seconds; 396467 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr9, 2811 peaks, 3112 SNPs; cached LD
+ 
+[LD] Peak covariance: chr9 finished in 177.2 seconds; 360940 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr10, 3173 peaks, 3476 SNPs; cached LD
+ 
+[LD] Peak covariance: chr10 finished in 216.4 seconds; 399001 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr11, 2845 peaks, 3133 SNPs; cached LD
+ 
+[LD] Peak covariance: chr11 finished in 193.5 seconds; 330242 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr12, 2768 peaks, 3068 SNPs; cached LD
+ 
+[LD] Peak covariance: chr12 finished in 192.3 seconds; 305255 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr13, 2126 peaks, 2354 SNPs; cached LD
+ 
+[LD] Peak covariance: chr13 finished in 172.1 seconds; 260561 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr14, 1969 peaks, 2165 SNPs; cached LD
+ 
+[LD] Peak covariance: chr14 finished in 166.1 seconds; 240562 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr15, 1816 peaks, 2019 SNPs; cached LD
+ 
+[LD] Peak covariance: chr15 finished in 154.1 seconds; 214814 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr16, 1769 peaks, 1943 SNPs; cached LD
+ 
+[LD] Peak covariance: chr16 finished in 191.4 seconds; 256358 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr17, 1627 peaks, 1766 SNPs; cached LD
+ 
+[LD] Peak covariance: chr17 finished in 139.8 seconds; 181805 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr18, 1982 peaks, 2191 SNPs; cached LD
+ 
+[LD] Peak covariance: chr18 finished in 215.4 seconds; 264842 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr19, 1019 peaks, 1096 SNPs; cached LD
+ 
+[LD] Peak covariance: chr19 finished in 74.3 seconds; 91567 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr20, 1602 peaks, 1775 SNPs; cached LD
+ 
+[LD] Peak covariance: chr20 finished in 176.1 seconds; 215972 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr21, 803 peaks, 905 SNPs; cached LD
+ 
+[LD] Peak covariance: chr21 finished in 79.3 seconds; 94594 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance: chr22, 904 peaks, 1030 SNPs; cached LD
+ 
+[LD] Peak covariance: chr22 finished in 94.1 seconds; 110785 nonzero upper-triangle pairs
+ 
+[LD] Peak covariance complete; starting peak inverse square root
+ 
+[LD] Inverse square root: 28 connected components; largest = 3928 features
+ 
+[LD] Dense eigen block 1/28: 2211 x 2211 (one dense matrix ~0.04 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 1 finished in 1.1 seconds
+ 
+[LD] Dense eigen block 2/28: 2176 x 2176 (one dense matrix ~0.04 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 2 finished in 0.9 seconds
+ 
+[LD] Dense eigen block 3/28: 2006 x 2006 (one dense matrix ~0.03 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 3 finished in 0.9 seconds
+ 
+[LD] Dense eigen block 4/28: 2593 x 2593 (one dense matrix ~0.05 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 4 finished in 1.6 seconds
+ 
+[LD] Dense eigen block 5/28: 3928 x 3928 (one dense matrix ~0.11 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 5 finished in 5.1 seconds
+ 
+[LD] Dense eigen block 6/28: 3534 x 3534 (one dense matrix ~0.09 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 6 finished in 3.8 seconds
+ 
+[LD] Dense eigen block 7/28: 3758 x 3758 (one dense matrix ~0.11 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 7 finished in 4.8 seconds
+ 
+[LD] Dense eigen block 8/28: 3805 x 3805 (one dense matrix ~0.11 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 8 finished in 4.9 seconds
+ 
+[LD] Dense eigen block 9/28: 1584 x 1584 (one dense matrix ~0.02 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 9 finished in 0.4 seconds
+ 
+[LD] Dense eigen block 10/28: 1710 x 1710 (one dense matrix ~0.02 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 10 finished in 0.6 seconds
+ 
+[LD] Dense eigen block 11/28: 1227 x 1227 (one dense matrix ~0.01 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 11 finished in 0.3 seconds
+ 
+[LD] Dense eigen block 12/28: 1967 x 1967 (one dense matrix ~0.03 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 12 finished in 0.9 seconds
+ 
+[LD] Dense eigen block 13/28: 1026 x 1026 (one dense matrix ~0.01 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 13 finished in 0.2 seconds
+ 
+[LD] Dense eigen block 14/28: 1785 x 1785 (one dense matrix ~0.02 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 14 finished in 0.6 seconds
+ 
+[LD] Dense eigen block 15/28: 3173 x 3173 (one dense matrix ~0.08 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 15 finished in 2.9 seconds
+ 
+[LD] Dense eigen block 16/28: 2845 x 2845 (one dense matrix ~0.06 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 16 finished in 2.1 seconds
+ 
+[LD] Dense eigen block 17/28: 2768 x 2768 (one dense matrix ~0.06 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 17 finished in 1.8 seconds
+ 
+[LD] Dense eigen block 18/28: 2126 x 2126 (one dense matrix ~0.03 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 18 finished in 1.2 seconds
+ 
+[LD] Dense eigen block 19/28: 1969 x 1969 (one dense matrix ~0.03 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 19 finished in 0.8 seconds
+ 
+[LD] Dense eigen block 20/28: 1816 x 1816 (one dense matrix ~0.02 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 20 finished in 0.6 seconds
+ 
+[LD] Dense eigen block 22/28: 1195 x 1195 (one dense matrix ~0.01 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 22 finished in 0.2 seconds
+ 
+[LD] Dense eigen block 23/28: 1627 x 1627 (one dense matrix ~0.02 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 23 finished in 0.5 seconds
+ 
+[LD] Dense eigen block 24/28: 1982 x 1982 (one dense matrix ~0.03 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 24 finished in 0.8 seconds
+ 
+[LD] Dense eigen block 25/28: 1019 x 1019 (one dense matrix ~0.01 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 25 finished in 0.2 seconds
+ 
+[LD] Dense eigen block 26/28: 1602 x 1602 (one dense matrix ~0.02 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 26 finished in 0.5 seconds
+ 
+[LD] Dense eigen block 28/28: 904 x 904 (one dense matrix ~0.01 GiB; eigendecomposition needs additional memory)
+ 
+[LD] Eigen block 28 finished in 0.2 seconds
+ 
+LD stage complete for TC
+ 
+[EPIC2] Finished stage: ld in 58.58 minutes
+ 
+
+[EPIC2] Starting stage: wrs
+ 
+WRS stage complete for TC
+ 
+[EPIC2] Finished stage: wrs in 0.21 minutes
+ 
+
+[EPIC2] Starting stage: model
+ 
+Association models complete for TC / tissue_cell_type
+ 
+Association models complete for TC / tissue
+ 
+[EPIC2] Finished stage: model in 1.55 minutes
+ 

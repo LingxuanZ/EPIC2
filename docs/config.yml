@@ -1,6 +1,6 @@
 project:
   name: EPIC2 TC all-SNPs vignette
-  output_dir: output_knit
+  output_dir: output
 parameters:
   seed: 1000
   workers: 1
@@ -8,7 +8,7 @@ genome:
   build: hg19
   duplicate_action: drop
 atac:
-  input: inputs_knit/data/atac.rds
+  input: inputs/data/atac.rds
   assay: ATAC
   tissue_column: tissue
   group_column: tissue_cell_type
@@ -35,8 +35,8 @@ gwas:
   remove_ambiguous: no
   traits:
     TC:
-      summary: inputs_knit/data/gwas/TC.rds
-      genotype: inputs_knit/data/genotypes/TC.rds
+      summary: inputs/data/gwas/TC.rds
+      genotype: inputs/data/genotypes/TC.rds
 accessibility:
   chunks: 20
 ld:

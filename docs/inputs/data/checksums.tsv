@@ -1,0 +1,17 @@
+file	bytes	md5
+atac.rds	65598101	9ff0309565b32fab26179ea7a36e0ca3
+cell_groups.tsv	948	77f83cca9f6e998e730c9d56c1e26933
+cells.tsv	240282	fec1aa8d8bddf7866b4b2aa8e02cd2ed
+fragment_cell_coverage.tsv	49628	6fcbf9d8ce6efb7c91758ada6a743f6a
+fragment_info.tsv	479	c21f5439e2fb5ac47036fbfac8c9e730
+fragments.tsv.gz	22044504	58e84605ebe7e874744629248c610b6a
+fragments.tsv.gz.tbi	460117	a0964cb9246d958b39dbb6b2d69f1a8c
+genotypes/SCZ.rds	14948061	57cd15a3d59c8f508c4656e6cf37a1c7
+genotypes/TC.rds	10233992	f9aaf7b93d883a495c7988addcad435b
+group_sampling.tsv	1972	1a952e65d447f110728772fa82991b2c
+gwas/SCZ.rds	1822083	60be027d99884d4d182d77424bea8bd7
+gwas/TC.rds	1118026	64e427c5b1d28ee4da8d148f330694ff
+info.rds	2018	393aad9b62a602d084a80abd2efb1d58
+source_group_counts.tsv	967	a48a5166d1d79059875c83fc6c4da5fe
+subset_method.tsv	1384	a3988b8fa042e4912ae78e7bf62f40ca
+trait_counts.tsv	154	a90472ef4d29ab24b8873aadc75cf1fe

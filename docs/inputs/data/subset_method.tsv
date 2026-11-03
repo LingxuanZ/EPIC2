@@ -1,0 +1,16 @@
+step	description
+1	Use the completed cell-QC/peak-QC ATAC checkpoint; do not rerun upstream filtering.
+2	Verify the source has the expected cell, peak, tissue and tissue-cell-type group counts.
+3	Retain all source tissue_cell_type groups; never filter groups by their size.
+4	With seed 20261028, sample min(200, available cells) without replacement within each sorted group.
+5	Retain every cell in groups smaller than the target; do not duplicate cells to fill quotas.
+6	TC and SCZ share exactly the same selected cells; preserve their original full-ATAC UMAP coordinates.
+7	Retain every original post-QC ATAC peak row, including rows that become zero in the sampled cells.
+8	Start GWAS selection from existing pruned, strand-unambiguous tables.
+9	Require finite valid summary statistics, MAF >= 0.05, unique rsID/coordinate, and a reference-genotype match.
+10	Require overlap with an autosomal post-QC peak having at least one count among the selected cells.
+11	This eligibility criterion constructs demonstration inputs; it is not post-mapping matrix QC.
+12	All eligible SNPs are retained in genomic order.
+13	Retain every reference individual and match genotype rows exactly to the selected GWAS rsIDs.
+14	Do not apply the 20-cells/10-SNPs/20-peaks further matrix QC thresholds.
+15	Create inputs and validate fragment counts only; do not run EPIC2 analysis or generate a vignette.

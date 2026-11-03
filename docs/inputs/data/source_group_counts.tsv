@@ -1,0 +1,25 @@
+tissue	tissue_cell_type	n_cells
+adrenal	adrenal_Adrenocortical cells	17079
+adrenal	adrenal_Chromaffin cells	969
+adrenal	adrenal_Stromal cells	188
+cerebrum	cerebrum_Astrocytes	1026
+cerebrum	cerebrum_Astrocytes/Oligodendrocytes	640
+cerebrum	cerebrum_Excitatory neurons	8872
+cerebrum	cerebrum_Inhibitory neurons	1685
+heart	heart_Cardiomyocytes	4266
+intestine	intestine_ENS neurons	547
+intestine	intestine_Intestinal epithelial cells	3160
+intestine	intestine_Lymphoid cells	1909
+intestine	intestine_Smooth muscle cells	558
+intestine	intestine_Stromal cells	2048
+kidney	kidney_Mesangial cells	1710
+kidney	kidney_Metanephric cells	7782
+kidney	kidney_Ureteric bud cells	751
+kidney	kidney_Vascular endothelial cells	283
+liver	liver_Erythroblasts	14811
+liver	liver_Hepatoblasts	4834
+liver	liver_Lymphoid cells	1084
+liver	liver_Myeloid cells	1005
+liver	liver_Vascular endothelial cells	1340
+lung	lung_Bronchiolar and alveolar epithelial cells	2359
+lung	lung_Stromal cells	5332

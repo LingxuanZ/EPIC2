@@ -1,0 +1,3 @@
+trait	n_source_gwas	n_eligible	n_snps	n_reference_samples	n_overlapping_peaks	seed
+TC	396599	63867	63867	503	58277	NA
+SCZ	634030	97195	97195	503	82787	NA

@@ -1,0 +1,19 @@
+Copied completed outputs; no statistical stages were rerun.
+Only fragment paths, completion records and path-bearing manifests/configuration snapshots were relocated.
+ATAC counts and metadata are unchanged. All numerical result files remain byte-identical.
+All package completion-record checks passed with the relocated config.
+
+Files with updated metadata:
+/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/01_atac/atac.qc.rds
+/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.accessibility_receipt.rds
+/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_gwas/TC.gwas_receipt.rds
+/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/03_ld/TC.ld_receipt.rds
+/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/04_wrs/TC.wrs_receipt.rds
+/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/05_models/TC.tissue_cell_type.components.rds.receipt.rds
+/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/05_models/TC.tissue.components.rds.receipt.rds
+/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/config.used.rds
+/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/config.used.yml
+/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/figures/figure_manifest.tsv
+/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/run_history/20261103T000924.261107-99540.config.rds
+/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/run_history/20261103T000924.261107-99540.txt
+/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/run_manifest.txt

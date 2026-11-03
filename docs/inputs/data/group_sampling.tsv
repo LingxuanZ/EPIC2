@@ -1,0 +1,25 @@
+tissue	tissue_cell_type	n_source	n_selected	target_cells	seed	fraction	under_target
+adrenal	adrenal_Adrenocortical cells	17079	200	200	20261028	0.0117102874875578	FALSE
+adrenal	adrenal_Chromaffin cells	969	200	200	20261028	0.206398348813209	FALSE
+adrenal	adrenal_Stromal cells	188	188	200	20261028	1	TRUE
+cerebrum	cerebrum_Astrocytes	1026	200	200	20261028	0.194931773879142	FALSE
+cerebrum	cerebrum_Astrocytes/Oligodendrocytes	640	200	200	20261028	0.3125	FALSE
+cerebrum	cerebrum_Excitatory neurons	8872	200	200	20261028	0.0225428313796213	FALSE
+cerebrum	cerebrum_Inhibitory neurons	1685	200	200	20261028	0.118694362017804	FALSE
+heart	heart_Cardiomyocytes	4266	200	200	20261028	0.046882325363338	FALSE
+intestine	intestine_ENS neurons	547	200	200	20261028	0.36563071297989	FALSE
+intestine	intestine_Intestinal epithelial cells	3160	200	200	20261028	0.0632911392405063	FALSE
+intestine	intestine_Lymphoid cells	1909	200	200	20261028	0.104766893661603	FALSE
+intestine	intestine_Smooth muscle cells	558	200	200	20261028	0.3584229390681	FALSE
+intestine	intestine_Stromal cells	2048	200	200	20261028	0.09765625	FALSE
+kidney	kidney_Mesangial cells	1710	200	200	20261028	0.116959064327485	FALSE
+kidney	kidney_Metanephric cells	7782	200	200	20261028	0.0257003341043434	FALSE
+kidney	kidney_Ureteric bud cells	751	200	200	20261028	0.266311584553928	FALSE
+kidney	kidney_Vascular endothelial cells	283	200	200	20261028	0.706713780918728	FALSE
+liver	liver_Erythroblasts	14811	200	200	20261028	0.0135034771453649	FALSE
+liver	liver_Hepatoblasts	4834	200	200	20261028	0.0413736036408771	FALSE
+liver	liver_Lymphoid cells	1084	200	200	20261028	0.18450184501845	FALSE
+liver	liver_Myeloid cells	1005	200	200	20261028	0.199004975124378	FALSE
+liver	liver_Vascular endothelial cells	1340	200	200	20261028	0.149253731343284	FALSE
+lung	lung_Bronchiolar and alveolar epithelial cells	2359	200	200	20261028	0.0847816871555744	FALSE
+lung	lung_Stromal cells	5332	200	200	20261028	0.0375093773443361	FALSE
