@@ -18,6 +18,11 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
   as_figure <- function(plot, width = 10, height = 7) {
     if (is.null(plot)) NULL else publication_figure(plot, width, height)
   }
+  # Include every configured annotation level, saving repeated columns only once.
+  umap_columns <- unique(c(
+    config$atac$tissue_column, config$atac$group_column, config$model$groupings
+  ))
+  umap_columns <- umap_columns[!is.na(umap_columns) & nzchar(umap_columns)]
 
   atac_path <- file.path(config$output_dir, "01_atac", "atac.qc.rds")
   if (file.exists(atac_path)) {
@@ -65,22 +70,24 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
         ), 8, 6
       )
     )
-    registry$run(
-      "UMAP_tissue_and_tissue_cell_type.cellQC.peakQC", "Manuscript", ".", atac_path,
-      function() as_figure(
-        plot_atac_annotation_umap(
-          atac, c(config$atac$tissue_column, config$atac$group_column), config$plots
-        ),
-        10, 7 * length(unique(c(config$atac$tissue_column, config$atac$group_column)))
+    for (column in umap_columns) {
+      registry$run(
+        paste0("UMAP_", column, ".cellQC.peakQC"), "Manuscript", ".", atac_path,
+        function() as_figure(
+          plot_atac_annotation_umap(atac, columns = column, settings = config$plots),
+          9, 9
+        )
       )
-    )
+    }
   } else {
     registry$skip("atac_qc_metric_distributions", "ATAC QC", atac_path, "Filtered ATAC object not found")
     registry$skip("density_scatter_nCount_TSS", "ATAC QC", atac_path, "Filtered ATAC object not found")
-    registry$skip(
-      "UMAP_tissue_and_tissue_cell_type.cellQC.peakQC", "Manuscript", atac_path,
-      "Filtered ATAC object not found"
-    )
+    for (column in umap_columns) {
+      registry$skip(
+        paste0("UMAP_", column, ".cellQC.peakQC"), "Manuscript", atac_path,
+        "Filtered ATAC object not found"
+      )
+    }
   }
 
   gwas_qc_path <- file.path(config$output_dir, "02_gwas", "gwas_qc_summary.tsv")

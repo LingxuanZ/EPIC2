@@ -102,7 +102,8 @@ plot_atac_density_scatter <- function(atac, settings, assay = "ATAC") {
     )
 }
 
-plot_atac_annotation_umap <- function(atac, columns, settings) {
+# Annotation UMAPs use a smaller default font than other publication figures.
+plot_atac_annotation_umap <- function(atac, columns, settings, base_size = 10) {
   embedding <- get_umap_embeddings(atac)
   if (is.null(embedding)) return(NULL)
   metadata <- get_atac_metadata(atac)
@@ -121,12 +122,12 @@ plot_atac_annotation_umap <- function(atac, columns, settings) {
       ggplot2::geom_point(size = adaptive_umap_point_size(nrow(data)), alpha = 0.95, stroke = 0) +
       ggplot2::scale_color_manual(values = palette) +
       ggplot2::coord_equal() +
-      publication_theme(settings$base_size) +
+      publication_theme(base_size) +
       ggplot2::theme(
         axis.text = ggplot2::element_blank(), axis.ticks = ggplot2::element_blank(),
         panel.grid = ggplot2::element_blank(), legend.position = "bottom",
         legend.key.height = grid::unit(0.4, "cm"),
-        legend.text = ggplot2::element_text(size = max(8, settings$base_size - 2))
+        legend.text = ggplot2::element_text(size = max(8, base_size - 2))
       ) +
       ggplot2::guides(color = ggplot2::guide_legend(
         ncol = if (length(values) > 10L) 2L else 4L,
