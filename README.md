@@ -4,54 +4,27 @@
 
 EPIC2 integrates GWAS summary statistics, reference genotypes, and single-cell or single-nucleus ATAC-seq data to test associations between traits and annotated cell groups. It fits four LD-adjusted models using SNP- and peak-level accessibility counts and Wilcoxon rank-sum (WRS) scores, then combines their P-values with the aggregated Cauchy association test (ACAT).
 
-[Installation](#installation) · [Example](#example) · [Run your data](#run-your-data) · [Outputs](#outputs) · [Configuration](CONFIGURATION.md) · [Methods](METHODS.md)
+[Installation](#installation) · [Vignette](#vignette) · [Run your data](#run-your-data) · [Outputs](#outputs) · [Configuration](CONFIGURATION.md) · [Methods](METHODS.md)
 
 ## Installation
 
-EPIC2 requires R 4.3 or later. From a terminal, install the workflow dependencies and package:
-
-```bash
-git clone https://github.com/LingxuanZ/EPIC2.git
-cd EPIC2
-Rscript scripts/install_dependencies.R
-R CMD INSTALL .
-```
-
-The dependency script installs missing CRAN and Bioconductor packages, including Seurat, Signac, GenomicRanges, SNPRelate, and BiocParallel. The dependency script installs presto from GitHub if it is missing and retains existing package installations. Some dependencies require system libraries or compilers.
-
-Alternatively, install directly from GitHub using either `devtools` or `remotes`. Choose one of the following:
-
-**Using devtools**
+EPIC2 requires R 4.3 or later. Install from GitHub using `devtools`:
 
 ```r
 if (!requireNamespace("devtools", quietly = TRUE)) install.packages("devtools")
 devtools::install_github(
-  "LingxuanZ/EPIC2", dependencies = NA,
+  "LingxuanZ/EPIC2", dependencies = TRUE,
   upgrade = "never", build_vignettes = FALSE
 )
 ```
 
-**Using remotes**
+`dependencies = TRUE` includes the analysis packages listed under `Suggests` in [DESCRIPTION](DESCRIPTION). Some dependencies require system libraries or compilers.
 
-```r
-if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
-remotes::install_github(
-  "LingxuanZ/EPIC2", dependencies = NA,
-  upgrade = "never", build_vignettes = FALSE
-)
-```
+## Vignette
 
-Both commands install required package dependencies. The repository dependency script also installs the optional packages needed for all analysis stages. [DESCRIPTION](DESCRIPTION) lists these under `Suggests`; [environment.yml](environment.yml) provides a conda environment recipe. Record installed dependency versions with your analysis.
+[Read the HTML vignette](https://LingxuanZ.github.io/EPIC2/EPIC2_vignette_knit.html) · [View the Markdown version on GitHub](docs/EPIC2_vignette_knit.md)
 
-## Example
-
-After installation, run the synthetic example from the repository root:
-
-```bash
-Rscript scripts/run_synthetic_example.R /absolute/path/to/new-demo-directory hg19
-```
-
-The script creates ATAC, indexed fragment, GWAS, and reference-genotype inputs, runs all seven stages, and writes result tables and figures. The destination must be new or empty. Replace `hg19` with `hg38` to use that assembly. The synthetic inputs demonstrate the workflow and do not represent biological findings.
+The vignette demonstrates a total cholesterol (TC) analysis using sampled real single-cell ATAC-seq data and all eligible TC SNPs. It provides input downloads, analysis code, result tables, and figures. Use its supplied `config_knit.yml` and data preparation steps to reproduce the example.
 
 ## Required inputs
 
@@ -65,6 +38,13 @@ The script creates ATAC, indexed fragment, GWAS, and reference-genotype inputs, 
 All coordinates must use the declared common assembly: `hg19`/`GRCh37` or `hg38`/`GRCh38`. EPIC2 checks identifiers, assembly metadata, and coordinate bounds; inputs must be harmonized before analysis. The pipeline does not perform coordinate conversion or infer strand alignment from variant IDs.
 
 GWAS and genotype inputs may be `.rds`, `.rda`/`.RData`, `.csv[.gz]`, `.tsv[.gz]`, or `.txt[.gz]`. Export PLINK, VCF, BGEN, or GDS data to a supported matrix or table first. Genotype encodings, allele orientation, and missing-value conventions are described in the [configuration reference](CONFIGURATION.md#gwas-and-reference-genotypes).
+
+## ATAC preprocessing
+
+- **Inputs requiring cell and peak filtering:** run the full workflow below. With `atac.compute_qc_metrics: false`, the object must already contain `TSS.enrichment`, `FRIP`, `nCount_<assay>`, `BlacklistRatio`, and `nucleosome_signal`; filtering still runs. To calculate fragment-based QC metrics, set `atac.compute_qc_metrics: true` and provide complete, deduplicated fragment files.
+- **Post-QC inputs:** save the prepared object, with valid fragment attachments and cell-barcode mappings, as `01_atac/atac.qc.rds` under `project.output_dir`, then use the command below that skips `atac`. Retain the full post-QC autosomal peak background for normalization, including peaks that do not overlap the selected GWAS. The vignette demonstrates this approach.
+
+See [ATAC configuration](CONFIGURATION.md#atac-input-and-qc) for input settings and [Methods](METHODS.md#quality-control) for QC definitions.
 
 ## Run your data
 
@@ -91,43 +71,31 @@ Paths are resolved relative to the configuration file. The [configuration refere
 
 ### 2. Validate and run
 
+For inputs requiring cell and peak filtering:
+
 ```r
 config <- read_EPIC2_config("config.yml", check_files = TRUE)
 run_EPIC2(config, gwas_name = "HDL")
 ```
 
-Replace `HDL` with a configured dataset name. Omit `gwas_name` to process all configured datasets. The full workflow runs these stages in order:
-
-| Stage | Purpose |
-| --- | --- |
-| `atac` | Filter cells and peaks; optionally compute QC metrics and embeddings. |
-| `gwas` | Match reference variants, filter summary statistics and genotypes, and optionally prune LD. |
-| `accessibility` | Build SNP-by-cell and GWAS-overlapping peak-by-cell matrices. |
-| `ld` | Construct local LD covariance models and inverse square roots. |
-| `wrs` | Compute group-specific WRS scores and optional balanced-sampling diagnostics. |
-| `model` | Fit the four component models and combine their P-values with ACAT. |
-| `plot` | Generate figures and a figure manifest from saved results. |
-
-Individual stages require outputs from their prerequisites:
+For a post-QC checkpoint prepared as described above, use this instead:
 
 ```r
-run_EPIC2(config, stages = c("wrs", "model", "plot"), gwas_name = "HDL")
+config <- read_EPIC2_config("config.yml", check_files = TRUE)
+run_EPIC2(
+  config,
+  stages = c("gwas", "accessibility", "ld", "wrs", "model", "plot"),
+  gwas_name = "HDL"
+)
 ```
 
-From the source repository, the command-line equivalents are:
+Replace `HDL` with a dataset name in your configuration. Omit `gwas_name` to process all configured datasets.
 
-```bash
-Rscript exec/EPIC2 validate config.yml --check-files
-Rscript exec/EPIC2 run config.yml --gwas=HDL
-Rscript exec/EPIC2 stage config.yml ld --gwas=HDL
-```
+The full workflow runs `atac → gwas → accessibility → ld → wrs → model → plot`. Both commands include figure generation.
 
 ### 3. Inspect results
 
 ```r
-component_results <- read.delim(file.path(
-  config$output_dir, "05_models", "tissue_cell_type.component_results.tsv"
-))
 combined_results <- read.delim(file.path(
   config$output_dir, "05_models", "tissue_cell_type.cauchy_results.tsv"
 ))
@@ -135,14 +103,6 @@ head(combined_results[order(combined_results$p_cauchy), ])
 ```
 
 ACAT combines all available valid component P-values by default. The combined table reports the number of tests used; set `model.require_all_components: true` to require all four. BH and Bonferroni adjustments are applied within each trait across tested groups, separately for each configured grouping. Review component diagnostic statuses and the number of available tests alongside the combined P-values.
-
-## ATAC preprocessing
-
-With `atac.compute_qc_metrics: false`, the object must already contain `TSS.enrichment`, `FRIP`, `nCount_<assay>`, `BlacklistRatio`, and `nucleosome_signal`. The ATAC stage still applies cell and peak filters. TSS and FRIP filtering precede calculation of the count-quantile cutoff.
-
-To compute fragment-based QC, provide complete, deduplicated fragment files. For renamed cells, supply correct attached Signac mappings or set `atac.fragment_barcode_column` to a metadata column containing raw file barcodes. FRIP and blacklist ratios count each fragment record once if it overlaps any relevant interval; read multiplicity in the fifth column is ignored. See [Methods](METHODS.md#quality-control) for the definitions.
-
-To begin with post-QC inputs without filtering again, place the prepared object at `01_atac/atac.qc.rds` under the output directory and omit the `atac` stage. Retain the full autosomal ATAC peak background for library-size normalization, including peaks that do not overlap the selected GWAS.
 
 ## Outputs
 
@@ -185,17 +145,12 @@ Dense LD blocks are limited to 5,000 features by default. A local distance windo
 
 Tests cover fragment counting, genotype normalization, GWAS filtering, covariance calculations, transformed regression, WRS, ACAT, and saved-result validation. The optional integration test runs both supported assemblies using synthetic inputs.
 
-With the workflow dependencies installed, run from the source root:
-
-```bash
-R CMD build --no-build-vignettes .
-EPIC2_RUN_COMMON_BUILD_TEST=true R CMD check --no-manual --no-build-vignettes EPIC2_*.tar.gz
-```
+Automated checks run through [GitHub Actions](https://github.com/LingxuanZ/EPIC2/actions/workflows/R-CMD-check.yaml). For a worked analysis, see the [vignette](https://LingxuanZ.github.io/EPIC2/EPIC2_vignette_knit.html).
 
 ## Support and citation
 
 Report issues through [GitHub Issues](https://github.com/LingxuanZ/EPIC2/issues), including the package version, configuration, error message, and a minimal reproducible example. Use `citation("EPIC2")` for the software citation and record the version or commit used in your analysis.
 
-> Zhu, L. and Jiang, Y. *EPIC2: LD-aware integration of single-cell chromatin accessibility and GWAS.* [Software repository](https://github.com/LingxuanZ/EPIC2).
+> Zhu, L. and Jiang, Y. *EPIC2: integrating single-cell chromatin accessibility with human genetics to identify trait-relevant cell types.* [Software repository](https://github.com/LingxuanZ/EPIC2).
 
 EPIC2 is distributed under the [MIT License](LICENSE).
