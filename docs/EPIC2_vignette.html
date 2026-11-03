@@ -9,7 +9,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
-<meta name="author" content="Lingxuan Zhu" />
+<meta name="author" content="Lingxuan Zhu, Yuchao Jiang" />
 
 
 <title>EPIC2: TC all-SNPs vignette</title>
@@ -1334,6 +1334,68 @@ if (window.hljs) {
 
 <style type="text/css">.main-container { max-width: 1280px !important; }
 .main-container img { max-width: 100%; height: auto; }
+.main-container pre { font-size: 13px; }
+.main-container pre code { font-size: inherit; }
+
+/* Figure-to-function mapping only. */
+.epic2-figure-map { margin: 1.1rem 0 1.8rem; }
+.epic2-figure-map h6 { font-size: 15px; font-weight: 600; color: #500000; margin: 26px 0 10px; }
+.epic2-figure-map table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; line-height: 1.65; }
+.epic2-figure-map col:nth-child(1), .epic2-figure-map th:nth-child(1), .epic2-figure-map td:nth-child(1) { width: 20% !important; }
+.epic2-figure-map col:nth-child(2), .epic2-figure-map th:nth-child(2), .epic2-figure-map td:nth-child(2) { width: 29% !important; }
+.epic2-figure-map col:nth-child(3), .epic2-figure-map th:nth-child(3), .epic2-figure-map td:nth-child(3) { width: 51% !important; }
+.epic2-figure-map th { padding: 10px 12px; color: #FFFFFF; background: #500000; border: 0; border-bottom: 2px solid #500000; font-weight: 600; }
+.epic2-figure-map td { padding: 12px; vertical-align: top; border: 0; border-bottom: 1px solid #D6D3C4; background: #FFFFFF; overflow-wrap: anywhere; }
+.epic2-figure-map td:first-child { color: #3E3E3E; font-weight: 500; }
+.epic2-figure-map td code { font-size: 12px; white-space: normal; overflow-wrap: anywhere; word-break: normal; background: transparent; padding: 0; border: 0; }
+.epic2-figure-map td:nth-child(2) code { color: #500000; }
+.epic2-figure-map td:nth-child(3) code { color: #3E3E3E; }
+@media (max-width: 767px) {
+  .epic2-figure-map { overflow-x: auto; }
+  .epic2-figure-map table { min-width: 680px; }
+}
+
+/* Stage-to-core-function summary only. */
+.epic2-stage-map { margin: 18px 0 16px; }
+.epic2-stage-map table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 13px; line-height: 1.75; }
+.epic2-stage-map col:nth-child(1), .epic2-stage-map th:nth-child(1), .epic2-stage-map td:nth-child(1) { width: 27% !important; }
+.epic2-stage-map col:nth-child(2), .epic2-stage-map th:nth-child(2), .epic2-stage-map td:nth-child(2) { width: 42% !important; }
+.epic2-stage-map col:nth-child(3), .epic2-stage-map th:nth-child(3), .epic2-stage-map td:nth-child(3) { width: 31% !important; }
+.epic2-stage-map th { padding: 10px 13px; color: #FFFFFF; background: #500000; border: 0; border-bottom: 2px solid #500000; font-weight: 600; }
+.epic2-stage-map td { padding: 13px; vertical-align: top; border: 0; border-bottom: 1px solid #D6D3C4; background: #FFFFFF; overflow-wrap: anywhere; }
+.epic2-stage-map td:first-child strong { display: inline-block; color: #500000; margin-bottom: 3px; }
+.epic2-stage-map td code { font-size: 12px; white-space: normal; overflow-wrap: anywhere; word-break: normal; background: transparent; padding: 0; border: 0; }
+.epic2-stage-map td:nth-child(2) code { color: #500000; }
+.epic2-stage-map td:nth-child(3) { color: #3E3E3E; line-height: 1.6; }
+.epic2-stage-notes { margin: 14px 0 20px; padding: 10px 14px; background: #FFFFFF; border: 1px solid #D6D3C4; border-radius: 4px; }
+.epic2-stage-notes summary { cursor: pointer; color: #500000; font-size: 13px; font-weight: 600; }
+.epic2-stage-notes ul { margin-top: 12px; margin-bottom: 3px; }
+.epic2-stage-notes li { margin-bottom: 8px; font-size: 13px; line-height: 1.65; }
+.epic2-stage-notes code { font-size: 12px; white-space: normal; overflow-wrap: anywhere; }
+.epic2-stage-notes pre code { white-space: pre-wrap; overflow-wrap: break-word; word-break: normal; }
+@media (max-width: 767px) {
+  .epic2-stage-map { overflow-x: auto; }
+  .epic2-stage-map table { min-width: 680px; }
+}
+.epic2-stage-map a, .epic2-stage-notes a { color: #500000; }
+
+/* Tutorial data-input table */
+.epic2-input-table { margin: 18px 0; }
+.epic2-input-table table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 13px; line-height: 1.7; }
+.epic2-input-table col:nth-child(1), .epic2-input-table th:nth-child(1), .epic2-input-table td:nth-child(1) { width: 36% !important; }
+.epic2-input-table col:nth-child(2), .epic2-input-table th:nth-child(2), .epic2-input-table td:nth-child(2) { width: 64% !important; }
+.epic2-input-table th { padding: 10px 13px; color: #FFFFFF; background: #500000; border: 0; border-bottom: 2px solid #500000; font-weight: 600; }
+.epic2-input-table td { padding: 13px; vertical-align: top; color: #3E3E3E; background: #FFFFFF; border: 0; border-bottom: 1px solid #D6D3C4; overflow-wrap: anywhere; }
+.epic2-input-table td code { font-size: 12px; white-space: normal; overflow-wrap: anywhere; word-break: normal; background: transparent; padding: 0; border: 0; }
+.epic2-input-table td:first-child code { color: #500000; }
+@media (max-width: 767px) {
+  .epic2-input-table { overflow-x: auto; }
+  .epic2-input-table table { min-width: 620px; }
+}
+
+/* Cell annotation configuration table */
+.epic2-annotation-settings col:nth-child(1), .epic2-annotation-settings th:nth-child(1), .epic2-annotation-settings td:nth-child(1) { width: 28% !important; }
+.epic2-annotation-settings col:nth-child(2), .epic2-annotation-settings th:nth-child(2), .epic2-annotation-settings td:nth-child(2) { width: 72% !important; }
 </style>
 
 
@@ -1471,6 +1533,9 @@ border-radius: 0px;
 <script>
 $(function () { $("#header .author, #header .date").addClass("toc-ignore"); });
 </script>
+<style type="text/css">
+#refs .csl-entry { margin-bottom: 0.75em; }
+</style>
 </head>
 
 <body>
@@ -1496,7 +1561,7 @@ $(function () { $("#header .author, #header .date").addClass("toc-ignore"); });
 
 
 <h1 class="title toc-ignore">EPIC2: TC all-SNPs vignette</h1>
-<h4 class="author">Lingxuan Zhu</h4>
+<h4 class="author">Lingxuan Zhu, Yuchao Jiang</h4>
 
 </div>
 
@@ -1513,8 +1578,8 @@ devtools::install_github(
   ref = &quot;17a39bdab7d1f48b6c81fbf3cc4b074aa0a23c6e&quot;,
   upgrade = &quot;never&quot;, build_vignettes = FALSE
 )</code></pre>
-<p>The analysis also requires Seurat, Signac, BiocParallel, Rsamtools
-and presto. The repository provides an <a href="https://github.com/LingxuanZ/EPIC2/blob/main/scripts/install_dependencies.R">analysis
+<p>The analysis also requires Seurat, Signac <span class="citation" data-cites="stuart2021signac">(<a href="#ref-stuart2021signac" role="doc-biblioref">Stuart et al. 2021</a>)</span>, BiocParallel, Rsamtools
+and presto <span class="citation" data-cites="korsunsky2022presto">(<a href="#ref-korsunsky2022presto" role="doc-biblioref">Korsunsky et al. 2022</a>)</span>. The repository provides an <a href="https://github.com/LingxuanZ/EPIC2/blob/main/scripts/install_dependencies.R">analysis
 dependency installer</a>.</p>
 </div>
 <div id="example-data-and-required-inputs" class="section level1">
@@ -1522,8 +1587,8 @@ dependency installer</a>.</p>
 <p><a href="https://www.dropbox.com/scl/fi/waibphblujax44w9h0rvt/EPIC2_inputs_TC_SCZ_all_snps_raw.tar.gz?rlkey=hsg9z8hd94v1s2y4m5a8h8ck1&amp;st=xy9u9vlc&amp;dl=1">Download
 the all-SNPs inputs (115.4 MB)</a>.</p>
 <p>This tutorial uses <strong>a sampled subset of real scATAC-seq
-data</strong>, together with real TC GWAS summary statistics and
-reference genotypes. The hg19/GRCh37 inputs contain <strong>63,867
+data from human fetal tissues</strong> <span class="citation" data-cites="domcke2020human">(<a href="#ref-domcke2020human" role="doc-biblioref">Domcke et al. 2020</a>)</span>, together with real TC GWAS summary statistics <span class="citation" data-cites="willer2013lipids">(<a href="#ref-willer2013lipids" role="doc-biblioref"><span class="nocase">Willer et al.</span> 2013</a>)</span> and
+reference genotypes <span class="citation" data-cites="auton2015global">(<a href="#ref-auton2015global" role="doc-biblioref">1000 Genomes Project Consortium 2015</a>)</span>. The hg19/GRCh37 inputs contain <strong>63,867
 eligible TC SNPs</strong> with reference genotypes from <strong>503
 individuals</strong>, and <strong>4,788 cells</strong> in <strong>24
 tissue–cell-type groups</strong> from <strong>7 tissues</strong>. The
@@ -1537,6 +1602,7 @@ autosomal peaks.</p>
 <p>EPIC2 requires GWAS summary statistics, an annotated scATAC-seq
 object, indexed fragments for SNP accessibility, and LD reference
 genotypes:</p>
+<div class="epic2-input-table">
 <table>
 <colgroup>
 <col width="50%" />
@@ -1551,9 +1617,7 @@ genotypes:</p>
 <tbody>
 <tr class="odd">
 <td align="left"><code>inputs/data/atac.rds</code></td>
-<td align="left">A Seurat object with a Signac chromatin assay named
-<code>ATAC</code>, peak counts, per-cell annotations in metadata, and
-UMAP coordinates</td>
+<td align="left">A Seurat object with a Signac chromatin assay (<code>ATAC</code> here), full post-QC peak counts, genomic peak coordinates and per-cell metadata; requirements are detailed below</td>
 </tr>
 <tr class="even">
 <td align="left"><code>inputs/data/gwas/TC.rds</code></td>
@@ -1575,6 +1639,76 @@ SNPs; fragment barcodes must map to cells in the object</td>
 </tr>
 </tbody>
 </table>
+</div>
+<p>Alongside these data files, <strong>the stage-based workflow requires a YAML configuration file (<code>config.yml</code>)</strong> to define input paths and analysis settings. The complete file for this tutorial is provided in <a href="#configuration-and-cell-type-annotations">Configuration and cell-type annotations</a>.</p>
+<p><strong>Required ATAC contents</strong></p>
+<p>Keep the full post-QC peak-by-cell counts in the chromatin assay’s <code>counts</code> layer, with genomic peak IDs such as <code>chr1-100-200</code> and cell names matching the metadata. EPIC2 derives library-size scaling from the full autosomal peak counts. The assay is named <code>ATAC</code> in this tutorial; another name can be selected with <code>atac.assay</code>, with matching changes to explicit assay names in the example code.</p>
+<p><strong>Minimum metadata for analysis</strong></p>
+<p>Cell annotations belong in <code>atac[[]]</code>, with one row per cell and row names matching <code>colnames(atac)</code>. <strong>Every column listed in <code>model.groupings</code> must exist</strong>: the current configuration requires both <code>tissue_cell_type</code> and <code>tissue</code>. These labels define the groups compared by WRS and tested by the association models. Each grouping needs at least two labelled groups; cells with missing labels are excluded from that grouping’s analysis.</p>
+<p>For your own data, one cell-type annotation column is sufficient if it is the only entry in <code>model.groupings</code>. A separate tissue column is not intrinsically required for cell-type association testing. See <a href="#choose-annotation-levels-for-your-own-data">Choose annotation levels for your own data</a>.</p>
+<p><strong>Additional metadata depends on the workflow</strong></p>
+<div class="epic2-stage-map">
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Metadata column</th>
+<th style="text-align: left;">Purpose</th>
+<th style="text-align: left;">Needed for (stage)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>tissue_cell_type</code></td>
+<td style="text-align: left;">Defines tissue–cell-type group membership.</td>
+<td style="text-align: left;">ATAC (2.1, optional); WRS (2.5); Models (2.6); Plots (2.7).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>tissue</code></td>
+<td style="text-align: left;">Identifies tissue membership for tissue-level tests, fragment-file mapping and annotation plots.</td>
+<td style="text-align: left;">WRS (2.5); Models (2.6); Plots (2.7). Also ATAC (2.1) when attaching tissue-mapped fragments.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Raw-barcode column, if used</td>
+<td style="text-align: left;">Maps Seurat cell names to the barcodes in fragment files.</td>
+<td style="text-align: left;">ATAC (2.1), when attaching fragments whose raw barcodes differ from Seurat cell names.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>nCount_ATAC</code></td>
+<td style="text-align: left;">Total peak counts per cell.</td>
+<td style="text-align: left;">ATAC (2.1, optional); QC plots (2.7).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>TSS.enrichment</code></td>
+<td style="text-align: left;">Enrichment of accessibility around transcription start sites.</td>
+<td style="text-align: left;">ATAC (2.1, optional); QC plots (2.7).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>FRIP</code></td>
+<td style="text-align: left;">Fraction of fragments within peaks.</td>
+<td style="text-align: left;">ATAC (2.1, optional); QC plots (2.7).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>BlacklistRatio</code></td>
+<td style="text-align: left;">Fraction of fragments overlapping blacklist regions.</td>
+<td style="text-align: left;">ATAC (2.1, optional); QC plots (2.7).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>nucleosome_signal</code></td>
+<td style="text-align: left;">Ratio of mononucleosomal to nucleosome-free fragments.</td>
+<td style="text-align: left;">ATAC (2.1, optional); QC plots (2.7).</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>In this tutorial, <code>atac.group_column</code> selects <code>tissue_cell_type</code>, and <code>atac.tissue_column</code> selects <code>tissue</code>. Both columns are also included in <code>model.groupings</code> for the association analyses. Your own column names can differ.</p>
+<p><code>atac.fragment_barcode_column</code> selects the raw-barcode column when needed; no separate column is required if the attached fragment objects already contain the correct cell-to-barcode mapping. The count column follows the assay name: <code>nCount_&lt;assay&gt;</code> (<code>nCount_ATAC</code> here).</p>
+<p><strong>For an already QC-filtered object, these QC metrics are not required by the downstream accessibility, WRS or association calculations when the ATAC QC stage is skipped.</strong> Retain them to reproduce the tutorial’s QC figures. If you run ATAC QC, supply the metrics or compute them from the appropriate inputs as described in <a href="#atac-processing-and-qc-optional">2.1 ATAC processing and QC</a>. <code>compute_qc_metrics: false</code> reuses existing metrics; it does not skip filtering.</p>
+<p><strong>UMAP is optional for statistical analysis.</strong> To reproduce the UMAP figures, retain the <code>umap</code> reduction in the Seurat object. Its coordinates are stored in the object’s reductions, not as required metadata columns.</p>
 <p>GWAS, ATAC peaks and fragments <strong>must use the same genome
 assembly</strong> (<strong>hg19/GRCh37</strong> here); setting
 <code>genome.build</code> does not convert coordinates. Reference
@@ -1740,6 +1874,7 @@ represent <strong>cell types within tissues</strong>, rather than cell
 types pooled across tissues. Renaming this column does not change its
 labels or group membership. To test a different grouping, supply the
 corresponding per-cell annotations.</p>
+<div class="epic2-input-table epic2-annotation-settings">
 <table>
 <colgroup>
 <col width="50%" />
@@ -1765,6 +1900,7 @@ tests; each column is analyzed separately.</td>
 </tr>
 </tbody>
 </table>
+</div>
 <p>The supplied configuration includes both
 <code>tissue_cell_type</code> and <code>tissue</code>; the association
 results displayed here use <code>tissue_cell_type</code>. To test only
@@ -1856,7 +1992,7 @@ calculations.</p>
 <div id="run-one-stage-at-a-time" class="section level2">
 <h2>2. Run one stage at a time</h2>
 <p>Run an individual stage once its upstream results exist;
-<strong>EPIC2 does not run missing prerequisite stages</strong>. Use the
+<strong>EPIC2 does not run missing prerequisite stages</strong>. For stage calls, use the
 complete <code>config.yml</code> and the matching output directory, with
 your R working directory set to the folder containing
 <code>config.yml</code>.</p>
@@ -1867,6 +2003,8 @@ both.</strong> See <a
 href="#shared-requirements-for-partial-runs">Shared requirements for
 partial runs</a> for completion checks, configuration settings and a
 single-stage example.</p>
+<p><strong>The Outputs sections below describe files generated and saved by the stage functions.</strong> Displayed tutorial results were read from these saved outputs.</p>
+<p>The <strong>Core functions without YAML</strong> examples return R objects. Run them from this tutorial folder using the listed input files. <strong>To keep their results on disk, create the required output directories and save the objects yourself</strong>, using <code>saveRDS()</code>, <code>write.table()</code> or <code>ggplot2::ggsave()</code> as appropriate. Alternatively, pass the returned objects directly to subsequent functions. These examples do not write stage completion records and are not executed while knitting.</p>
 <div id="atac-processing-and-qc-optional" class="section level3">
 <h3>2.1 ATAC processing and QC (optional)</h3>
 <p><strong>This step is not run in this tutorial because the supplied
@@ -1889,6 +2027,7 @@ recompute genome-wide QC metrics.</p>
 </div>
 <div id="run" class="section level4">
 <h4>Run</h4>
+<p><strong>Stage function (with YAML)</strong></p>
 <p>The <a href="https://github.com/LingxuanZ/EPIC2/blob/main/METHODS.md#quality-control">EPIC2
 QC pipeline</a> uses the following default filters:</p>
 <ol style="list-style-type: decimal">
@@ -1904,7 +2043,7 @@ cell-level QC</strong>, using the column selected by
 <li>After cell filtering, retain <strong>autosomal peaks 100–1,000 bp
 wide</strong>, with <strong>at least one total count in at least one
 retained cell</strong>, and <strong>no overlap with the
-blacklist</strong> for the declared genome assembly.</li>
+blacklist</strong> for the declared genome assembly <span class="citation" data-cites="amemiya2019encode">(<a href="#ref-amemiya2019encode" role="doc-biblioref">Amemiya et al. 2019</a>)</span>.</li>
 </ol>
 <p>To change these thresholds, edit <code>atac.qc</code> in the
 configuration YAML. For your own analysis, use a separate working
@@ -1963,9 +2102,27 @@ EPIC2::run_EPIC2(config, stages = &quot;atac&quot;)</code></pre>
 <p>This dispatches <code>run_atac_stage()</code>, which computes the
 requested QC metrics, calls <code>filter_atac_cells()</code> and
 <code>filter_atac_peaks()</code>.</p>
+<p><strong>Core functions without YAML</strong></p>
+<p>For your own unfiltered object, replace the paths and <code>my_tissue</code> key below. Use complete indexed fragments and gene annotations in the same assembly. Omit the fragment-attachment lines if the correct fragments are already attached.</p>
+<pre class="r"><code>atac &lt;- readRDS(&quot;data/atac_before_qc.rds&quot;) # Unfiltered Seurat/Signac object with cell annotations
+assay &lt;- &quot;ATAC&quot;; genome &lt;- &quot;hg19&quot;; qc_group &lt;- &quot;tissue_cell_type&quot; # Assay, assembly and QC grouping
+SeuratObject::DefaultAssay(atac) &lt;- assay
+fragment_files &lt;- c(my_tissue = &quot;data/fragments.tsv.gz&quot;) # Keys match metadata$tissue; each file needs its .tbi
+attach_fragment_files &lt;- getFromNamespace(&quot;attach_fragment_files&quot;, &quot;EPIC2&quot;) # Internal stage helper
+atac &lt;- attach_fragment_files(atac, fragment_files, tissue_column = &quot;tissue&quot;, assay = assay, validate = TRUE, barcode_column = NULL)
+atac &lt;- Signac::NucleosomeSignal(atac) # Fragment-length QC
+atac &lt;- Signac::TSSEnrichment(atac) # TSS enrichment from the object&#39;s gene annotations
+atac &lt;- EPIC2::add_frip(atac, assay = assay) # Fraction of fragments in peaks
+atac &lt;- EPIC2::add_blacklist_ratio(atac, assay = assay, genome = genome) # Fraction in the assembly&#39;s blacklist
+cell_qc &lt;- list(tss_min = 2.5, frip_min = 0.3, count_quantile_min = 0.01,
+                blacklist_max = 0.02, nucleosome_max = 4, min_cells_per_group = 50)
+peak_qc &lt;- list(peak_width_min = 100, peak_width_max = 1000, peak_min_total_counts = 1,
+                peak_min_cells = 1, peak_autosomes_only = TRUE, peak_remove_blacklist = TRUE)
+atac &lt;- EPIC2::filter_atac_cells(atac, thresholds = cell_qc, group_column = qc_group, assay = assay) # Filter cells, then groups
+atac_qc &lt;- EPIC2::filter_atac_peaks(atac, thresholds = peak_qc, assay = assay, genome = genome) # Filter peaks after cells</code></pre>
 </div>
-<div id="outputs-in-project.output_dir01_atac" class="section level4">
-<h4>Outputs in <code>project.output_dir/01_atac/</code></h4>
+<div id="outputs-in-output01_atac" class="section level4">
+<h4>Outputs in <code>output/01_atac/</code></h4>
 <ul>
 <li><code>atac.qc.rds</code>: the filtered object used by downstream
 stages.</li>
@@ -2003,7 +2160,18 @@ preprocessed inputs. <a href="scripts/01_gwas.R">GWAS script</a>.</p>
 </div>
 <div id="run-1" class="section level4">
 <h4>Run</h4>
+<p><strong>Stage function (with YAML)</strong></p>
 <pre class="r"><code>EPIC2::run_gwas_stage(config, gwas_name = &quot;TC&quot;)</code></pre>
+<p><strong>Core functions without YAML</strong></p>
+<pre class="r"><code>gwas_input &lt;- readRDS(&quot;inputs/data/gwas/TC.rds&quot;) # GWAS summary statistics
+genotype_input &lt;- readRDS(&quot;inputs/data/genotypes/TC.rds&quot;) # SNP-by-individual reference dosages, named by rsID
+columns &lt;- list(rsid = &quot;rsid&quot;, chr = &quot;chr&quot;, pos = &quot;pos&quot;, a1 = &quot;A1&quot;, a2 = &quot;A2&quot;, maf = &quot;MAF&quot;, p = &quot;P&quot;, beta = &quot;beta&quot;, se = &quot;se&quot;)
+processed &lt;- EPIC2::harmonize_gwas(gwas_input, genotype_input, columns = columns, gwas_name = &quot;TC&quot;, genome_build = &quot;hg19&quot;,
+  genotype_format = &quot;dosage&quot;, genotype_orientation = &quot;variants_by_samples&quot;, genotype_ploidy = 2, seed = 1000,
+  maf_min = 0.05, reference_missing_rate_max = 0.01, ld_prune = FALSE, remove_ambiguous = FALSE, duplicate_action = &quot;drop&quot;)
+gwas &lt;- processed$gwas # Matched, filtered GWAS with Z-scores and coord_id
+genotype &lt;- processed$genotype # Reference dosages aligned to the retained GWAS
+processed$summary # QC counts and settings; upstream pruning/ambiguous-variant removal are not repeated</code></pre>
 </div>
 <div id="outputs-in-output02_gwas" class="section level4">
 <h4>Outputs in <code>output/02_gwas/</code></h4>
@@ -2040,7 +2208,20 @@ metadata.</li>
 </div>
 <div id="run-2" class="section level4">
 <h4>Run</h4>
+<p><strong>Stage function (with YAML)</strong></p>
 <pre class="r"><code>EPIC2::run_accessibility_stage(config, traits = &quot;TC&quot;)</code></pre>
+<p><strong>Core functions without YAML</strong></p>
+<pre class="r"><code>atac &lt;- readRDS(&quot;output/01_atac/atac.qc.rds&quot;) # Peak counts, metadata and attached fragments with .tbi indexes
+gwas &lt;- readRDS(&quot;output/02_gwas/TC.gwas.rds&quot;) # Processed GWAS, including chr, pos, rsid and coord_id
+genotype &lt;- readRDS(&quot;output/02_gwas/TC.genotype.rds&quot;) # Processed reference dosages named by rsID
+snp_counts &lt;- EPIC2::build_snp_accessibility(atac, gwas, assay = &quot;ATAC&quot;, genome_build = &quot;hg19&quot;,
+  workers = 1, chunks = 20, duplicate_action = &quot;drop&quot;) # Count fragments at SNP positions; remove zero-count SNPs
+peak_result &lt;- EPIC2::build_peak_accessibility(atac, gwas, assay = &quot;ATAC&quot;, genome_build = &quot;hg19&quot;, duplicate_action = &quot;drop&quot;)
+peak_counts &lt;- peak_result$matrix # Stored counts for GWAS-overlapping peaks
+snp_peak_overlap &lt;- peak_result$overlap # SNP-to-peak mapping for peak LD
+genotype_coord &lt;- genotype[match(gwas$rsid, rownames(genotype)), , drop = FALSE] # Align reference rows to GWAS
+rownames(genotype_coord) &lt;- gwas$coord_id # Use the coordinate IDs of the accessibility matrices
+snp_genotype &lt;- genotype_coord[rownames(snp_counts), , drop = FALSE] # Reference genotypes for accessible SNPs</code></pre>
 </div>
 <div id="outputs-in-output02_accessibility" class="section level4">
 <h4>Outputs in <code>output/02_accessibility/</code></h4>
@@ -2104,7 +2285,31 @@ baseline)</strong> before ordinary least-squares fitting.</p>
 </div>
 <div id="run-3" class="section level4">
 <h4>Run</h4>
+<p><strong>Stage function (with YAML)</strong></p>
 <pre class="r"><code>EPIC2::run_ld_stage(config, traits = &quot;TC&quot;)</code></pre>
+<p><strong>Core functions without YAML</strong></p>
+<p><code>split_sparse_components()</code> is the internal EPIC2 helper used by this stage; it groups SNPs using nonzero off-diagonal covariance entries. The code below recomputes LD. The model example in 2.6 reads the saved LD objects instead.</p>
+<pre class="r"><code>gwas &lt;- readRDS(&quot;output/02_gwas/TC.gwas.rds&quot;) # Harmonized GWAS with coord_id and Z-scores
+genotype &lt;- readRDS(&quot;output/02_gwas/TC.genotype.rds&quot;) # Reference dosages named by rsID
+snp_counts &lt;- readRDS(&quot;output/02_accessibility/TC.snp_by_cell.rds&quot;) # Defines the accessible SNP set
+peak_counts &lt;- readRDS(&quot;output/02_accessibility/TC.peak_by_cell.rds&quot;) # Defines the peak set
+overlap &lt;- read.delim(&quot;output/02_accessibility/TC.snp_peak_overlap.tsv&quot;) # Columns: snp and peak
+genotype &lt;- genotype[match(gwas$rsid, rownames(genotype)), , drop = FALSE]
+rownames(genotype) &lt;- gwas$coord_id # Match LD inputs by genomic coordinate
+snp_ids &lt;- Reduce(intersect, list(rownames(snp_counts), gwas$coord_id, rownames(genotype)))
+snp_sigma &lt;- EPIC2::compute_snp_ld_covariance(genotype[snp_ids, , drop = FALSE], gwas[match(snp_ids, gwas$coord_id), ],
+  window_bp = 5000000, factor_two = FALSE, correlation_block_size = 256) # Local SNP r-squared matrix
+split_sparse_components &lt;- getFromNamespace(&quot;split_sparse_components&quot;, &quot;EPIC2&quot;) # Internal stage helper
+snp_blocks &lt;- split_sparse_components(snp_sigma) # Independent connected components
+inverse_blocks &lt;- lapply(snp_blocks, function(ids) EPIC2::compute_inverse_sqrt(snp_sigma[ids, ids, drop = FALSE],
+  ridge = 0.01, eigen_tolerance = 1e-8, max_dense_block_size = 6000)) # Whiten each component separately
+snp_inverse &lt;- methods::as(methods::as(Matrix::bdiag(inverse_blocks), &quot;generalMatrix&quot;), &quot;CsparseMatrix&quot;)
+inverse_ids &lt;- unlist(lapply(inverse_blocks, rownames), use.names = FALSE)
+dimnames(snp_inverse) &lt;- list(inverse_ids, inverse_ids) # Restore feature IDs after block assembly
+peak_ld &lt;- EPIC2::build_peak_ld_model(gwas, genotype, peak_counts, overlap, window_bp = 5000000,
+  ridge = 0.01, eigen_tolerance = 1e-8, max_snps_for_chr_ld = 15000, max_dense_block_size = 6000)
+peak_response &lt;- peak_ld$response # LD-adjusted peak GWAS statistic
+peak_inverse &lt;- peak_ld$inverse_sqrt # Transformation for the peak models</code></pre>
 </div>
 <div id="outputs-in-output03_ld" class="section level4">
 <h4>Outputs in <code>output/03_ld/</code></h4>
@@ -2177,7 +2382,21 @@ selected by <code>model.groupings</code>.</li>
 </div>
 <div id="run-4" class="section level4">
 <h4>Run</h4>
+<p><strong>Stage function (with YAML)</strong></p>
 <pre class="r"><code>EPIC2::run_wrs_stage(config, traits = &quot;TC&quot;)</code></pre>
+<p><strong>Core functions without YAML</strong></p>
+<p>Set <code>grouping</code> to the metadata column to test. This example uses <code>tissue_cell_type</code>; use <code>tissue</code> to reproduce the other grouping separately.</p>
+<pre class="r"><code>metadata &lt;- readRDS(&quot;output/01_atac/atac.qc.rds&quot;)[[]] # Cell annotations from the ATAC object
+snp_counts &lt;- readRDS(&quot;output/02_accessibility/TC.snp_by_cell.rds&quot;) # Raw SNP-by-cell counts
+peak_counts &lt;- readRDS(&quot;output/02_accessibility/TC.peak_by_cell.rds&quot;) # Raw peak-by-cell counts
+grouping &lt;- &quot;tissue_cell_type&quot; # Annotation column for the one-versus-rest comparisons
+groups &lt;- setNames(as.character(metadata[[grouping]]), rownames(metadata)) # Labels indexed by cell name
+snp_cells &lt;- colnames(snp_counts)[!is.na(groups[colnames(snp_counts)])] # Align cells and exclude missing annotations
+peak_cells &lt;- colnames(peak_counts)[!is.na(groups[colnames(peak_counts)])]
+snp_wrs &lt;- presto::wilcoxauc(X = snp_counts[, snp_cells, drop = FALSE], y = unname(groups[snp_cells])) # SNP WRS and AUC
+peak_wrs &lt;- presto::wilcoxauc(X = peak_counts[, peak_cells, drop = FALSE], y = unname(groups[peak_cells])) # Peak WRS and AUC
+snp_wrs &lt;- EPIC2::make_one_sided_wrs(snp_wrs, truncation_quantiles = c(0.02, 0.98)) # One-sided P-values and capped Z-scores
+peak_wrs &lt;- EPIC2::make_one_sided_wrs(peak_wrs, truncation_quantiles = c(0.02, 0.98)) # Same conversion for peaks</code></pre>
 </div>
 <div id="outputs-in-output04_wrs" class="section level4">
 <h4>Outputs in <code>output/04_wrs/</code></h4>
@@ -2208,7 +2427,7 @@ head(snp_wrs[, c(&quot;feature&quot;, &quot;group&quot;, &quot;pval_one_sided_en
 <div id="association-models-and-acat" class="section level3">
 <h3>2.6 Association models and ACAT</h3>
 <p>Fit SNP accessibility, SNP WRS, peak accessibility and peak WRS
-components, then combine their P-values using ACAT. <a href="scripts/05_models.R">Model script</a>.</p>
+components, then combine their P-values using ACAT <span class="citation" data-cites="liu2020cauchy gui2025aggregating">(<a href="#ref-liu2020cauchy" role="doc-biblioref">Liu and Xie 2020</a>; <a href="#ref-gui2025aggregating" role="doc-biblioref">Gui et al. 2025</a>)</span>. <a href="scripts/05_models.R">Model script</a>.</p>
 <p><strong>Four component models</strong></p>
 <p>The SNP and peak responses summarize GWAS association strength:</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Y</mi><mi>j</mi></msub><mo>=</mo><msubsup><mi>Z</mi><mi>j</mi><mn>2</mn></msubsup><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>Y</mi><mi>p</mi></msub><mo>=</mo><mfrac><mrow><msubsup><mi mathvariant="bold-italic">𝒁</mi><mi>p</mi><mi mathvariant="sans-serif">𝖳</mi></msubsup><msub><mi mathvariant="normal">Ω</mi><mi>p</mi></msub><msub><mi mathvariant="bold-italic">𝒁</mi><mi>p</mi></msub></mrow><msub><mi>n</mi><mi>p</mi></msub></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
@@ -2342,7 +2561,40 @@ href="#shared-requirements-for-partial-runs">shared checks</a>.</p>
 </div>
 <div id="run-5" class="section level4">
 <h4>Run</h4>
+<p><strong>Stage function (with YAML)</strong></p>
 <pre class="r"><code>EPIC2::run_model_stage(config, traits = &quot;TC&quot;)</code></pre>
+<p><strong>Core functions without YAML</strong></p>
+<p>This example reads the saved accessibility, WRS and LD results for TC. Choose <code>grouping</code> explicitly; matching WRS files must exist for that column.</p>
+<pre class="r"><code>trait &lt;- &quot;TC&quot;; grouping &lt;- &quot;tissue_cell_type&quot; # Trait and metadata column to test
+atac &lt;- readRDS(&quot;output/01_atac/atac.qc.rds&quot;) # Full post-QC counts and cell annotations
+metadata &lt;- atac[[]]
+gwas &lt;- readRDS(&quot;output/02_gwas/TC.gwas.rds&quot;) # GWAS Z-scores and coordinate IDs
+snp_counts &lt;- readRDS(&quot;output/02_accessibility/TC.snp_by_cell.rds&quot;)
+peak_counts &lt;- readRDS(&quot;output/02_accessibility/TC.peak_by_cell.rds&quot;)
+snp_inverse &lt;- readRDS(&quot;output/03_ld/TC.snp_inverse_sqrt.rds&quot;) # Complete SNP whitening matrix
+peak_ld &lt;- readRDS(&quot;output/03_ld/TC.peak_ld_model.rds&quot;) # Peak response and complete whitening matrix
+snp_wrs &lt;- readRDS(paste0(&quot;output/04_wrs/TC.snp.&quot;, grouping, &quot;.rds&quot;)) # WRS for this annotation column
+peak_wrs &lt;- readRDS(paste0(&quot;output/04_wrs/TC.peak.&quot;, grouping, &quot;.rds&quot;))
+groups &lt;- setNames(as.character(metadata[[grouping]]), rownames(metadata)) # Align annotations by cell name
+full_counts &lt;- SeuratObject::LayerData(atac[[&quot;ATAC&quot;]], layer = &quot;counts&quot;) # Library-size background: all retained peaks
+ranges &lt;- Signac::StringToGRanges(rownames(full_counts), sep = c(&quot;-&quot;, &quot;-&quot;))
+autosomal &lt;- sub(&quot;^chr&quot;, &quot;&quot;, as.character(GenomicRanges::seqnames(ranges)), ignore.case = TRUE) %in% as.character(1:22)
+library_size &lt;- Matrix::colSums(full_counts[autosomal, , drop = FALSE]) # Exclude non-autosomal peaks
+library_size[library_size &lt;= 0] &lt;- NA_real_
+cell_scale &lt;- median(library_size, na.rm = TRUE) / library_size # Multiplicative library-size adjustment
+snp_A &lt;- EPIC2::build_group_accessibility(snp_counts, groups, cell_scale) # Group totals and cross-group baseline
+peak_A &lt;- EPIC2::build_group_accessibility(peak_counts, groups, cell_scale)
+snp_Z &lt;- lapply(split(snp_wrs, snp_wrs$group), function(x) setNames(as.numeric(x$z_one_sided_enriched_trunc), x$feature))
+peak_Z &lt;- lapply(split(peak_wrs, peak_wrs$group), function(x) setNames(as.numeric(x$z_one_sided_enriched_trunc), x$feature))
+snp_response &lt;- setNames(as.numeric(gwas$Z)^2, gwas$coord_id) # Squared SNP GWAS Z-scores
+snp_count_fit &lt;- EPIC2::fit_whitened_groups(snp_response, snp_A$by_group, snp_A$baseline, snp_inverse, trait, &quot;A_kj&quot;)
+snp_wrs_fit &lt;- EPIC2::fit_whitened_groups(snp_response, snp_Z, snp_A$baseline, snp_inverse, trait, &quot;Z_kj&quot;) # Count-based baseline
+peak_count_fit &lt;- EPIC2::fit_whitened_groups(peak_ld$response, peak_A$by_group, peak_A$baseline, peak_ld$inverse_sqrt, trait, &quot;A_kp&quot;)
+peak_wrs_fit &lt;- EPIC2::fit_whitened_groups(peak_ld$response, peak_Z, peak_A$baseline, peak_ld$inverse_sqrt, trait, &quot;Z_kp&quot;)
+fits &lt;- list(snp_accessibility = snp_count_fit, snp_wrs = snp_wrs_fit, peak_accessibility = peak_count_fit, peak_wrs = peak_wrs_fit)
+component_results &lt;- lapply(fits, EPIC2::adjust_pvalues_within_trait) # Named list of component tables with BH/Bonferroni correction
+combined &lt;- EPIC2::combine_component_tests(snp_count_fit, snp_wrs_fit, peak_count_fit, peak_wrs_fit, require_all = FALSE)
+# combined contains ACAT P-values and within-trait BH/Bonferroni correction; ACAT uses the nominal component P-values.</code></pre>
 </div>
 <div id="outputs-in-output05_models" class="section level4">
 <h4>Outputs in <code>output/05_models/</code></h4>
@@ -2469,13 +2721,376 @@ and does not rerun statistical analyses.</p>
 </div>
 <div id="run-6" class="section level4">
 <h4>Run</h4>
+<p><strong>Stage function (with YAML)</strong></p>
 <pre class="r"><code>EPIC2::run_plot_stage(config, traits = &quot;TC&quot;)</code></pre>
+<details class="epic2-stage-notes" id="executable-examples-by-figure-family">
+<summary>Core functions without YAML — show plotting code</summary>
+<p>The examples below rebuild the tutorial figures from saved analysis outputs. Run <strong>Inputs and settings</strong> first, then the figure families you need. All examples are excluded from knitting with <code>eval=FALSE</code>.</p>
+<p>The drawing and data-preparation functions are internal EPIC2 helpers, retrieved with <code>getFromNamespace()</code>. <code>plot_inputs</code> is an ordinary R list of paths and plotting settings; no YAML file is read. The examples store plot objects in <code>plots</code> and their dimensions in <code>plot_sizes</code>. Displaying and saving them are shown after the figure-family code.</p>
+<p><strong>1. Inputs and settings</strong></p>
+<pre class="r"><code>library(EPIC2)
+library(Seurat)
+library(Signac)
+output_dir &lt;- &quot;output&quot;; traits &lt;- &quot;TC&quot;; groupings &lt;- c(&quot;tissue_cell_type&quot;, &quot;tissue&quot;)
+settings &lt;- list(base_size = 13, max_umap_cells = 4788, count_bin_max = 4,
+                 ld_heatmap_max_features = 400, wrs_histogram_bins = 50, top_features_per_group = 3, pvalue_cap = 5)
+plot_inputs &lt;- list(output_dir = output_dir, genome = list(build = &quot;hg19&quot;),
+                    atac = list(group_column = &quot;tissue_cell_type&quot;), model = list(groupings = groupings), plots = settings)
+atac &lt;- readRDS(file.path(output_dir, &quot;01_atac/atac.qc.rds&quot;)) # Counts, QC metadata, cell labels and existing UMAP
+plots &lt;- list(); plot_sizes &lt;- list() # Named plot objects and stage-matched width/height in inches</code></pre>
+<p><strong>2. ATAC QC and annotation UMAP</strong></p>
+<pre class="r"><code>plot_atac_qc_metrics &lt;- getFromNamespace(&quot;plot_atac_qc_metrics&quot;, &quot;EPIC2&quot;)
+plot_atac_density_scatter &lt;- getFromNamespace(&quot;plot_atac_density_scatter&quot;, &quot;EPIC2&quot;)
+plot_peak_detection_distribution &lt;- getFromNamespace(&quot;plot_peak_detection_distribution&quot;, &quot;EPIC2&quot;)
+plot_atac_annotation_umap &lt;- getFromNamespace(&quot;plot_atac_annotation_umap&quot;, &quot;EPIC2&quot;)
+plots$atac_qc_metric_distributions &lt;- plot_atac_qc_metrics(atac, settings, assay = &quot;ATAC&quot;)
+plot_sizes$atac_qc_metric_distributions &lt;- c(10, 8)
+plots$density_scatter_nCount_TSS &lt;- plot_atac_density_scatter(atac, settings, assay = &quot;ATAC&quot;)
+plot_sizes$density_scatter_nCount_TSS &lt;- c(7.5, 6.5)
+plots$peak_coverage_distribution &lt;- plot_peak_detection_distribution(atac, assay = &quot;ATAC&quot;, base_size = 13)
+plot_sizes$peak_coverage_distribution &lt;- c(8, 6)
+plots$UMAP_tissue_and_tissue_cell_type.cellQC.peakQC &lt;- plot_atac_annotation_umap(atac, c(&quot;tissue&quot;, &quot;tissue_cell_type&quot;), settings)
+plot_sizes$UMAP_tissue_and_tissue_cell_type.cellQC.peakQC &lt;- c(10, 14) # A grid grob containing two panels</code></pre>
+<p><strong>3. GWAS QC</strong></p>
+<pre class="r"><code>gwas_qc &lt;- read.delim(file.path(output_dir, &quot;02_gwas/gwas_qc_summary.tsv&quot;))
+gwas_qc &lt;- gwas_qc[gwas_qc$gwas_name %in% traits, , drop = FALSE]
+plot_gwas_filtering_waterfall &lt;- getFromNamespace(&quot;plot_gwas_filtering_waterfall&quot;, &quot;EPIC2&quot;)
+plot_genome_validation_qc &lt;- getFromNamespace(&quot;plot_genome_validation_qc&quot;, &quot;EPIC2&quot;)
+plots$gwas_filtering_waterfall &lt;- plot_gwas_filtering_waterfall(gwas_qc, base_size = 13)
+plot_sizes$gwas_filtering_waterfall &lt;- c(11, 7)
+plots$gwas_coordinate_validation &lt;- plot_genome_validation_qc(gwas_qc, base_size = 13)
+plot_sizes$gwas_coordinate_validation &lt;- c(9, 6)</code></pre>
+<p><strong>4. Accessibility distributions, UMAPs and violins</strong></p>
+<pre class="r"><code>collect_accessibility_plot_data &lt;- getFromNamespace(&quot;collect_accessibility_plot_data&quot;, &quot;EPIC2&quot;)
+plot_accessibility_count_distributions &lt;- getFromNamespace(&quot;plot_accessibility_count_distributions&quot;, &quot;EPIC2&quot;)
+plot_accessibility_coverage &lt;- getFromNamespace(&quot;plot_accessibility_coverage&quot;, &quot;EPIC2&quot;)
+accessibility &lt;- collect_accessibility_plot_data(plot_inputs, traits) # Reads TC.snp_by_cell.rds and TC.peak_by_cell.rds
+plots$accessibility_count_distributions &lt;- plot_accessibility_count_distributions(accessibility$distributions, base_size = 13)
+plot_sizes$accessibility_count_distributions &lt;- c(12, 5.5)
+plots$accessibility_coverage_summary &lt;- plot_accessibility_coverage(accessibility$coverage, base_size = 13)
+plot_sizes$accessibility_coverage_summary &lt;- c(10, 6)
+collect_signal_umap_data &lt;- getFromNamespace(&quot;collect_signal_umap_data&quot;, &quot;EPIC2&quot;)
+plot_signal_umap &lt;- getFromNamespace(&quot;plot_signal_umap&quot;, &quot;EPIC2&quot;)
+plot_signal_group_violin &lt;- getFromNamespace(&quot;plot_signal_group_violin&quot;, &quot;EPIC2&quot;)
+for (resolution in c(&quot;snp&quot;, &quot;peak&quot;)) {
+  signal &lt;- collect_signal_umap_data(plot_inputs, atac, traits, resolution) # Align counts to UMAP cells; prepare display scale
+  label &lt;- if (resolution == &quot;snp&quot;) &quot;SNP&quot; else &quot;peak&quot;
+  id &lt;- paste0(&quot;all_traits_GWAS_&quot;, label, &quot;_count_FeaturePlot&quot;)
+  plots[[id]] &lt;- plot_signal_umap(signal, resolution, base_size = 13)
+  plot_sizes[[id]] &lt;- c(8, 7)
+  id &lt;- paste0(&quot;all_traits_GWAS_&quot;, label, &quot;_count_VlnPlot&quot;)
+  plots[[id]] &lt;- plot_signal_group_violin(signal, resolution, &quot;tissue_cell_type&quot;, base_size = 13)
+  plot_sizes[[id]] &lt;- c(10, max(5, 0.3 * length(unique(signal$group)) + 2))
+}</code></pre>
+<p><strong>5. LD diagnostics</strong></p>
+<pre class="r"><code>collect_ld_block_summary &lt;- getFromNamespace(&quot;collect_ld_block_summary&quot;, &quot;EPIC2&quot;)
+plot_ld_block_sizes &lt;- getFromNamespace(&quot;plot_ld_block_sizes&quot;, &quot;EPIC2&quot;)
+largest_ld_block &lt;- getFromNamespace(&quot;largest_ld_block&quot;, &quot;EPIC2&quot;)
+plot_ld_heatmap &lt;- getFromNamespace(&quot;plot_ld_heatmap&quot;, &quot;EPIC2&quot;)
+block_summary &lt;- collect_ld_block_summary(plot_inputs, traits) # SNP blocks and peak-model block_indices
+plots$ld_block_size_distribution &lt;- plot_ld_block_sizes(block_summary, base_size = 13)
+plot_sizes$ld_block_size_distribution &lt;- c(10, 6)
+snp_sigma &lt;- readRDS(file.path(output_dir, &quot;03_ld/TC.snp_sigma.rds&quot;))
+snp_blocks &lt;- readRDS(file.path(output_dir, &quot;03_ld/TC.snp_blocks.rds&quot;))
+snp_view &lt;- largest_ld_block(snp_sigma, snp_blocks, maximum = 400) # Central window in the largest connected component
+plots$TC.snp_ld_heatmap &lt;- plot_ld_heatmap(snp_view, &quot;TC SNP local LD&quot;, base_size = 13, fill_label = expression(r^2))
+plot_sizes$TC.snp_ld_heatmap &lt;- c(12, 7)
+rm(snp_sigma)
+peak_ld &lt;- readRDS(file.path(output_dir, &quot;03_ld/TC.peak_ld_model.rds&quot;))
+peak_view &lt;- largest_ld_block(peak_ld$sigma, peak_ld$block_indices, maximum = 400)
+plots$TC.peak_ld_heatmap &lt;- plot_ld_heatmap(peak_view, &quot;TC peak local covariance&quot;, base_size = 13)
+plot_sizes$TC.peak_ld_heatmap &lt;- c(12, 7)
+rm(peak_ld) # Both heatmaps are grid grobs containing full-matrix and off-diagonal panels</code></pre>
+<p><strong>6. WRS summaries and histograms</strong></p>
+<pre class="r"><code>collect_wrs_plot_data &lt;- getFromNamespace(&quot;collect_wrs_plot_data&quot;, &quot;EPIC2&quot;)
+plot_wrs_group_summary &lt;- getFromNamespace(&quot;plot_wrs_group_summary&quot;, &quot;EPIC2&quot;)
+plot_wrs_histogram &lt;- getFromNamespace(&quot;plot_wrs_histogram&quot;, &quot;EPIC2&quot;)
+wrs &lt;- collect_wrs_plot_data(plot_inputs, traits) # Reads both resolutions and both annotation groupings under 04_wrs/
+for (grouping in groupings) {
+  id &lt;- paste0(&quot;wrs_group_summary.&quot;, grouping)
+  plots[[id]] &lt;- plot_wrs_group_summary(wrs$summary, grouping, base_size = 13)
+  n_groups &lt;- length(unique(wrs$summary$group[wrs$summary$grouping == grouping]))
+  plot_sizes[[id]] &lt;- c(13, max(7, 0.28 * n_groups + 3))
+}
+for (key in names(wrs$tables)) {
+  item &lt;- wrs$tables[[key]]; table &lt;- item$data # Columns include group, pval_one_sided_enriched and z_one_sided_enriched_trunc
+  title &lt;- paste(item$trait, item$resolution, item$grouping)
+  height &lt;- max(6, 2.1 * ceiling(length(unique(table$group)) / 3))
+  id &lt;- paste0(key, &quot;.onesided_pvalue_hist&quot;)
+  plots[[id]] &lt;- plot_wrs_histogram(table, &quot;pval_one_sided_enriched&quot;, paste(title, &quot;one-sided WRS P-values&quot;),
+                                  &quot;One-sided enriched WRS P-value&quot;, bins = 50, base_size = 13)
+  plot_sizes[[id]] &lt;- c(11, height)
+  id &lt;- paste0(key, &quot;.truncated_z_hist&quot;)
+  plots[[id]] &lt;- plot_wrs_histogram(table, &quot;z_one_sided_enriched_trunc&quot;, paste(title, &quot;truncated WRS Z-scores&quot;),
+                                  &quot;One-sided enriched truncated Z&quot;, bins = 50, base_size = 13)
+  plot_sizes[[id]] &lt;- c(11, height)
+}
+rm(wrs, table, item)</code></pre>
+<p><strong>7. Top WRS-ranked SNP/peak dotplots</strong></p>
+<pre class="r"><code>collect_top_wrs_dot_data &lt;- getFromNamespace(&quot;collect_top_wrs_dot_data&quot;, &quot;EPIC2&quot;)
+plot_top_wrs_dotplot &lt;- getFromNamespace(&quot;plot_top_wrs_dotplot&quot;, &quot;EPIC2&quot;)
+for (resolution in c(&quot;snp&quot;, &quot;peak&quot;)) {
+  top_data &lt;- collect_top_wrs_dot_data(plot_inputs, atac, traits, resolution, &quot;tissue_cell_type&quot;)
+  label &lt;- if (resolution == &quot;snp&quot;) &quot;SNP&quot; else &quot;Peak&quot;
+  id &lt;- paste0(&quot;all_traits.top3_per_group_top&quot;, label, &quot;_wilcoxon_DotPlot&quot;)
+  plots[[id]] &lt;- plot_top_wrs_dotplot(top_data, resolution, &quot;tissue_cell_type&quot;, base_size = 13)
+  plot_sizes[[id]] &lt;- c(14, 8) # Top three positive-direction WRS features per group
+}</code></pre>
+<p><strong>8. Model association plots</strong></p>
+<pre class="r"><code>plot_cauchy_dotplot &lt;- getFromNamespace(&quot;plot_cauchy_dotplot&quot;, &quot;EPIC2&quot;)
+plot_component_heatmap &lt;- getFromNamespace(&quot;plot_component_heatmap&quot;, &quot;EPIC2&quot;)
+plot_component_effect_heatmap &lt;- getFromNamespace(&quot;plot_component_effect_heatmap&quot;, &quot;EPIC2&quot;)
+for (grouping in groupings) {
+  results &lt;- read.delim(file.path(output_dir, &quot;05_models&quot;, paste0(grouping, &quot;.cauchy_results.tsv&quot;)))
+  results &lt;- results[results$trait %in% traits, , drop = FALSE]
+  height &lt;- max(5, 0.3 * length(unique(results$group)) + 3)
+  id &lt;- paste0(&quot;cauchy_&quot;, grouping, &quot;_dotplot&quot;)
+  plots[[id]] &lt;- plot_cauchy_dotplot(results, grouping, cap = 5, base_size = 13)
+  plot_sizes[[id]] &lt;- c(10, height)
+  for (adjustment in c(&quot;nominal&quot;, &quot;bh&quot;, &quot;bonferroni&quot;)) {
+    id &lt;- paste0(&quot;cauchy_&quot;, grouping, &quot;_component_heatmap_&quot;, adjustment)
+    plots[[id]] &lt;- plot_component_heatmap(results, grouping, adjustment, cap = 5, base_size = 13)
+    plot_sizes[[id]] &lt;- c(15, height)
+  }
+  components &lt;- read.delim(file.path(output_dir, &quot;05_models&quot;, paste0(grouping, &quot;.component_results.tsv&quot;)))
+  components &lt;- components[components$trait %in% traits, , drop = FALSE]
+  id &lt;- paste0(&quot;component_effects_&quot;, grouping)
+  plots[[id]] &lt;- plot_component_effect_heatmap(components, grouping, base_size = 13)
+  plot_sizes[[id]] &lt;- c(10, max(6, 0.3 * length(unique(components$group)) + 3))
+}</code></pre>
+<p><strong>9. Display and save figures</strong></p>
+<p>Use <code>print()</code> for ggplots. The combined annotation UMAP and LD heatmaps are grid grobs and use <code>grid::grid.draw()</code>. The loop below displays all available plot objects. The saving commands write PNG/PDF files to <code>figures_manual/</code>, using the same dimensions and PNG resolution as the stage output; run only the display or saving commands you need.</p>
+<pre class="r"><code>print(plots$cauchy_tissue_cell_type_dotplot) # A single ggplot
+grid::grid.newpage(); grid::grid.draw(plots$TC.snp_ld_heatmap) # A combined grid grob
+for (p in plots) {
+  if (inherits(p, &quot;grob&quot;)) { grid::grid.newpage(); grid::grid.draw(p) } else print(p)
+}
+dir.create(&quot;figures_manual&quot;, showWarnings = FALSE, recursive = TRUE)
+for (id in names(plots)) {
+  size &lt;- plot_sizes[[id]]
+  ggplot2::ggsave(file.path(&quot;figures_manual&quot;, paste0(id, &quot;.png&quot;)), plots[[id]], width = size[1], height = size[2],
+                 units = &quot;in&quot;, dpi = 220, bg = &quot;white&quot;, limitsize = FALSE)
+  ggplot2::ggsave(file.path(&quot;figures_manual&quot;, paste0(id, &quot;.pdf&quot;)), plots[[id]], width = size[1], height = size[2],
+                 units = &quot;in&quot;, bg = &quot;white&quot;, limitsize = FALSE)
+}</code></pre>
+</details>
+<details class="epic2-stage-notes" id="mapping-generated-figures">
+<summary>Mapping generated figures — show functions and filenames</summary>
+<p>Files listed in the same row use the same drawing function; each filename stem has both PNG and PDF versions.</p>
+<div class="epic2-figure-map">
+<h6 id="atac-qc-and-annotations-4-figures">ATAC QC and annotations</h6>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Figure</th>
+<th style="text-align: left;">Drawing function</th>
+<th style="text-align: left;">Filename stems</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">QC metric distributions</td>
+<td style="text-align: left;"><code>plot_atac_qc_metrics()</code></td>
+<td style="text-align: left;"><code>atac_qc_metric_distributions</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Depth and TSS enrichment</td>
+<td style="text-align: left;"><code>plot_atac_density_scatter()</code></td>
+<td style="text-align: left;"><code>density_scatter_nCount_TSS</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Peak detection</td>
+<td style="text-align: left;"><code>plot_peak_detection_distribution()</code></td>
+<td style="text-align: left;"><code>peak_coverage_distribution</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Annotation UMAP</td>
+<td style="text-align: left;"><code>plot_atac_annotation_umap()</code></td>
+<td style="text-align: left;"><code>UMAP_tissue_and_tissue_cell_type.cellQC.peakQC</code></td>
+</tr>
+</tbody>
+</table>
+<h6 id="gwas-qc-2-figures">GWAS QC</h6>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Figure</th>
+<th style="text-align: left;">Drawing function</th>
+<th style="text-align: left;">Filename stems</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">SNP retention</td>
+<td style="text-align: left;"><code>plot_gwas_filtering_waterfall()</code></td>
+<td style="text-align: left;"><code>gwas_filtering_waterfall</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Coordinate validation</td>
+<td style="text-align: left;"><code>plot_genome_validation_qc()</code></td>
+<td style="text-align: left;"><code>gwas_coordinate_validation</code></td>
+</tr>
+</tbody>
+</table>
+<h6 id="accessibility-6-figures">Accessibility</h6>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Figure</th>
+<th style="text-align: left;">Drawing function</th>
+<th style="text-align: left;">Filename stems</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Count distributions</td>
+<td style="text-align: left;"><code>plot_accessibility_count_distributions()</code></td>
+<td style="text-align: left;"><code>accessibility_count_distributions</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Feature detection</td>
+<td style="text-align: left;"><code>plot_accessibility_coverage()</code></td>
+<td style="text-align: left;"><code>accessibility_coverage_summary</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">SNP / peak UMAP</td>
+<td style="text-align: left;"><code>plot_signal_umap()</code></td>
+<td style="text-align: left;"><code>all_traits_GWAS_SNP_count_FeaturePlot</code><br><code>all_traits_GWAS_peak_count_FeaturePlot</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">SNP / peak group violins</td>
+<td style="text-align: left;"><code>plot_signal_group_violin()</code></td>
+<td style="text-align: left;"><code>all_traits_GWAS_SNP_count_VlnPlot</code><br><code>all_traits_GWAS_peak_count_VlnPlot</code></td>
+</tr>
+</tbody>
+</table>
+<h6 id="ld-diagnostics-3-figures">LD diagnostics</h6>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Figure</th>
+<th style="text-align: left;">Drawing function</th>
+<th style="text-align: left;">Filename stems</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Block sizes</td>
+<td style="text-align: left;"><code>plot_ld_block_sizes()</code></td>
+<td style="text-align: left;"><code>ld_block_size_distribution</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">SNP / peak heatmaps</td>
+<td style="text-align: left;"><code>plot_ld_heatmap()</code></td>
+<td style="text-align: left;"><code>TC.snp_ld_heatmap</code><br><code>TC.peak_ld_heatmap</code></td>
+</tr>
+</tbody>
+</table>
+<h6 id="wrs-12-figures">WRS</h6>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Figure</th>
+<th style="text-align: left;">Drawing function</th>
+<th style="text-align: left;">Filename stems</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Group summaries</td>
+<td style="text-align: left;"><code>plot_wrs_group_summary()</code></td>
+<td style="text-align: left;"><code>wrs_group_summary.tissue_cell_type</code><br><code>wrs_group_summary.tissue</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">One-sided P-value histograms</td>
+<td style="text-align: left;"><code>plot_wrs_histogram()</code></td>
+<td style="text-align: left;"><code>TC.snp.tissue_cell_type.onesided_pvalue_hist</code><br><code>TC.snp.tissue.onesided_pvalue_hist</code><br><code>TC.peak.tissue_cell_type.onesided_pvalue_hist</code><br><code>TC.peak.tissue.onesided_pvalue_hist</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Truncated-score histograms</td>
+<td style="text-align: left;"><code>plot_wrs_histogram()</code></td>
+<td style="text-align: left;"><code>TC.snp.tissue_cell_type.truncated_z_hist</code><br><code>TC.snp.tissue.truncated_z_hist</code><br><code>TC.peak.tissue_cell_type.truncated_z_hist</code><br><code>TC.peak.tissue.truncated_z_hist</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Top-ranked feature dotplots</td>
+<td style="text-align: left;"><code>plot_top_wrs_dotplot()</code></td>
+<td style="text-align: left;"><code>all_traits.top3_per_group_topSNP_wilcoxon_DotPlot</code><br><code>all_traits.top3_per_group_topPeak_wilcoxon_DotPlot</code></td>
+</tr>
+</tbody>
+</table>
+<h6 id="association-models-10-figures">Association models</h6>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Figure</th>
+<th style="text-align: left;">Drawing function</th>
+<th style="text-align: left;">Filename stems</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">ACAT dotplots</td>
+<td style="text-align: left;"><code>plot_cauchy_dotplot()</code></td>
+<td style="text-align: left;"><code>cauchy_tissue_cell_type_dotplot</code><br><code>cauchy_tissue_dotplot</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Nominal P-value heatmaps</td>
+<td style="text-align: left;"><code>plot_component_heatmap()</code></td>
+<td style="text-align: left;"><code>cauchy_tissue_cell_type_component_heatmap_nominal</code><br><code>cauchy_tissue_component_heatmap_nominal</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">BH-adjusted heatmaps</td>
+<td style="text-align: left;"><code>plot_component_heatmap()</code></td>
+<td style="text-align: left;"><code>cauchy_tissue_cell_type_component_heatmap_bh</code><br><code>cauchy_tissue_component_heatmap_bh</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Bonferroni-adjusted heatmaps</td>
+<td style="text-align: left;"><code>plot_component_heatmap()</code></td>
+<td style="text-align: left;"><code>cauchy_tissue_cell_type_component_heatmap_bonferroni</code><br><code>cauchy_tissue_component_heatmap_bonferroni</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Component effect statistics</td>
+<td style="text-align: left;"><code>plot_component_effect_heatmap()</code></td>
+<td style="text-align: left;"><code>component_effects_tissue_cell_type</code><br><code>component_effects_tissue</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+</details>
 </div>
 <div id="outputs-in-outputfigures" class="section level4">
 <h4>Outputs in <code>output/figures/</code></h4>
-<p>The stage saves 37 PNG/PDF figure pairs,
-plus <code>figure_manifest.tsv</code>, which records generated and
-skipped figures. The 14 selected figures below use files from <code>figures/</code>.</p>
+<p>PNG/PDF figures are saved in <code>output/figures/</code>. <code>figure_manifest.tsv</code> records generated and skipped figures.</p>
 <pre class="r"><code>figure_manifest &lt;- read.delim(&quot;output/figures/figure_manifest.tsv&quot;)
 table(figure_manifest$status)</code></pre>
 <pre><code>## 
@@ -2565,76 +3180,72 @@ and inspection code provided with each stage. Calling
 </div>
 <div id="which-epic2-functions-run-here" class="section level2">
 <h2>Which EPIC2 functions run here?</h2>
-<p>The TC tutorial’s single-command route calls <code>run_EPIC2()</code>
-once to dispatch six stages. The stage-by-stage route calls the exported
-stage functions directly. Both routes load the configuration with
-<code>read_EPIC2_config()</code>. The optional ATAC stage is included
-below for users’ own unfiltered data.</p>
+<p>The table below maps the stage functions to the core calls shown above.</p>
+<div class="epic2-stage-map">
 <table>
 <colgroup>
-<col width="33%" />
-<col width="33%" />
-<col width="33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
 </colgroup>
 <thead>
-<tr class="header">
-<th align="left">Stage</th>
-<th align="left">Package stage function</th>
-<th align="left">Main calculations inside the stage</th>
+<tr>
+<th style="text-align: left;">Stage / entry point</th>
+<th style="text-align: left;">Main core calls</th>
+<th style="text-align: left;">Purpose</th>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
-<td align="left">ATAC (optional; not run here)</td>
-<td align="left"><code>run_atac_stage()</code></td>
-<td align="left">Optional QC-metric calculation,
-<code>filter_atac_cells()</code>, <code>filter_atac_peaks()</code>, and
-optional embedding recalculation.</td>
+<tr>
+<td style="text-align: left;"><strong>ATAC (optional)</strong><br><code>run_atac_stage()</code></td>
+<td style="text-align: left;">QC-metric helpers<br><code>filter_atac_cells()</code><br><code>filter_atac_peaks()</code></td>
+<td style="text-align: left;">Compute QC metrics; filter cells and peaks. The stage can also recompute embeddings.</td>
 </tr>
-<tr class="even">
-<td align="left">GWAS</td>
-<td align="left"><code>run_gwas_stage()</code></td>
-<td align="left"><code>harmonize_gwas()</code>; reference MAF, validity
-and identifier checks.</td>
+<tr>
+<td style="text-align: left;"><strong>GWAS</strong><br><code>run_gwas_stage()</code></td>
+<td style="text-align: left;"><code>harmonize_gwas()</code></td>
+<td style="text-align: left;">Match GWAS variants to reference genotypes and apply the configured checks.</td>
 </tr>
-<tr class="odd">
-<td align="left">Accessibility</td>
-<td align="left"><code>run_accessibility_stage()</code></td>
-<td align="left"><code>build_snp_accessibility()</code> from fragments;
-<code>build_peak_accessibility()</code> from stored peak counts.</td>
+<tr>
+<td style="text-align: left;"><strong>Accessibility</strong><br><code>run_accessibility_stage()</code></td>
+<td style="text-align: left;"><code>build_snp_accessibility()</code><br><code>build_peak_accessibility()</code></td>
+<td style="text-align: left;">Count fragments at SNPs and obtain counts for GWAS-overlapping peaks.</td>
 </tr>
-<tr class="even">
-<td align="left">LD</td>
-<td align="left"><code>run_ld_stage()</code></td>
-<td align="left"><code>compute_snp_ld_covariance()</code>, internal
-<code>build_peak_ld_model_impl()</code>, and
-<code>compute_inverse_sqrt()</code> through connected components.</td>
+<tr>
+<td style="text-align: left;"><strong>LD</strong><br><code>run_ld_stage()</code></td>
+<td style="text-align: left;"><code>compute_snp_ld_covariance()</code><br><code>split_sparse_components()</code><br><code>compute_inverse_sqrt()</code><br><code>build_peak_ld_model()</code></td>
+<td style="text-align: left;">Construct local covariance matrices and blockwise inverse square roots.</td>
 </tr>
-<tr class="odd">
-<td align="left">WRS</td>
-<td align="left"><code>run_wrs_stage()</code></td>
-<td align="left">Internal <code>run_wrs_matrix()</code> calls
-<code>presto::wilcoxauc()</code>; <code>make_one_sided_wrs()</code>
-constructs and truncates scores.</td>
+<tr>
+<td style="text-align: left;"><strong>WRS</strong><br><code>run_wrs_stage()</code></td>
+<td style="text-align: left;"><code>presto::wilcoxauc()</code><br><code>make_one_sided_wrs()</code></td>
+<td style="text-align: left;">Compare each cell group with the remaining cells; construct one-sided WRS scores.</td>
 </tr>
-<tr class="even">
-<td align="left">Models</td>
-<td align="left"><code>run_model_stage()</code></td>
-<td align="left"><code>build_group_accessibility()</code>,
-<code>fit_whitened_groups()</code>, and
-<code>combine_component_tests()</code>.</td>
+<tr>
+<td style="text-align: left;"><strong>Models</strong><br><code>run_model_stage()</code></td>
+<td style="text-align: left;"><code>build_group_accessibility()</code><br><code>fit_whitened_groups()</code><br><code>adjust_pvalues_within_trait()</code><br><code>combine_component_tests()</code></td>
+<td style="text-align: left;">Build predictors and fit four components. Combine nominal P-values with ACAT; report adjusted P-values.</td>
 </tr>
-<tr class="odd">
-<td align="left">Plots</td>
-<td align="left"><code>run_plot_stage()</code></td>
-<td align="left">Reads saved results and generates PNG/PDF figures and a
-manifest.</td>
+<tr>
+<td style="text-align: left;"><strong>Plots</strong><br><code>run_plot_stage()</code></td>
+<td style="text-align: left;">18 drawing functions: see the <a href="#executable-examples-by-figure-family">figure-family examples</a> and <a href="#mapping-generated-figures">figure mapping</a>.</td>
+<td style="text-align: left;">Generate figures from saved results and save PNG/PDF files and a manifest.</td>
 </tr>
 </tbody>
 </table>
-<p>ATAC QC and LD pruning are not run by this tutorial. GWAS/reference
-checks still run during the GWAS stage. All displayed plots are
-generated by EPIC2’s plotting stage.</p>
+</div>
+<details class="epic2-stage-notes">
+<summary>
+How the internal stage helpers map to the core calls
+</summary>
+<ul>
+<li><strong>LD:</strong> internal <code>inverse_sqrt_components()</code> calls <code>split_sparse_components()</code> and <code>compute_inverse_sqrt()</code>. The core example performs these block calls explicitly. Public <code>build_peak_ld_model()</code> calls the same internal <code>build_peak_ld_model_impl()</code> used by the stage.</li>
+<li><strong>WRS:</strong> internal <code>run_wrs_matrix()</code> calls <code>presto::wilcoxauc()</code> and <code>make_one_sided_wrs()</code>; the core example calls these functions directly.</li>
+<li><strong>Models:</strong> the stage uses internal <code>add_component_adjustment()</code> to apply <code>adjust_pvalues_within_trait()</code> to each component. The core example applies it to the four component tables directly. <code>combine_component_tests()</code> combines the nominal component P-values and adjusts the resulting ACAT P-values within each trait.</li>
+<li><strong>Plots:</strong> the drawing and data-preparation functions are internal helpers obtained with <code>getFromNamespace()</code> in section 2.7.</li>
+</ul>
+</details>
+
 </div>
 </div>
 <div id="selected-figures" class="section level1">
@@ -2695,7 +3306,7 @@ tissues.</td>
 </tbody>
 </table>
 <p><strong>14 selected figures are shown below</strong>, with a PDF link
-for each figure. All generated PNG/PDF files are saved in
+for each figure. Displayed images use files from <code>figures/</code>. All generated PNG/PDF files are saved in
 <code>output/figures/</code>.</p>
 <p>Association P-value color scales span −log10(P) = 0–5.</p>
 <div id="atac-data-and-qc" class="section level2">
@@ -2801,6 +3412,36 @@ with up to 200 cells per tissue–cell-type group, the nominal and
 BH-adjusted results may differ slightly from the manuscript results
 obtained using the complete dataset. The main enrichment signals remain
 consistent.</p>
+</div>
+</div>
+</div>
+
+<div id="references" class="section level1">
+<h1>References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-auton2015global" class="csl-entry" role="listitem">
+1000 Genomes Project Consortium. 2015. <span>“A Global Reference for Human Genetic Variation.”</span> <em>Nature</em> 526 (7571): 68–74. <a href="https://doi.org/10.1038/nature15393">https://doi.org/10.1038/nature15393</a>.
+</div>
+<div id="ref-amemiya2019encode" class="csl-entry" role="listitem">
+Amemiya, Haley M., Anshul Kundaje, and Alan P. Boyle. 2019. <span>“The <span>ENCODE</span> Blacklist: Identification of Problematic Regions of the Genome.”</span> <em>Scientific Reports</em> 9 (1): 9354. <a href="https://doi.org/10.1038/s41598-019-45839-z">https://doi.org/10.1038/s41598-019-45839-z</a>.
+</div>
+<div id="ref-domcke2020human" class="csl-entry" role="listitem">
+Domcke, Silvia, Andrew J. Hill, Riza M. Daza, et al. 2020. <span>“A Human Cell Atlas of Fetal Chromatin Accessibility.”</span> <em>Science</em> 370 (6518): eaba7612. <a href="https://doi.org/10.1126/science.aba7612">https://doi.org/10.1126/science.aba7612</a>.
+</div>
+<div id="ref-gui2025aggregating" class="csl-entry" role="listitem">
+Gui, Lin, Yuchao Jiang, and Jingshu Wang. 2025. <span>“Aggregating Dependent Signals with Heavy-Tailed Combination Tests.”</span> <em>Biometrika</em> 112 (4): asaf038. <a href="https://doi.org/10.1093/biomet/asaf038">https://doi.org/10.1093/biomet/asaf038</a>.
+</div>
+<div id="ref-korsunsky2022presto" class="csl-entry" role="listitem">
+Korsunsky, Ilya, Aparna Nathan, Nghia Millard, and Soumya Raychaudhuri. 2022. <em>Presto: Fast Functions for Differential Expression Using <span>Wilcox</span> and <span>AUC</span></em>. <a href="https://immunogenomics.github.io/presto/">https://immunogenomics.github.io/presto/</a>.
+</div>
+<div id="ref-liu2020cauchy" class="csl-entry" role="listitem">
+Liu, Yaowu, and Jun Xie. 2020. <span>“<span>Cauchy</span> Combination Test: A Powerful Test with Analytic p-Value Calculation Under Arbitrary Dependency Structures.”</span> <em>Journal of the American Statistical Association</em> 115 (529): 393–402. <a href="https://doi.org/10.1080/01621459.2018.1554485">https://doi.org/10.1080/01621459.2018.1554485</a>.
+</div>
+<div id="ref-stuart2021signac" class="csl-entry" role="listitem">
+Stuart, Tim, Avi Srivastava, Shaista Madad, Caleb A. Lareau, and Rahul Satija. 2021. <span>“Single-Cell Chromatin State Analysis with <span>Signac</span>.”</span> <em>Nature Methods</em> 18 (11): 1333–41. <a href="https://doi.org/10.1038/s41592-021-01282-5">https://doi.org/10.1038/s41592-021-01282-5</a>.
+</div>
+<div id="ref-willer2013lipids" class="csl-entry" role="listitem">
+<span class="nocase">Willer, Cristen J., Ellen M. Schmidt, Sebanti Sengupta, et al.</span> 2013. <span>“Discovery and Refinement of Loci Associated with Lipid Levels.”</span> <em>Nature Genetics</em> 45 (11): 1274–83. <a href="https://doi.org/10.1038/ng.2797">https://doi.org/10.1038/ng.2797</a>.
 </div>
 </div>
 </div>
