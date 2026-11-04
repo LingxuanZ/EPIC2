@@ -65,11 +65,12 @@
 
 /* Grouped data and configuration inputs */
 .epic2-input-categories { margin: 18px 0; overflow-x: auto; }
-.epic2-input-categories table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 13px; line-height: 1.65; }
-.epic2-input-categories .input-group-col { width: 12%; }
-.epic2-input-categories .input-type-col { width: 17%; }
-.epic2-input-categories .input-file-col { width: 28%; }
-.epic2-input-categories .input-contents-col { width: 43%; }
+.epic2-input-categories table { width: 100%; min-width: 920px; table-layout: fixed; border-collapse: collapse; font-size: 13px; line-height: 1.65; }
+.epic2-input-categories .input-group-col { width: 10%; }
+.epic2-input-categories .input-type-col { width: 14%; }
+.epic2-input-categories .input-file-col { width: 22%; }
+.epic2-input-categories .input-formats-col { width: 20%; }
+.epic2-input-categories .input-contents-col { width: 34%; }
 .epic2-input-categories thead th { padding: 11px 12px; text-align: left; vertical-align: middle; color: #FFFFFF; background: #500000; border: 0; border-bottom: 2px solid #500000; font-weight: 600; }
 .epic2-input-categories tbody th, .epic2-input-categories tbody td { padding: 13px 12px; text-align: left; vertical-align: top; border: 1px solid #D6D3C4; overflow-wrap: anywhere; }
 .epic2-input-categories tbody th { color: #500000; background: #F7F1F1; font-weight: 600; }
@@ -77,9 +78,10 @@
 .epic2-input-categories tbody td { color: #3E3E3E; background: #FFFFFF; }
 .epic2-input-categories tbody + tbody { border-top: 2px solid #D6D3C4; }
 .epic2-input-categories code { font-size: 12px; white-space: normal; overflow-wrap: anywhere; word-break: normal; background: transparent; padding: 0; border: 0; }
-.epic2-input-categories td:nth-last-child(2) code, .epic2-input-categories a { color: #500000; }
+.epic2-input-categories td:nth-last-child(3) code, .epic2-input-categories td:nth-last-child(2) code, .epic2-input-categories a { color: #500000; }
+.epic2-input-categories .input-formats code { white-space: nowrap; }
 @media (max-width: 767px) {
-  .epic2-input-categories table { min-width: 760px; }
+  .epic2-input-categories table { min-width: 920px; }
 }
 
 /* Heading typography: inherit the body font */

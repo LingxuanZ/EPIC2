@@ -4,7 +4,7 @@ set.seed(config$parameters$seed)
 
 suppressPackageStartupMessages(library(Seurat))
 suppressPackageStartupMessages(library(Signac))
-atac <- readRDS("inputs/data/atac.rds")
+atac <- readRDS(config$atac$input)
 fragment <- Signac::CreateFragmentObject(
   path = normalizePath("inputs/data/fragments.tsv.gz"),
   cells = setNames(colnames(atac), colnames(atac)),
@@ -12,5 +12,6 @@ fragment <- Signac::CreateFragmentObject(
 )
 Signac::Fragments(atac[["ATAC"]]) <- NULL
 Signac::Fragments(atac[["ATAC"]]) <- fragment
-dir.create("output/01_atac", recursive = TRUE, showWarnings = FALSE)
-saveRDS(atac, "output/01_atac/atac.qc.rds")
+checkpoint_dir <- file.path(config$output_dir, "01_atac")
+dir.create(checkpoint_dir, recursive = TRUE, showWarnings = FALSE)
+saveRDS(atac, file.path(checkpoint_dir, "atac.qc.rds"))

@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # Run from the directory containing EPIC2_vignette.Rmd.
-# The Rmd defaults to reading completed outputs; it does not rerun analysis.
+# Knit the Rmd once, running its stage calls; convert that same knitted text to Markdown.
 if (!requireNamespace("rmarkdown", quietly = TRUE)) stop("Install rmarkdown first.")
 pandoc_dir <- "/Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64"
 if (!nzchar(Sys.getenv("RSTUDIO_PANDOC")) && file.exists(file.path(pandoc_dir, "pandoc"))) {
@@ -14,6 +14,8 @@ converted <- tempfile(fileext = ".md")
 rmarkdown::pandoc_convert("EPIC2_vignette.md", from = "markdown", to = "gfm",
                           output = converted,
                           options = c("--standalone", "--template", template,
-                                      "--wrap=none"))
+                                      "--wrap=none", "--citeproc",
+                                      "--bibliography=references_vignette.bib",
+                                      "--metadata=link-citations:true"))
 stopifnot(file.copy(converted, "EPIC2_vignette.md", overwrite = TRUE))
 unlink(converted)

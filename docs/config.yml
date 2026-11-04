@@ -10,7 +10,7 @@ genome:
 atac:
   input: inputs/data/atac.rds
   assay: ATAC
-  tissue_column: tissue
+  tissue_column: null
   group_column: tissue_cell_type
   attach_fragments: no
   compute_qc_metrics: no
@@ -55,7 +55,6 @@ wrs:
 model:
   groupings:
   - tissue_cell_type
-  - tissue
   require_all_components: no
 plots:
   formats:

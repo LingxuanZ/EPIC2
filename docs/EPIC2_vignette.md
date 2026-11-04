@@ -2,6 +2,14 @@ EPIC2: TC all-SNPs vignette
 ================
 Lingxuan Zhu, Yuchao Jiang
 
+<script>
+$(function () { $("#header .author, #header .date").addClass("toc-ignore"); });
+</script>
+
+<style>
+#refs .csl-entry { margin-bottom: 0.75em; }
+</style>
+
 EPIC2 integrates scATAC-seq accessibility with GWAS summary statistics to test trait associations in cell groups. This vignette analyzes total cholesterol (**TC**) using all eligible SNPs in the example inputs. To reproduce this example, use the supplied `config.yml` and follow the data preparation steps below.
 
 # Install EPIC2
@@ -10,7 +18,7 @@ EPIC2 integrates scATAC-seq accessibility with GWAS summary statistics to test t
 if (!requireNamespace("devtools", quietly = TRUE)) install.packages("devtools")
 devtools::install_github(
   "LingxuanZ/EPIC2",
-  ref = "17a39bdab7d1f48b6c81fbf3cc4b074aa0a23c6e",
+  ref = "8d901581e7a8a57379bfa785b0e872fa24120f49",
   upgrade = "never", build_vignettes = FALSE
 )
 ```
@@ -21,91 +29,200 @@ The analysis also requires Seurat, Signac ([Stuart et al. 2021](#ref-stuart2021s
 
 [Download the all-SNPs inputs (115.4 MB)](https://www.dropbox.com/scl/fi/waibphblujax44w9h0rvt/EPIC2_inputs_TC_SCZ_all_snps_raw.tar.gz?rlkey=hsg9z8hd94v1s2y4m5a8h8ck1&st=xy9u9vlc&dl=1).
 
-This tutorial uses **a sampled subset of real scATAC-seq data from human fetal tissues** ([Domcke et al. 2020](#ref-domcke2020human)), together with real TC GWAS summary statistics ([<span class="nocase">Willer et al.</span> 2013](#ref-willer2013lipids)) and reference genotypes ([1000 Genomes Project Consortium 2015](#ref-auton2015global)). The hg19/GRCh37 inputs contain **63,867 eligible TC SNPs** with reference genotypes from **503 individuals**, and **4,788 cells** in **24 tissue–cell-type groups** from **7 tissues**. The ATAC object contains **915,345 post-QC peaks**. Cells were sampled at up to 200 per group; all eligible TC SNPs were retained without SNP subsampling. The GWAS inputs have already undergone LD pruning and ambiguous-variant removal, and include variants with valid statistics, a reference-genotype match and overlap with accessible autosomal peaks.
+This tutorial uses **a sampled subset of real scATAC-seq data from human fetal tissues** ([Domcke et al. 2020](#ref-domcke2020human)), together with real TC GWAS summary statistics ([<span class="nocase">Willer et al.</span> 2013](#ref-willer2013lipids)) and reference genotypes ([1000 Genomes Project Consortium 2015](#ref-auton2015global)). The tutorial combines TC GWAS summary statistics for **63,867 input SNPs** with LD-reference genotypes for these SNPs from **503 individuals**. The scATAC-seq dataset contains **4,788 sampled cells** in **24 tissue–cell-type groups** across **seven human fetal tissues**, with **915,345 post-QC peaks**. All genomic coordinates use **hg19/GRCh37**. For the scATAC-seq inputs, both cells and peaks had undergone QC. Cells were sampled at **up to 200 per group**. All SNPs meeting the GWAS input-selection criteria were retained without SNP subsampling. The GWAS inputs have already undergone LD pruning and ambiguous-variant removal, and include variants with valid statistics, a reference-genotype match and overlap with accessible autosomal peaks.
 
 The full data used in the manuscript are available on [Dropbox](https://www.dropbox.com/scl/fo/sryw79ywmy7gcty6pbm45/AOkzY5IFfC20oXzgY2vxoqM?rlkey=drrktk7uumyazina4woawdgl7&st=ino5s6so&dl=0).
 
 EPIC2 requires GWAS summary statistics, an annotated scATAC-seq object, indexed fragments for SNP accessibility, and LD reference genotypes:
 
 <div class="epic2-input-categories">
+
 <table>
+
 <colgroup>
+
 <col class="input-group-col" />
+
 <col class="input-type-col" />
+
 <col class="input-file-col" />
+<col class="input-formats-col" />
+
 <col class="input-contents-col" />
+
 </colgroup>
+
 <thead>
+
 <tr>
-<th colspan="2" scope="colgroup">Input category</th>
-<th scope="col">Example file</th>
-<th scope="col">Contents</th>
+
+<th colspan="2" scope="colgroup">
+
+Input category
+</th>
+
+<th scope="col">
+
+Example file
+</th>
+<th scope="col">Supported file formats</th>
+
+<th scope="col">
+
+Contents
+</th>
+
 </tr>
+
 </thead>
+
 <tbody>
+
 <tr>
-<th rowspan="4" scope="rowgroup">Data input</th>
-<th scope="row">ATAC object</th>
-<td><code>inputs/data/atac.rds</code></td>
-<td>A Seurat/Signac object with a chromatin assay (<code>ATAC</code> here), full post-QC peak counts in the <code>counts</code> layer, genomic peak coordinates and per-cell grouping annotations; requirements are detailed below.</td>
+
+<th rowspan="4" scope="rowgroup">
+
+Data input
+</th>
+
+<th scope="row">
+
+ATAC object
+</th>
+
+<td>
+
+<code>inputs/<wbr>data/<wbr>atac.rds</code>
+</td>
+<td class="input-formats"><code>.rds</code>, <code>.rda</code>, <code>.RData</code></td>
+
+<td>
+
+A Seurat/Signac object with a chromatin assay (<code>ATAC</code> here), full post-QC peak counts in the <code>counts</code> layer, genomic peak coordinates and per-cell grouping annotations; requirements are detailed below.
+</td>
+
 </tr>
+
 <tr>
-<th scope="row">Fragments</th>
-<td><code>inputs/data/fragments.tsv.gz</code> and its <code>.tbi</code> index</td>
-<td>Indexed ATAC fragments used to count accessibility at SNPs, attached to the assay or supplied through configuration. Files must be accessible, and fragment barcodes must map to cells in the object.</td>
+
+<th scope="row">
+
+Fragments
+</th>
+
+<td>
+
+<code>inputs/<wbr>data/<wbr>fragments.tsv.gz</code> and its <code>.tbi</code> index
+</td>
+<td class="input-formats">BGZF-compressed fragments (usually <code>.tsv.gz</code>) with a <code>.tbi</code> or <code>.csi</code> index.</td>
+
+<td>
+
+Indexed ATAC fragments used to count accessibility at SNPs, attached to the assay or supplied through configuration. Files must be accessible, and fragment barcodes must map to cells in the object.
+</td>
+
 </tr>
+
 <tr>
-<th scope="row">GWAS</th>
-<td><code>inputs/data/gwas/TC.rds</code></td>
-<td>TC GWAS statistics: <code>rsid</code>, <code>chr</code>, <code>pos</code>, <code>A1</code>, <code>A2</code>, <code>MAF</code>, <code>P</code>, <code>beta</code> and <code>se</code>. Column names are configurable.</td>
+
+<th scope="row">
+
+GWAS
+</th>
+
+<td>
+
+<code>inputs/<wbr>data/<wbr>gwas/<wbr>TC.rds</code>
+</td>
+<td class="input-formats"><code>.rds</code>, <code>.rda</code>, <code>.RData</code><br><code>.csv</code>, <code>.csv.gz</code><br><code>.tsv</code>, <code>.tsv.gz</code><br><code>.txt</code>, <code>.txt.gz</code></td>
+
+<td>
+
+TC GWAS statistics: <code>rsid</code>, <code>chr</code>, <code>pos</code>, <code>A1</code>, <code>A2</code>, <code>MAF</code>, <code>P</code>, <code>beta</code> and <code>se</code>. Column names are configurable.
+</td>
+
 </tr>
+
 <tr>
-<th scope="row">Reference genotypes</th>
-<td><code>inputs/data/genotypes/TC.rds</code></td>
-<td>A 63,867-variant by 503-individual dosage matrix, with unique variant IDs in row names matching the GWAS. Dosage must count the GWAS effect allele (<code>A1</code>).</td>
+
+<th scope="row">
+
+Reference genotypes
+</th>
+
+<td>
+
+<code>inputs/<wbr>data/<wbr>genotypes/<wbr>TC.rds</code>
+</td>
+<td class="input-formats"><code>.rds</code>, <code>.rda</code>, <code>.RData</code><br><code>.csv</code>, <code>.csv.gz</code><br><code>.tsv</code>, <code>.tsv.gz</code><br><code>.txt</code>, <code>.txt.gz</code></td>
+
+<td>
+
+A 63,867-variant by 503-individual dosage matrix, with unique variant IDs in row names matching the GWAS. Dosage must count the GWAS effect allele (<code>A1</code>).
+</td>
+
 </tr>
+
 </tbody>
+
 <tbody>
+
 <tr>
-<th colspan="2" scope="row">Configuration</th>
-<td><a href="config.yml"><code>config.yml</code></a></td>
-<td>A YAML file required for the stage-based workflow, defining input paths and analysis settings. See <a href="#configuration-and-cell-type-annotations">Configuration and cell-type annotations</a> for this tutorial's complete settings.</td>
+
+<th colspan="2" scope="row">
+
+Configuration
+</th>
+
+<td>
+
+<a href="config.yml"><code>config.yml</code></a>
+</td>
+<td class="input-formats">YAML text (usually <code>.yml</code> or <code>.yaml</code>).</td>
+
+<td>
+
+A YAML file required for the stage-based workflow, defining input paths and analysis settings. See <a href="#configuration-and-cell-type-annotations">Configuration and cell-type annotations</a> for this tutorial’s complete settings.
+</td>
+
 </tr>
+
 </tbody>
+
 </table>
+
 </div>
+
+<details class="epic2-stage-notes">
+<summary>File-format notes</summary>
+
+<ul>
+<li>Use comma-delimited CSV or tab-delimited TSV/TXT files with column headers. For <code>.csv.gz</code>, <code>.tsv.gz</code> and <code>.txt.gz</code>, reading through <code>data.table::fread()</code> requires <code>R.utils</code>; install it or decompress the files first.</li>
+<li>For multi-object <code>.rda</code>/<code>.RData</code> files, specify <code>atac.object_name</code>, <code>gwas.traits.&lt;trait&gt;.summary_object</code> or <code>gwas.traits.&lt;trait&gt;.genotype_object</code>, as appropriate.</li>
+<li>For genotype tables with variant IDs in a column, set <code>gwas.genotype_variant_id_column</code> to that column name. Use unique variant IDs so EPIC2 can match them to the GWAS.</li>
+<li>PLINK, VCF, BGEN and GDS files are not read directly; export their genotypes to a supported matrix or table first.</li>
+</ul>
+
+</details>
 
 **Required ATAC contents**
 
-Keep the full post-QC peak-by-cell counts in the chromatin assay's `counts`
-layer, with genomic peak IDs such as `chr1-100-200` and cell names matching
-the metadata. EPIC2 derives library-size scaling from the full autosomal
-peak counts. The assay is named `ATAC` in this tutorial; another name can
-be selected with `atac.assay`, with matching changes to explicit assay names
-in the example code.
+Keep the full post-QC peak-by-cell counts in the chromatin assay’s `counts` layer, with genomic peak IDs such as `chr1-100-200` and cell names matching the metadata. EPIC2 derives library-size scaling from the full autosomal peak counts. The assay is named `ATAC` in this tutorial; another name can be selected with `atac.assay`, with matching changes to explicit assay names in the example code.
 
 **Minimum metadata for analysis**
 
-Cell annotations belong in `atac[[]]`, with one row per cell and row names
-matching `colnames(atac)`. **Every column listed in `model.groupings` must
-exist**: the current configuration requires both `tissue_cell_type` and
-`tissue`. These labels define the groups compared by WRS and tested by the
-association models. Each grouping needs at least two labelled groups;
-cells with missing labels are excluded from that grouping's analysis.
+Cell annotations belong in `atac[[]]`, with one row per cell and row names matching `colnames(atac)`. **Every column listed in `model.groupings` must exist**. This tutorial selects only `tissue_cell_type`; its labels define the groups compared by WRS and tested by the association models. Each grouping needs at least two labelled groups; cells with missing labels are excluded from that grouping’s analysis.
 
-For your own data, one cell-type annotation column is sufficient if it is
-the only entry in `model.groupings`. A separate tissue column is not
-intrinsically required for cell-type association testing. See
-[Choose annotation levels for your own data](#choose-annotation-levels-for-your-own-data).
+A single cell-type annotation column is sufficient for cell-type association testing. In this example, the column is named `tissue_cell_type`, and its labels include tissue of origin. A separate tissue annotation column is not required. Analyses are performed using the cell-type groups defined by this column. See [Choose annotation levels for your own data](#choose-annotation-levels-for-your-own-data) for additional annotation levels.
 
-**Additional metadata depends on the workflow**
+<details class="epic2-stage-notes">
+<summary>Additional metadata depends on the workflow</summary>
 
 <div class="epic2-stage-map">
 
 | Metadata column | Purpose | Needed for (stage) |
-|:--|:--|:--|
+|:---|:---|:---|
 | `tissue_cell_type` | Defines tissue–cell-type group membership. | ATAC (2.1, optional); WRS (2.5); Models (2.6); Plots (2.7). |
-| `tissue` | Identifies tissue membership for tissue-level tests, fragment-file mapping and annotation plots. | WRS (2.5); Models (2.6); Plots (2.7). Also ATAC (2.1) when attaching tissue-mapped fragments. |
 | Raw-barcode column, if used | Maps Seurat cell names to the barcodes in fragment files. | ATAC (2.1), when attaching fragments whose raw barcodes differ from Seurat cell names. |
 | `nCount_ATAC` | Total peak counts per cell. | ATAC (2.1, optional); QC plots (2.7). |
 | `TSS.enrichment` | Enrichment of accessibility around transcription start sites. | ATAC (2.1, optional); QC plots (2.7). |
@@ -115,25 +232,15 @@ intrinsically required for cell-type association testing. See
 
 </div>
 
-In this tutorial, `atac.group_column` selects `tissue_cell_type`, and
-`atac.tissue_column` selects `tissue`. Both columns are also included in
-`model.groupings` for the association analyses. Your own column names can differ.
+In this tutorial, both `atac.group_column` and `model.groupings` select `tissue_cell_type`. Your own annotation column can have a different name.
 
-`atac.fragment_barcode_column` selects the raw-barcode column when needed;
-no separate column is required if the attached fragment objects already
-contain the correct cell-to-barcode mapping. The count column follows the
-assay name: `nCount_<assay>` (`nCount_ATAC` here).
+`atac.fragment_barcode_column` selects the raw-barcode column when needed; no separate column is required if the attached fragment objects already contain the correct cell-to-barcode mapping. The count column follows the assay name: `nCount_<assay>` (`nCount_ATAC` here).
 
-**For an already QC-filtered object, these QC metrics are not required by
-the downstream accessibility, WRS or association calculations when the ATAC
-QC stage is skipped.** Retain them to reproduce the tutorial's QC figures.
-If you run ATAC QC, supply the metrics or compute them from the appropriate
-inputs as described in [2.1 ATAC processing and QC](#21-atac-processing-and-qc-optional).
-`compute_qc_metrics: false` reuses existing metrics; it does not skip filtering.
+**For an already QC-filtered object, these QC metrics are not required by the downstream accessibility, WRS or association calculations when the ATAC QC stage is skipped.** Retain them to reproduce the tutorial’s QC figures. If you run ATAC QC, supply the metrics or compute them from the appropriate inputs as described in [2.1 ATAC processing and QC](#atac-qc). `compute_qc_metrics: false` reuses existing metrics; it does not skip filtering.
 
-**UMAP is optional for statistical analysis.** To reproduce the UMAP figures,
-retain the `umap` reduction in the Seurat object. Its coordinates are stored
-in the object's reductions, not as required metadata columns.
+</details>
+
+UMAP coordinates are only needed for plotting. Retain the Seurat object's `umap` reduction to reproduce this figure.
 
 GWAS, ATAC peaks and fragments **must use the same genome assembly** (**hg19/GRCh37** here); setting `genome.build` does not convert coordinates. Reference variant IDs must match GWAS `rsid` values, and genotype dosage must count the GWAS effect allele (`A1`).
 
@@ -175,7 +282,7 @@ genome:
 atac:
   input: inputs/data/atac.rds
   assay: ATAC
-  tissue_column: tissue
+  tissue_column: null
   group_column: tissue_cell_type
   attach_fragments: no
   compute_qc_metrics: no
@@ -220,7 +327,6 @@ wrs:
 model:
   groupings:
   - tissue_cell_type
-  - tissue
   require_all_components: no
 plots:
   formats:
@@ -267,21 +373,21 @@ EPIC2 processes traits **sequentially within each stage**: for example, the GWAS
 
 ## Inspect the cell annotations
 
-Cell annotations must be stored in the Seurat object’s metadata, accessed with `atac[[]]`. Each row corresponds to one cell, with row names matching the object’s cell names. The supplied object contains the annotation columns `tissue` and `tissue_cell_type`:
+Cell annotations must be stored in the Seurat object’s metadata, accessed with `atac[[]]`. Each row corresponds to one cell, with row names matching the object’s cell names. This tutorial uses the `tissue_cell_type` annotation:
 
 ``` r
 library(Seurat)
 atac <- readRDS("inputs/data/atac.rds")
-head(atac[[]][, c("tissue", "tissue_cell_type")])
+head(atac[[]][, "tissue_cell_type", drop = FALSE])
 ```
 
-    ##         tissue             tissue_cell_type
-    ## C00001 adrenal adrenal_Adrenocortical cells
-    ## C00002 adrenal adrenal_Adrenocortical cells
-    ## C00003 adrenal adrenal_Adrenocortical cells
-    ## C00004 adrenal adrenal_Adrenocortical cells
-    ## C00005 adrenal adrenal_Adrenocortical cells
-    ## C00006 adrenal adrenal_Adrenocortical cells
+    ##                    tissue_cell_type
+    ## C00001 adrenal_Adrenocortical cells
+    ## C00002 adrenal_Adrenocortical cells
+    ## C00003 adrenal_Adrenocortical cells
+    ## C00004 adrenal_Adrenocortical cells
+    ## C00005 adrenal_Adrenocortical cells
+    ## C00006 adrenal_Adrenocortical cells
 
 `tissue_cell_type` combines tissue and cell-type labels, for example `liver_Hepatoblasts` and `kidney_Ureteric bud cells`. Its 24 groups therefore represent **cell types within tissues**, rather than cell types pooled across tissues. Renaming this column does not change its labels or group membership. To test a different grouping, supply the corresponding per-cell annotations.
 
@@ -294,37 +400,108 @@ head(atac[[]][, c("tissue", "tissue_cell_type")])
 
 </div>
 
-The supplied configuration includes both `tissue_cell_type` and `tissue`; the association results displayed here use `tissue_cell_type`. To test only the 24 tissue–cell-type groups, set `model.groupings: [tissue_cell_type]`. `atac.tissue_column` identifies the tissue metadata used when attaching fragment files; it does not select the association tests.
+The supplied configuration uses `model.groupings: [tissue_cell_type]` and `atac.tissue_column: null`. Only the 24 cell-type groups are tested and shown; no separate tissue-level analysis is run.
 
 ## Choose annotation levels for your own data
 
-Store your curated annotations in the metadata of the object saved at `atac.input`, matching labels to cells by barcode. For example, if your own object has broad and fine annotations, inspect them with:
+Add another metadata column to test a broader annotation level. For example, the following **optional illustration** merges two liver immune-cell groups while retaining the other labels. Choose biologically appropriate groupings for your own data; this example is not executed when knitting the TC tutorial.
 
 ``` r
-head(atac[[]][, c("cell_type_broad", "cell_type_fine")])
+atac <- readRDS("inputs/data/atac.rds")
+atac$broader_cell_type <- as.character(atac$tissue_cell_type)
+immune <- atac$tissue_cell_type %in% c("liver_Lymphoid cells", "liver_Myeloid cells")
+atac$broader_cell_type[immune] <- "liver_Immune cells" # Merge selected cell types into a broader group
+head(atac[[]][, c("tissue_cell_type", "broader_cell_type")])
+saveRDS(atac, "inputs/data/atac_with_levels.rds")
 ```
 
-These two column names are examples and are **not present in the supplied object**. Use the actual column names in your data. Replace `model.groupings` in the complete YAML with the desired selection. For one annotation level:
+For a single annotation level, keep `model.groupings: [tissue_cell_type]`. To analyze both levels in one run, update these fields in a copy of the complete configuration, keeping its remaining settings:
 
 ``` yaml
+project:
+  output_dir: output_annotation_levels
+atac:
+  input: inputs/data/atac_with_levels.rds
+  tissue_column: null
+  group_column: tissue_cell_type
 model:
-  groupings: [cell_type_broad]
+  groupings: [tissue_cell_type, broader_cell_type]
 ```
 
-For separate analyses of both annotation levels:
+Save the complete file as `config_annotation_levels.yml`, load it, and prepare its ATAC checkpoint using **Prepare the shared inputs** below. Then one call runs both annotation levels:
+
+``` r
+config <- EPIC2::read_EPIC2_config("config_annotation_levels.yml", check_files = TRUE)
+# Prepare the shared inputs below with this config before running the stages.
+EPIC2::run_EPIC2(config, stages = c("gwas", "accessibility", "ld", "wrs", "model", "plot"), gwas_name = "TC")
+```
+
+EPIC2 processes the annotation levels **sequentially within each WRS and model stage**. Each level is analyzed separately: WRS files include the annotation name, and Models saves separate `<annotation>.component_results.*` and `<annotation>.cauchy_results.*` files. Results are **not combined across annotation levels**.
+
+To run levels in parallel, launch a separate R session for each level, using complete configurations with **different output directories**. For example, keep `tissue_cell_type` in one configuration and use the following fields in `config_broader.yml` for the other session:
 
 ``` yaml
+project:
+  output_dir: output_broader_cell_type
+atac:
+  input: inputs/data/atac_with_levels.rds
+  tissue_column: null
+  group_column: broader_cell_type
 model:
-  groupings: [cell_type_broad, cell_type_fine]
+  groupings: [broader_cell_type]
 ```
 
-Listing both columns runs two separate analyses; it does not combine their labels into a new grouping. Set `atac.group_column` separately if you also want to change the grouping used for ATAC QC. After changing annotations or analysis groupings, use a separate output directory and rerun the analysis.
+In that session, read `config_broader.yml`, prepare its checkpoint, and run the same full-stage command. Input files may be shared read-only; do not have the sessions write to the same output directory. EPIC2 does not parallelize annotation levels automatically. `atac.group_column` separately controls ATAC QC grouping and the primary grouping in accessibility plots.
 
 See the [configuration reference](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md) for the remaining options.
 
+# Expected outputs
+
+Stage outputs are saved beneath `project.output_dir` (`output/` in this tutorial).
+Directory contents depend on the stages run and options enabled. See
+[Run one stage at a time](#stage-inputs-and-outputs) for each stage's required inputs and detailed outputs.
+
+```text
+output/
+├── 01_atac/             # ATAC checkpoint; QC summaries if QC is run
+├── 02_gwas/             # Matched GWAS, genotypes and QC records
+├── 02_accessibility/    # SNP/peak matrices and overlap tables
+├── 03_ld/               # LD covariance models and inverse square roots
+├── 04_wrs/              # WRS scores; stability summaries if enabled
+├── 05_models/           # Component and ACAT results
+├── figures/             # Figures, supporting tables and figure_manifest.tsv
+├── run_manifest.txt
+├── config.used.yml
+├── config.used.rds
+└── run_history/         # Per-invocation settings and session manifests
+```
+
+**Run records:** The final four entries are written by `run_EPIC2()`.
+The individual `run_*_stage()` calls used during this knit do not create these global run records.
+
+In the filenames below, `<grouping>` is `tissue_cell_type` for this tutorial.
+
+<div class="epic2-input-table">
+
+| Main file | Contents |
+|:--|:--|
+| [`05_models/<grouping>.component_results.tsv`](#outputs-in-output05_models) | Focal coefficient estimates, standard errors, P-values and model statuses. |
+| [`05_models/<grouping>.cauchy_results.tsv`](#outputs-in-output05_models) | Component P-values, `p_cauchy`, number of tests combined and adjusted P-values. |
+| [`figures/figure_manifest.tsv`](#outputs-in-outputfigures) | Figure paths and `generated`, `skipped` or `error` status. |
+| [`config.used.yml` / `config.used.rds`](#shared-requirements-for-partial-runs) | Effective configuration, including in-memory overrides; written by `run_EPIC2()`. |
+| [`run_manifest.txt`](#shared-requirements-for-partial-runs) | Software environment, selected stages and traits, assembly, seed and worker settings; written by `run_EPIC2()`. |
+
+</div>
+
+The tutorial's separate `results/` and `figures/` folders contain copies of result tables and figures.
+
 # Run the analysis
 
-Run the preparation step first, then choose either the single-command route or the stage-by-stage route. Both use the same EPIC2 stage functions and settings. The completed outputs are included in `output/`; this document reads those files by default. Set `recompute: true` in the Rmd’s `params` to rerun the stage-by-stage route when rendering. The single-command example is an alternative and is not executed automatically.
+Run the preparation step first, then choose either the single-command route or the stage-by-stage route. Both use the same EPIC2 stage functions and settings.
+
+Use separate output directories for independent or concurrent analyses. See [Methods](https://github.com/LingxuanZ/EPIC2/blob/main/METHODS.md#saved-results-and-reproducibility) for saved-result checks and recovery, and the [configuration reference](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md) for parallelism and LD memory settings.
+
+With `recompute: true` (the default), knitting executes the preparation and stage-by-stage calls, then reads their saved outputs to produce the tables and figures. Core-function and optional examples are displayed with `eval=FALSE` and are not executed. The single-command example is an alternative, so it is not also run during knitting. Set `recompute: false` only to render from a complete set of existing outputs.
 
 ## Prepare the shared inputs
 
@@ -335,9 +512,10 @@ config <- EPIC2::read_EPIC2_config("config.yml", check_files = TRUE)
 set.seed(config$parameters$seed)
 ```
 
-The ATAC object has already passed QC. For a fresh run, attach the supplied fragment file and save the checkpoint used by every downstream stage. Fragment barcode validation is disabled because this example file contains fragments only near the selected loci. The included checkpoint is already prepared. [Preparation script](scripts/00_prepare_atac.R).
+The ATAC object has already passed QC. For a fresh run, attach the supplied fragment file and save the checkpoint used by every downstream stage. Fragment barcode validation is disabled because this example file contains fragments only near the selected loci. [Preparation script](scripts/00_prepare_atac.R).
 
 ``` r
+atac <- readRDS(config$atac$input)
 fragment <- Signac::CreateFragmentObject(
   path = normalizePath("inputs/data/fragments.tsv.gz"),
   cells = setNames(colnames(atac), colnames(atac)),
@@ -345,17 +523,26 @@ fragment <- Signac::CreateFragmentObject(
 )
 Signac::Fragments(atac[["ATAC"]]) <- NULL
 Signac::Fragments(atac[["ATAC"]]) <- fragment
-dir.create("output/01_atac", recursive = TRUE, showWarnings = FALSE)
-saveRDS(atac, "output/01_atac/atac.qc.rds")
+checkpoint_dir <- file.path(config$output_dir, "01_atac")
+dir.create(checkpoint_dir, recursive = TRUE, showWarnings = FALSE)
+saveRDS(atac, file.path(checkpoint_dir, "atac.qc.rds"))
 ```
 
 Output: `output/01_atac/atac.qc.rds`, containing the 4,788 supplied cells, 915,345 post-QC peaks, annotations and the attached fragment file.
 
 ## 1. Run all stages with one command
 
-After preparation, this call runs GWAS processing, accessibility, LD, WRS, association models and plotting for **TC only**. [Run-all script](scripts/run_all.R).
+**For scATAC-seq inputs requiring cell and peak filtering:** download the [complete-settings YAML template](https://github.com/LingxuanZ/EPIC2/blob/main/inst/extdata/config.example.yml), save it as `config.yml`, and edit it for your input files and analysis settings. This full workflow includes ATAC preprocessing and is **not run in this tutorial**.
 
 ``` r
+config <- EPIC2::read_EPIC2_config("config.yml", check_files = TRUE)
+EPIC2::run_EPIC2(config, gwas_name = "TC")
+```
+
+**For a post-QC checkpoint prepared as described above, use this instead:** this is the workflow used in this tutorial, with the supplied [config.yml](config.yml). After preparation, this call runs GWAS processing, accessibility, LD, WRS, association models and plotting for TC only. [Run-all script](scripts/run_all.R).
+
+``` r
+config <- EPIC2::read_EPIC2_config("config.yml", check_files = TRUE)
 EPIC2::run_EPIC2(
   config,
   stages = c("gwas", "accessibility", "ld", "wrs", "model", "plot"),
@@ -363,18 +550,13 @@ EPIC2::run_EPIC2(
 )
 ```
 
-Selected messages recorded in the completed analysis:
-
-``` text
-GWAS stage complete for TC: 63224 variants
-Accessibility stage complete for TC: 58390 SNPs and 57713 peaks
-LD stage complete for TC
-WRS stage complete for TC
-Association models complete for TC / tissue_cell_type
-Association models complete for TC / tissue
-```
-
 The stage outputs and their contents are shown below. Choose the stage-by-stage route when you want to inspect an intermediate result before continuing; running both routes would repeat the same calculations.
+
+Replace `TC` with a dataset name in your configuration. Omit `gwas_name` to process all configured datasets.
+
+The full workflow runs `atac → gwas → accessibility → ld → wrs → model → plot`.
+
+<a id="stage-inputs-and-outputs"></a>
 
 ## 2. Run one stage at a time
 
@@ -384,11 +566,13 @@ Intermediate paths below are relative to `project.output_dir` (`output/` here). 
 
 For routine analyses, use the **stage functions with YAML**, which automatically save the files described under **Outputs**. Displayed tutorial results were read from these saved files.
 
-Use the **Core functions (without YAML)** examples to debug or inspect intermediate calculations within a stage. They return R objects. Run them from this tutorial folder using the listed input files. **To keep their results on disk, create the required output directories and save the objects yourself**, using `saveRDS()`, `write.table()` or `ggplot2::ggsave()` as appropriate. Alternatively, pass the returned objects directly to subsequent functions. These examples do not write stage completion records and are not executed while knitting.
+Use the **core functions without YAML** examples to debug or inspect intermediate calculations within a stage. They return R objects. Run them from this tutorial folder using the listed input files. **To keep their results on disk, create the required output directories and save the objects yourself**, using `saveRDS()`, `write.table()` or `ggplot2::ggsave()` as appropriate. Alternatively, pass the returned objects directly to subsequent functions. These examples do not write stage completion records and are not executed while knitting.
+
+<a id="atac-qc"></a>
 
 ### 2.1 ATAC processing and QC (optional)
 
-**This step is not run in this tutorial because the supplied ATAC object has already passed QC.** If your own scATAC-seq object has not been filtered and you want to follow the EPIC2 QC pipeline, run this stage before accessibility construction. Use it in place of the post-QC checkpoint preparation above.
+**This step is not run in this tutorial because the supplied ATAC object has already passed QC.** If your own scATAC-seq object has not been filtered and you want to follow the EPIC2 QC pipeline, run this stage before accessibility construction. Use it in place of the post-QC checkpoint preparation above. **Review your dataset’s QC metrics and adjust the filtering criteria and thresholds as needed, taking into account the biological context, experimental protocol and data quality.**
 
 #### Required inputs
 
@@ -414,11 +598,9 @@ To change these thresholds, edit `atac.qc` in the configuration YAML. For your o
 atac:
   input: data/atac_before_qc.rds
   assay: ATAC
-  tissue_column: tissue
+  tissue_column: null
   group_column: tissue_cell_type
-  attach_fragments: true
-  fragment_files:
-    my_tissue: data/fragments.tsv.gz
+  attach_fragments: false
   fragment_barcode_column: null
   validate_fragments: true
   compute_qc_metrics: true
@@ -438,7 +620,7 @@ atac:
     peak_remove_blacklist: true
 ```
 
-Replace the paths and metadata column names with those in your data, and set `genome.build` in the complete configuration to the shared input assembly. The key `my_tissue` must match a value in the metadata column named by `atac.tissue_column`; add entries for the other tissues as needed. If cell names differ from the fragment barcodes, set `fragment_barcode_column` to the metadata column containing the raw barcodes. If the correct fragment objects are already attached, use `attach_fragments: false` instead.
+Replace the paths and metadata column names with those in your data, and set `genome.build` in the complete configuration to the shared input assembly. This example expects complete fragment files already attached to the chromatin assay with the correct cell-to-barcode mappings; no separate tissue annotation is needed. The core example below shows attachment for one fragment file. If raw barcodes differ from cell names, use the raw barcode metadata in the mapping instead.
 
 With `compute_qc_metrics: true`, EPIC2 computes nucleosome signal, TSS enrichment, FRIP and blacklist ratio before filtering. If those metrics are already present, use `false` and supply `TSS.enrichment`, `FRIP`, `nCount_ATAC`, `BlacklistRatio` and `nucleosome_signal` in the metadata (`nCount_<assay>` follows the assay name). **Setting this flag to `false` does not skip cell or peak filtering.** Set `recompute_embedding: true` if you also want to recompute TF-IDF/LSI, UMAP, neighbors and clusters after QC. See [ATAC configuration](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md#atac-input-and-qc) for all options.
 
@@ -453,15 +635,16 @@ This dispatches `run_atac_stage()`, which computes the requested QC metrics, cal
 
 **Core functions (without YAML)**
 
-For your own unfiltered object, replace the paths and `my_tissue` key below. Use complete indexed fragments and gene annotations in the same assembly. Omit the fragment-attachment lines if the correct fragments are already attached.
+For your own unfiltered object, replace the input paths below. Use complete indexed fragments and gene annotations in the same assembly. Omit the fragment-attachment lines if the correct fragments are already attached.
 
 ``` r
 atac <- readRDS("data/atac_before_qc.rds") # Unfiltered Seurat/Signac object with cell annotations
 assay <- "ATAC"; genome <- "hg19"; qc_group <- "tissue_cell_type" # Assay, assembly and QC grouping
 SeuratObject::DefaultAssay(atac) <- assay
-fragment_files <- c(my_tissue = "data/fragments.tsv.gz") # Keys match metadata$tissue; each file needs its .tbi
-attach_fragment_files <- getFromNamespace("attach_fragment_files", "EPIC2") # Internal stage helper
-atac <- attach_fragment_files(atac, fragment_files, tissue_column = "tissue", assay = assay, validate = TRUE, barcode_column = NULL)
+cell_map <- setNames(colnames(atac), colnames(atac)) # Raw fragment barcodes as values, Seurat cell names as names
+fragment <- Signac::CreateFragmentObject("data/fragments.tsv.gz", cells = cell_map, validate.fragments = TRUE)
+Signac::Fragments(atac[[assay]]) <- NULL
+Signac::Fragments(atac[[assay]]) <- fragment # Attach indexed fragments without a tissue metadata column
 atac <- Signac::NucleosomeSignal(atac) # Fragment-length QC
 atac <- Signac::TSSEnrichment(atac) # TSS enrichment from the object's gene annotations
 atac <- EPIC2::add_frip(atac, assay = assay) # Fraction of fragments in peaks
@@ -491,7 +674,7 @@ Match GWAS variants to reference genotypes, apply the configured MAF and missing
 #### Required inputs
 
 - GWAS summary statistics: `gwas.traits.TC.summary` (`inputs/data/gwas/TC.rds` in this tutorial).
-- Reference genotypes: `gwas.traits.TC.genotype` (`inputs/data/genotypes/TC.rds` in this tutorial). Multiple traits can use the same compatible reference genotype file by pointing their `genotype` entries to that file; EPIC2 automatically matches SNP IDs to each trait's GWAS and retains the matched subset, reducing unnecessary downstream computation.
+- Reference genotypes: `gwas.traits.TC.genotype` (`inputs/data/genotypes/TC.rds` in this tutorial). Multiple traits can use the same compatible reference genotype file by pointing their `genotype` entries to that file; EPIC2 automatically matches SNP IDs to each trait’s GWAS and retains the matched subset, reducing unnecessary downstream computation.
 
 The GWAS calculation does not require an ATAC checkpoint.
 
@@ -502,6 +685,13 @@ The GWAS calculation does not require an ATAC checkpoint.
 ``` r
 EPIC2::run_gwas_stage(config, gwas_name = "TC")
 ```
+
+    ## $TC
+    ## $TC$gwas
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_gwas/TC.gwas.rds"
+    ## 
+    ## $TC$genotype
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_gwas/TC.genotype.rds"
 
 **Core functions (without YAML)**
 
@@ -549,6 +739,22 @@ Count fragments at SNPs and obtain peak accessibility from the stored peak count
 EPIC2::run_accessibility_stage(config, traits = "TC")
 ```
 
+    ## $TC
+    ## $TC$snp
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.snp_by_cell.rds"
+    ## 
+    ## $TC$peak
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.peak_by_cell.rds"
+    ## 
+    ## $TC$overlap
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.snp_peak_overlap.tsv"
+    ## 
+    ## $TC$genotype
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.snp_genotype.rds"
+    ## 
+    ## $TC$genome_qc
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.genome_qc.tsv"
+
 **Core functions (without YAML)**
 
 ``` r
@@ -568,7 +774,7 @@ snp_genotype <- genotype_coord[rownames(snp_counts), , drop = FALSE] # Reference
 #### Outputs in `output/02_accessibility/`
 
 - `TC.snp_by_cell.rds`: SNP-by-cell fragment counts at retained GWAS SNP positions.
-- `TC.peak_by_cell.rds`: peak-by-cell counts selected from the ATAC object's stored counts for peaks overlapping retained GWAS SNPs.
+- `TC.peak_by_cell.rds`: peak-by-cell counts selected from the ATAC object’s stored counts for peaks overlapping retained GWAS SNPs.
 - `TC.snp_genotype.rds`: reference genotypes aligned to accessible SNPs.
 - `TC.snp_peak_overlap.tsv`: SNP-to-peak mapping used by the LD stage.
 
@@ -622,6 +828,19 @@ The ridge-stabilized inverse square root transforms the **response and full desi
 ``` r
 EPIC2::run_ld_stage(config, traits = "TC")
 ```
+
+    ## $TC
+    ## $TC$snp_sigma
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/03_ld/TC.snp_sigma.rds"
+    ## 
+    ## $TC$snp_inverse
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/03_ld/TC.snp_inverse_sqrt.rds"
+    ## 
+    ## $TC$snp_blocks
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/03_ld/TC.snp_blocks.rds"
+    ## 
+    ## $TC$peak_model
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/03_ld/TC.peak_ld_model.rds"
 
 **Core functions (without YAML)**
 
@@ -717,9 +936,15 @@ Here, $`p^{(+)}`$ is the one-sided P-value for greater accessibility in the foca
 EPIC2::run_wrs_stage(config, traits = "TC")
 ```
 
+    ## $TC.snp.tissue_cell_type
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/04_wrs/TC.snp.tissue_cell_type.rds"
+    ## 
+    ## $TC.peak.tissue_cell_type
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/04_wrs/TC.peak.tissue_cell_type.rds"
+
 **Core functions (without YAML)**
 
-Set `grouping` to the metadata column to test. This example uses `tissue_cell_type`; use `tissue` to reproduce the other grouping separately.
+Set `grouping` to the metadata column to test. This example uses `tissue_cell_type`; choose another metadata column to test a different annotation level.
 
 ``` r
 metadata <- readRDS("output/01_atac/atac.qc.rds")[[]] # Cell annotations from the ATAC object
@@ -739,7 +964,6 @@ peak_wrs <- EPIC2::make_one_sided_wrs(peak_wrs, truncation_quantiles = c(0.02, 0
 
 - `TC.snp.tissue_cell_type.rds` and matching `.tsv`: 1,401,360 SNP–cell-group comparisons across 24 groups.
 - `TC.peak.tissue_cell_type.rds` and matching `.tsv`: 1,385,112 peak–cell-group comparisons across 24 groups.
-- Separate outputs are also saved for the configured `tissue` grouping.
 
 Each row represents one feature–cell-group comparison.
 
@@ -793,7 +1017,7 @@ A_{kf}=\sum_{c\in\mathcal{C}_k}\frac{C_{fc}}{s_c},
 A_f=\frac{1}{K}\sum_{k=1}^{K}A_{kf}.
 ```
 
-$`C_{fc}`$ is the count for feature $`f`$ in cell $`c`$; $`L_c`$ is that cell's total count across retained autosomal peaks; $`s_c`$ is its library-size factor. $`\mathcal{C}_k`$ contains cells in group $`k`$, and $`K`$ is the number of groups. Thus, accessibility is **summed within groups** after library-size adjustment, then averaged across groups for the baseline. **WRS models retain this count-based baseline.**
+$`C_{fc}`$ is the count for feature $`f`$ in cell $`c`$; $`L_c`$ is that cell’s total count across retained autosomal peaks; $`s_c`$ is its library-size factor. $`\mathcal{C}_k`$ contains cells in group $`k`$, and $`K`$ is the number of groups. Thus, accessibility is **summed within groups** after library-size adjustment, then averaged across groups for the baseline. **WRS models retain this count-based baseline.**
 
 **Enrichment test.** Each component is fitted separately for each cell group $`k`$:
 
@@ -801,7 +1025,7 @@ $`C_{fc}`$ is the count for feature $`f`$ in cell $`c`$; $`L_c`$ is that cell's 
 Y_f=\beta_0+\beta_k X_{kf}+\gamma_k A_f+\epsilon_f.
 ```
 
-$`X_{kf}`$ is the focal predictor for group $`k`$ and feature $`f`$ in the table. $`\beta_0`$ is the intercept; $`\beta_k`$ and $`\gamma_k`$ are the focal and baseline coefficients for group $`k`$, respectively; $`\epsilon_f`$ is the residual for feature $`f`$. Test $`H_0:\beta_k\leq0`$ against $`H_1:\beta_k>0`$ using a one-sided t-test with the whitened fit's residual degrees of freedom. A positive coefficient associates greater group accessibility or specificity with stronger GWAS signals, adjusting for baseline accessibility and LD.
+$`X_{kf}`$ is the focal predictor for group $`k`$ and feature $`f`$ in the table. $`\beta_0`$ is the intercept; $`\beta_k`$ and $`\gamma_k`$ are the focal and baseline coefficients for group $`k`$, respectively; $`\epsilon_f`$ is the residual for feature $`f`$. Test $`H_0:\beta_k\leq0`$ against $`H_1:\beta_k>0`$ using a one-sided t-test with the whitened fit’s residual degrees of freedom. A positive coefficient associates greater group accessibility or specificity with stronger GWAS signals, adjusting for baseline accessibility and LD.
 
 **ACAT and multiple testing**
 
@@ -820,9 +1044,691 @@ ACAT equally weights the **available nominal, one-sided association-model P-valu
 
 **Stage function (with YAML)**
 
+<style>
+#epic2-model-stage-results > pre:not(.r):not(.sourceCode) {
+  max-height: 360px;
+  max-width: 100%;
+  overflow: auto;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+#epic2-model-stage-results > pre:not(.r):not(.sourceCode) code {
+  white-space: inherit;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+</style>
+
+<div id="epic2-model-stage-results">
+
 ``` r
 EPIC2::run_model_stage(config, traits = "TC")
 ```
+
+    ## $tissue_cell_type
+    ## $tissue_cell_type$components
+    ##                                             trait
+    ## peak_accessibility.TC.peak_accessibility.1     TC
+    ## peak_accessibility.TC.peak_accessibility.2     TC
+    ## peak_accessibility.TC.peak_accessibility.3     TC
+    ## peak_accessibility.TC.peak_accessibility.4     TC
+    ## peak_accessibility.TC.peak_accessibility.5     TC
+    ## peak_accessibility.TC.peak_accessibility.6     TC
+    ## peak_accessibility.TC.peak_accessibility.7     TC
+    ## peak_accessibility.TC.peak_accessibility.8     TC
+    ## peak_accessibility.TC.peak_accessibility.9     TC
+    ## peak_accessibility.TC.peak_accessibility.10    TC
+    ## peak_accessibility.TC.peak_accessibility.11    TC
+    ## peak_accessibility.TC.peak_accessibility.12    TC
+    ## peak_accessibility.TC.peak_accessibility.13    TC
+    ## peak_accessibility.TC.peak_accessibility.14    TC
+    ## peak_accessibility.TC.peak_accessibility.15    TC
+    ## peak_accessibility.TC.peak_accessibility.16    TC
+    ## peak_accessibility.TC.peak_accessibility.17    TC
+    ## peak_accessibility.TC.peak_accessibility.18    TC
+    ## peak_accessibility.TC.peak_accessibility.19    TC
+    ## peak_accessibility.TC.peak_accessibility.20    TC
+    ## peak_accessibility.TC.peak_accessibility.21    TC
+    ## peak_accessibility.TC.peak_accessibility.22    TC
+    ## peak_accessibility.TC.peak_accessibility.23    TC
+    ## peak_accessibility.TC.peak_accessibility.24    TC
+    ## peak_wrs.TC.peak_wrs.1                         TC
+    ## peak_wrs.TC.peak_wrs.2                         TC
+    ## peak_wrs.TC.peak_wrs.3                         TC
+    ## peak_wrs.TC.peak_wrs.4                         TC
+    ## peak_wrs.TC.peak_wrs.5                         TC
+    ## peak_wrs.TC.peak_wrs.6                         TC
+    ## peak_wrs.TC.peak_wrs.7                         TC
+    ## peak_wrs.TC.peak_wrs.8                         TC
+    ## peak_wrs.TC.peak_wrs.9                         TC
+    ## peak_wrs.TC.peak_wrs.10                        TC
+    ## peak_wrs.TC.peak_wrs.11                        TC
+    ## peak_wrs.TC.peak_wrs.12                        TC
+    ## peak_wrs.TC.peak_wrs.13                        TC
+    ## peak_wrs.TC.peak_wrs.14                        TC
+    ## peak_wrs.TC.peak_wrs.15                        TC
+    ## peak_wrs.TC.peak_wrs.16                        TC
+    ## peak_wrs.TC.peak_wrs.17                        TC
+    ## peak_wrs.TC.peak_wrs.18                        TC
+    ## peak_wrs.TC.peak_wrs.19                        TC
+    ## peak_wrs.TC.peak_wrs.20                        TC
+    ## peak_wrs.TC.peak_wrs.21                        TC
+    ## peak_wrs.TC.peak_wrs.22                        TC
+    ## peak_wrs.TC.peak_wrs.23                        TC
+    ## peak_wrs.TC.peak_wrs.24                        TC
+    ## snp_accessibility.TC.snp_accessibility.1       TC
+    ## snp_accessibility.TC.snp_accessibility.2       TC
+    ## snp_accessibility.TC.snp_accessibility.3       TC
+    ## snp_accessibility.TC.snp_accessibility.4       TC
+    ## snp_accessibility.TC.snp_accessibility.5       TC
+    ## snp_accessibility.TC.snp_accessibility.6       TC
+    ## snp_accessibility.TC.snp_accessibility.7       TC
+    ## snp_accessibility.TC.snp_accessibility.8       TC
+    ## snp_accessibility.TC.snp_accessibility.9       TC
+    ## snp_accessibility.TC.snp_accessibility.10      TC
+    ## snp_accessibility.TC.snp_accessibility.11      TC
+    ## snp_accessibility.TC.snp_accessibility.12      TC
+    ## snp_accessibility.TC.snp_accessibility.13      TC
+    ## snp_accessibility.TC.snp_accessibility.14      TC
+    ## snp_accessibility.TC.snp_accessibility.15      TC
+    ## snp_accessibility.TC.snp_accessibility.16      TC
+    ## snp_accessibility.TC.snp_accessibility.17      TC
+    ## snp_accessibility.TC.snp_accessibility.18      TC
+    ## snp_accessibility.TC.snp_accessibility.19      TC
+    ## snp_accessibility.TC.snp_accessibility.20      TC
+    ## snp_accessibility.TC.snp_accessibility.21      TC
+    ## snp_accessibility.TC.snp_accessibility.22      TC
+    ## snp_accessibility.TC.snp_accessibility.23      TC
+    ## snp_accessibility.TC.snp_accessibility.24      TC
+    ## snp_wrs.TC.snp_wrs.1                           TC
+    ## snp_wrs.TC.snp_wrs.2                           TC
+    ## snp_wrs.TC.snp_wrs.3                           TC
+    ## snp_wrs.TC.snp_wrs.4                           TC
+    ## snp_wrs.TC.snp_wrs.5                           TC
+    ## snp_wrs.TC.snp_wrs.6                           TC
+    ## snp_wrs.TC.snp_wrs.7                           TC
+    ## snp_wrs.TC.snp_wrs.8                           TC
+    ## snp_wrs.TC.snp_wrs.9                           TC
+    ## snp_wrs.TC.snp_wrs.10                          TC
+    ## snp_wrs.TC.snp_wrs.11                          TC
+    ## snp_wrs.TC.snp_wrs.12                          TC
+    ## snp_wrs.TC.snp_wrs.13                          TC
+    ## snp_wrs.TC.snp_wrs.14                          TC
+    ## snp_wrs.TC.snp_wrs.15                          TC
+    ## snp_wrs.TC.snp_wrs.16                          TC
+    ## snp_wrs.TC.snp_wrs.17                          TC
+    ## snp_wrs.TC.snp_wrs.18                          TC
+    ## snp_wrs.TC.snp_wrs.19                          TC
+    ## snp_wrs.TC.snp_wrs.20                          TC
+    ## snp_wrs.TC.snp_wrs.21                          TC
+    ## snp_wrs.TC.snp_wrs.22                          TC
+    ## snp_wrs.TC.snp_wrs.23                          TC
+    ## snp_wrs.TC.snp_wrs.24                          TC
+    ##                                                                                      group
+    ## peak_accessibility.TC.peak_accessibility.1                    adrenal_Adrenocortical cells
+    ## peak_accessibility.TC.peak_accessibility.2                        adrenal_Chromaffin cells
+    ## peak_accessibility.TC.peak_accessibility.3                           adrenal_Stromal cells
+    ## peak_accessibility.TC.peak_accessibility.4                             cerebrum_Astrocytes
+    ## peak_accessibility.TC.peak_accessibility.5            cerebrum_Astrocytes/Oligodendrocytes
+    ## peak_accessibility.TC.peak_accessibility.6                     cerebrum_Excitatory neurons
+    ## peak_accessibility.TC.peak_accessibility.7                     cerebrum_Inhibitory neurons
+    ## peak_accessibility.TC.peak_accessibility.8                            heart_Cardiomyocytes
+    ## peak_accessibility.TC.peak_accessibility.9                           intestine_ENS neurons
+    ## peak_accessibility.TC.peak_accessibility.10          intestine_Intestinal epithelial cells
+    ## peak_accessibility.TC.peak_accessibility.11                       intestine_Lymphoid cells
+    ## peak_accessibility.TC.peak_accessibility.12                  intestine_Smooth muscle cells
+    ## peak_accessibility.TC.peak_accessibility.13                        intestine_Stromal cells
+    ## peak_accessibility.TC.peak_accessibility.14                         kidney_Mesangial cells
+    ## peak_accessibility.TC.peak_accessibility.15                       kidney_Metanephric cells
+    ## peak_accessibility.TC.peak_accessibility.16                      kidney_Ureteric bud cells
+    ## peak_accessibility.TC.peak_accessibility.17              kidney_Vascular endothelial cells
+    ## peak_accessibility.TC.peak_accessibility.18                            liver_Erythroblasts
+    ## peak_accessibility.TC.peak_accessibility.19                             liver_Hepatoblasts
+    ## peak_accessibility.TC.peak_accessibility.20                           liver_Lymphoid cells
+    ## peak_accessibility.TC.peak_accessibility.21                            liver_Myeloid cells
+    ## peak_accessibility.TC.peak_accessibility.22               liver_Vascular endothelial cells
+    ## peak_accessibility.TC.peak_accessibility.23 lung_Bronchiolar and alveolar epithelial cells
+    ## peak_accessibility.TC.peak_accessibility.24                             lung_Stromal cells
+    ## peak_wrs.TC.peak_wrs.1                                        adrenal_Adrenocortical cells
+    ## peak_wrs.TC.peak_wrs.2                                            adrenal_Chromaffin cells
+    ## peak_wrs.TC.peak_wrs.3                                               adrenal_Stromal cells
+    ## peak_wrs.TC.peak_wrs.4                                                 cerebrum_Astrocytes
+    ## peak_wrs.TC.peak_wrs.5                                cerebrum_Astrocytes/Oligodendrocytes
+    ## peak_wrs.TC.peak_wrs.6                                         cerebrum_Excitatory neurons
+    ## peak_wrs.TC.peak_wrs.7                                         cerebrum_Inhibitory neurons
+    ## peak_wrs.TC.peak_wrs.8                                                heart_Cardiomyocytes
+    ## peak_wrs.TC.peak_wrs.9                                               intestine_ENS neurons
+    ## peak_wrs.TC.peak_wrs.10                              intestine_Intestinal epithelial cells
+    ## peak_wrs.TC.peak_wrs.11                                           intestine_Lymphoid cells
+    ## peak_wrs.TC.peak_wrs.12                                      intestine_Smooth muscle cells
+    ## peak_wrs.TC.peak_wrs.13                                            intestine_Stromal cells
+    ## peak_wrs.TC.peak_wrs.14                                             kidney_Mesangial cells
+    ## peak_wrs.TC.peak_wrs.15                                           kidney_Metanephric cells
+    ## peak_wrs.TC.peak_wrs.16                                          kidney_Ureteric bud cells
+    ## peak_wrs.TC.peak_wrs.17                                  kidney_Vascular endothelial cells
+    ## peak_wrs.TC.peak_wrs.18                                                liver_Erythroblasts
+    ## peak_wrs.TC.peak_wrs.19                                                 liver_Hepatoblasts
+    ## peak_wrs.TC.peak_wrs.20                                               liver_Lymphoid cells
+    ## peak_wrs.TC.peak_wrs.21                                                liver_Myeloid cells
+    ## peak_wrs.TC.peak_wrs.22                                   liver_Vascular endothelial cells
+    ## peak_wrs.TC.peak_wrs.23                     lung_Bronchiolar and alveolar epithelial cells
+    ## peak_wrs.TC.peak_wrs.24                                                 lung_Stromal cells
+    ## snp_accessibility.TC.snp_accessibility.1                      adrenal_Adrenocortical cells
+    ## snp_accessibility.TC.snp_accessibility.2                          adrenal_Chromaffin cells
+    ## snp_accessibility.TC.snp_accessibility.3                             adrenal_Stromal cells
+    ## snp_accessibility.TC.snp_accessibility.4                               cerebrum_Astrocytes
+    ## snp_accessibility.TC.snp_accessibility.5              cerebrum_Astrocytes/Oligodendrocytes
+    ## snp_accessibility.TC.snp_accessibility.6                       cerebrum_Excitatory neurons
+    ## snp_accessibility.TC.snp_accessibility.7                       cerebrum_Inhibitory neurons
+    ## snp_accessibility.TC.snp_accessibility.8                              heart_Cardiomyocytes
+    ## snp_accessibility.TC.snp_accessibility.9                             intestine_ENS neurons
+    ## snp_accessibility.TC.snp_accessibility.10            intestine_Intestinal epithelial cells
+    ## snp_accessibility.TC.snp_accessibility.11                         intestine_Lymphoid cells
+    ## snp_accessibility.TC.snp_accessibility.12                    intestine_Smooth muscle cells
+    ## snp_accessibility.TC.snp_accessibility.13                          intestine_Stromal cells
+    ## snp_accessibility.TC.snp_accessibility.14                           kidney_Mesangial cells
+    ## snp_accessibility.TC.snp_accessibility.15                         kidney_Metanephric cells
+    ## snp_accessibility.TC.snp_accessibility.16                        kidney_Ureteric bud cells
+    ## snp_accessibility.TC.snp_accessibility.17                kidney_Vascular endothelial cells
+    ## snp_accessibility.TC.snp_accessibility.18                              liver_Erythroblasts
+    ## snp_accessibility.TC.snp_accessibility.19                               liver_Hepatoblasts
+    ## snp_accessibility.TC.snp_accessibility.20                             liver_Lymphoid cells
+    ## snp_accessibility.TC.snp_accessibility.21                              liver_Myeloid cells
+    ## snp_accessibility.TC.snp_accessibility.22                 liver_Vascular endothelial cells
+    ## snp_accessibility.TC.snp_accessibility.23   lung_Bronchiolar and alveolar epithelial cells
+    ## snp_accessibility.TC.snp_accessibility.24                               lung_Stromal cells
+    ## snp_wrs.TC.snp_wrs.1                                          adrenal_Adrenocortical cells
+    ## snp_wrs.TC.snp_wrs.2                                              adrenal_Chromaffin cells
+    ## snp_wrs.TC.snp_wrs.3                                                 adrenal_Stromal cells
+    ## snp_wrs.TC.snp_wrs.4                                                   cerebrum_Astrocytes
+    ## snp_wrs.TC.snp_wrs.5                                  cerebrum_Astrocytes/Oligodendrocytes
+    ## snp_wrs.TC.snp_wrs.6                                           cerebrum_Excitatory neurons
+    ## snp_wrs.TC.snp_wrs.7                                           cerebrum_Inhibitory neurons
+    ## snp_wrs.TC.snp_wrs.8                                                  heart_Cardiomyocytes
+    ## snp_wrs.TC.snp_wrs.9                                                 intestine_ENS neurons
+    ## snp_wrs.TC.snp_wrs.10                                intestine_Intestinal epithelial cells
+    ## snp_wrs.TC.snp_wrs.11                                             intestine_Lymphoid cells
+    ## snp_wrs.TC.snp_wrs.12                                        intestine_Smooth muscle cells
+    ## snp_wrs.TC.snp_wrs.13                                              intestine_Stromal cells
+    ## snp_wrs.TC.snp_wrs.14                                               kidney_Mesangial cells
+    ## snp_wrs.TC.snp_wrs.15                                             kidney_Metanephric cells
+    ## snp_wrs.TC.snp_wrs.16                                            kidney_Ureteric bud cells
+    ## snp_wrs.TC.snp_wrs.17                                    kidney_Vascular endothelial cells
+    ## snp_wrs.TC.snp_wrs.18                                                  liver_Erythroblasts
+    ## snp_wrs.TC.snp_wrs.19                                                   liver_Hepatoblasts
+    ## snp_wrs.TC.snp_wrs.20                                                 liver_Lymphoid cells
+    ## snp_wrs.TC.snp_wrs.21                                                  liver_Myeloid cells
+    ## snp_wrs.TC.snp_wrs.22                                     liver_Vascular endothelial cells
+    ## snp_wrs.TC.snp_wrs.23                       lung_Bronchiolar and alveolar epithelial cells
+    ## snp_wrs.TC.snp_wrs.24                                                   lung_Stromal cells
+    ##                                             term          beta         se           t
+    ## peak_accessibility.TC.peak_accessibility.1  A_kp  0.0227149569 0.01370699  1.65718076
+    ## peak_accessibility.TC.peak_accessibility.2  A_kp -0.0250721110 0.01106605 -2.26567814
+    ## peak_accessibility.TC.peak_accessibility.3  A_kp  0.0015684713 0.01796723  0.08729621
+    ## peak_accessibility.TC.peak_accessibility.4  A_kp -0.0004747492 0.01161568 -0.04087142
+    ## peak_accessibility.TC.peak_accessibility.5  A_kp -0.0212178446 0.01459796 -1.45348018
+    ## peak_accessibility.TC.peak_accessibility.6  A_kp -0.0282967744 0.01384155 -2.04433580
+    ## peak_accessibility.TC.peak_accessibility.7  A_kp -0.0212260438 0.01225804 -1.73160123
+    ## peak_accessibility.TC.peak_accessibility.8  A_kp  0.0315790269 0.01322910  2.38708806
+    ## peak_accessibility.TC.peak_accessibility.9  A_kp -0.0321619326 0.01549676 -2.07539702
+    ## peak_accessibility.TC.peak_accessibility.10 A_kp  0.0163234087 0.01263885  1.29152629
+    ## peak_accessibility.TC.peak_accessibility.11 A_kp -0.0066039533 0.01491121 -0.44288512
+    ## peak_accessibility.TC.peak_accessibility.12 A_kp -0.0047999728 0.01618777 -0.29651855
+    ## peak_accessibility.TC.peak_accessibility.13 A_kp  0.0020282002 0.01629320  0.12448143
+    ## peak_accessibility.TC.peak_accessibility.14 A_kp -0.0100667432 0.01369652 -0.73498574
+    ## peak_accessibility.TC.peak_accessibility.15 A_kp -0.0043755657 0.01403097 -0.31185047
+    ## peak_accessibility.TC.peak_accessibility.16 A_kp  0.0454337225 0.01392641  3.26241532
+    ## peak_accessibility.TC.peak_accessibility.17 A_kp  0.0225975709 0.01692703  1.33499904
+    ## peak_accessibility.TC.peak_accessibility.18 A_kp -0.0111900651 0.01145209 -0.97712026
+    ## peak_accessibility.TC.peak_accessibility.19 A_kp  0.0496502996 0.01293386  3.83878569
+    ## peak_accessibility.TC.peak_accessibility.20 A_kp -0.0196830406 0.01318113 -1.49327364
+    ## peak_accessibility.TC.peak_accessibility.21 A_kp  0.0142721473 0.01360225  1.04924870
+    ## peak_accessibility.TC.peak_accessibility.22 A_kp -0.0104957339 0.01227757 -0.85487062
+    ## peak_accessibility.TC.peak_accessibility.23 A_kp  0.0019371308 0.01400937  0.13827396
+    ## peak_accessibility.TC.peak_accessibility.24 A_kp  0.0020999402 0.01450399  0.14478365
+    ## peak_wrs.TC.peak_wrs.1                      Z_kp  0.0257076288 0.01716103  1.49802391
+    ## peak_wrs.TC.peak_wrs.2                      Z_kp -0.0283940400 0.01731694 -1.63966860
+    ## peak_wrs.TC.peak_wrs.3                      Z_kp  0.0028289519 0.01602779  0.17650291
+    ## peak_wrs.TC.peak_wrs.4                      Z_kp  0.0011308442 0.01878216  0.06020841
+    ## peak_wrs.TC.peak_wrs.5                      Z_kp -0.0410444081 0.01689845 -2.42888569
+    ## peak_wrs.TC.peak_wrs.6                      Z_kp -0.0321861843 0.01762503 -1.82616377
+    ## peak_wrs.TC.peak_wrs.7                      Z_kp -0.0333618611 0.02093727 -1.59341988
+    ## peak_wrs.TC.peak_wrs.8                      Z_kp  0.0039697600 0.01624402  0.24438288
+    ## peak_wrs.TC.peak_wrs.9                      Z_kp -0.0330495099 0.01588627 -2.08038139
+    ## peak_wrs.TC.peak_wrs.10                     Z_kp  0.0072129699 0.01615504  0.44648430
+    ## peak_wrs.TC.peak_wrs.11                     Z_kp -0.0048513313 0.01703899 -0.28471939
+    ## peak_wrs.TC.peak_wrs.12                     Z_kp -0.0141906395 0.01664287 -0.85265598
+    ## peak_wrs.TC.peak_wrs.13                     Z_kp  0.0150473459 0.01660452  0.90621964
+    ## peak_wrs.TC.peak_wrs.14                     Z_kp -0.0126587776 0.01914599 -0.66117116
+    ## peak_wrs.TC.peak_wrs.15                     Z_kp  0.0119661411 0.01887334  0.63402357
+    ## peak_wrs.TC.peak_wrs.16                     Z_kp  0.0699136405 0.01763624  3.96420332
+    ## peak_wrs.TC.peak_wrs.17                     Z_kp  0.0266113786 0.01682536  1.58162290
+    ## peak_wrs.TC.peak_wrs.18                     Z_kp -0.0114194494 0.01773724 -0.64381200
+    ## peak_wrs.TC.peak_wrs.19                     Z_kp  0.0249068434 0.01581905  1.57448452
+    ## peak_wrs.TC.peak_wrs.20                     Z_kp -0.0288149779 0.01707396 -1.68765602
+    ## peak_wrs.TC.peak_wrs.21                     Z_kp  0.0123844772 0.01619296  0.76480634
+    ## peak_wrs.TC.peak_wrs.22                     Z_kp -0.0028582227 0.01841888 -0.15517899
+    ## peak_wrs.TC.peak_wrs.23                     Z_kp  0.0088332606 0.01646123  0.53661000
+    ## peak_wrs.TC.peak_wrs.24                     Z_kp -0.0112695356 0.01766281 -0.63803750
+    ## snp_accessibility.TC.snp_accessibility.1    A_kj  0.1148288640 0.04918240  2.33475542
+    ## snp_accessibility.TC.snp_accessibility.2    A_kj -0.0456784538 0.04202885 -1.08683576
+    ## snp_accessibility.TC.snp_accessibility.3    A_kj -0.0187902401 0.05790111 -0.32452299
+    ## snp_accessibility.TC.snp_accessibility.4    A_kj -0.0028743469 0.04513829 -0.06367868
+    ## snp_accessibility.TC.snp_accessibility.5    A_kj -0.0722087019 0.04973976 -1.45173000
+    ## snp_accessibility.TC.snp_accessibility.6    A_kj -0.0454857533 0.04611122 -0.98643578
+    ## snp_accessibility.TC.snp_accessibility.7    A_kj -0.0413533723 0.03986909 -1.03722884
+    ## snp_accessibility.TC.snp_accessibility.8    A_kj  0.0874362110 0.04831901  1.80956148
+    ## snp_accessibility.TC.snp_accessibility.9    A_kj -0.0011031038 0.04935182 -0.02235183
+    ## snp_accessibility.TC.snp_accessibility.10   A_kj  0.0551752107 0.04899393  1.12616426
+    ## snp_accessibility.TC.snp_accessibility.11   A_kj  0.0132936134 0.04831675  0.27513469
+    ## snp_accessibility.TC.snp_accessibility.12   A_kj -0.0345979921 0.05142991 -0.67272118
+    ## snp_accessibility.TC.snp_accessibility.13   A_kj -0.0832019126 0.05001852 -1.66342212
+    ## snp_accessibility.TC.snp_accessibility.14   A_kj -0.0431758501 0.04411938 -0.97861418
+    ## snp_accessibility.TC.snp_accessibility.15   A_kj  0.0467281297 0.04704831  0.99319458
+    ## snp_accessibility.TC.snp_accessibility.16   A_kj  0.0729751650 0.05063491  1.44120252
+    ## snp_accessibility.TC.snp_accessibility.17   A_kj  0.1208758859 0.05291066  2.28452817
+    ## snp_accessibility.TC.snp_accessibility.18   A_kj -0.0418188169 0.04443876 -0.94104368
+    ## snp_accessibility.TC.snp_accessibility.19   A_kj  0.0441406760 0.04916989  0.89771761
+    ## snp_accessibility.TC.snp_accessibility.20   A_kj -0.0016154308 0.04737384 -0.03409964
+    ## snp_accessibility.TC.snp_accessibility.21   A_kj -0.0081970365 0.05063634 -0.16188050
+    ## snp_accessibility.TC.snp_accessibility.22   A_kj  0.0076755012 0.04554896  0.16851100
+    ## snp_accessibility.TC.snp_accessibility.23   A_kj -0.0126431539 0.04860715 -0.26010893
+    ## snp_accessibility.TC.snp_accessibility.24   A_kj -0.0441796769 0.04770027 -0.92619348
+    ## snp_wrs.TC.snp_wrs.1                        Z_kj  0.0260091060 0.02238666  1.16181262
+    ## snp_wrs.TC.snp_wrs.2                        Z_kj -0.0142322782 0.02264050 -0.62862037
+    ## snp_wrs.TC.snp_wrs.3                        Z_kj  0.0068795624 0.02049624  0.33564992
+    ## snp_wrs.TC.snp_wrs.4                        Z_kj  0.0068770754 0.02388927  0.28787301
+    ## snp_wrs.TC.snp_wrs.5                        Z_kj -0.0314183663 0.02102725 -1.49417416
+    ## snp_wrs.TC.snp_wrs.6                        Z_kj -0.0181859723 0.02237218 -0.81288332
+    ## snp_wrs.TC.snp_wrs.7                        Z_kj -0.0378414942 0.02649888 -1.42804130
+    ## snp_wrs.TC.snp_wrs.8                        Z_kj  0.0260637778 0.02074227  1.25655364
+    ## snp_wrs.TC.snp_wrs.9                        Z_kj  0.0068244454 0.02012900  0.33903554
+    ## snp_wrs.TC.snp_wrs.10                       Z_kj  0.0250733831 0.02135302  1.17423107
+    ## snp_wrs.TC.snp_wrs.11                       Z_kj -0.0048524458 0.02196437 -0.22092355
+    ## snp_wrs.TC.snp_wrs.12                       Z_kj -0.0043692955 0.02110920 -0.20698540
+    ## snp_wrs.TC.snp_wrs.13                       Z_kj -0.0438209021 0.02111331 -2.07551068
+    ## snp_wrs.TC.snp_wrs.14                       Z_kj -0.0206801941 0.02417724 -0.85535783
+    ## snp_wrs.TC.snp_wrs.15                       Z_kj  0.0215245048 0.02422915  0.88837230
+    ## snp_wrs.TC.snp_wrs.16                       Z_kj  0.0037915069 0.02238874  0.16934886
+    ## snp_wrs.TC.snp_wrs.17                       Z_kj  0.0353713047 0.02086274  1.69542938
+    ## snp_wrs.TC.snp_wrs.18                       Z_kj -0.0114309716 0.02220200 -0.51486231
+    ## snp_wrs.TC.snp_wrs.19                       Z_kj  0.0196078655 0.02013144  0.97399215
+    ## snp_wrs.TC.snp_wrs.20                       Z_kj -0.0176358834 0.02190904 -0.80495913
+    ## snp_wrs.TC.snp_wrs.21                       Z_kj -0.0079581391 0.02051881 -0.38784595
+    ## snp_wrs.TC.snp_wrs.22                       Z_kj  0.0217311425 0.02369296  0.91719828
+    ## snp_wrs.TC.snp_wrs.23                       Z_kj -0.0108624276 0.02051086 -0.52959395
+    ## snp_wrs.TC.snp_wrs.24                       Z_kj -0.0034214486 0.02230014 -0.15342723
+    ##                                              p_two_sided            p     n    df status
+    ## peak_accessibility.TC.peak_accessibility.1  9.748837e-02 4.874419e-02 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.2  2.347479e-02 9.882626e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.3  9.304364e-01 4.652182e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.4  9.673985e-01 5.163007e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.5  1.460959e-01 9.269520e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.6  4.092491e-02 9.795375e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.7  8.334993e-02 9.583250e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.8  1.698562e-02 8.492811e-03 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.9  3.795417e-02 9.810229e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.10 1.965264e-01 9.826321e-02 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.11 6.578505e-01 6.710748e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.12 7.668352e-01 6.165824e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.13 9.009345e-01 4.504673e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.14 4.623512e-01 7.688244e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.15 7.551553e-01 6.224224e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.16 1.105313e-03 5.526566e-04 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.17 1.818819e-01 9.094096e-02 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.18 3.285137e-01 8.357431e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.19 1.237761e-04 6.188805e-05 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.20 1.353710e-01 9.323145e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.21 2.940681e-01 1.470340e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.22 3.926263e-01 8.036868e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.23 8.900244e-01 4.450122e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.24 8.848822e-01 4.424411e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.1                      1.341325e-01 6.706625e-02 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.2                      1.010795e-01 9.494602e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.3                      8.598995e-01 4.299497e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.4                      9.519899e-01 4.759949e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.5                      1.514834e-02 9.924258e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.6                      6.783076e-02 9.660846e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.7                      1.110715e-01 9.444642e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.8                      8.069352e-01 4.034676e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.9                      3.749497e-02 9.812525e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.10                     6.552491e-01 3.276246e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.11                     7.758602e-01 6.120699e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.12                     3.938536e-01 8.030732e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.13                     3.648234e-01 1.824117e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.14                     5.085052e-01 7.457474e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.15                     5.260680e-01 2.630340e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.16                     7.373011e-05 3.686505e-05 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.17                     1.137412e-01 5.687058e-02 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.18                     5.196999e-01 7.401500e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.19                     1.153810e-01 5.769048e-02 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.20                     9.148268e-02 9.542587e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.21                     4.443900e-01 2.221950e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.22                     8.766808e-01 5.616596e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.23                     5.915391e-01 2.957696e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.24                     5.234518e-01 7.382741e-01 57713 57710     ok
+    ## snp_accessibility.TC.snp_accessibility.1    1.955957e-02 9.779786e-03 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.2    2.771139e-01 8.614431e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.3    7.455433e-01 6.272284e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.4    9.492263e-01 5.253869e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.5    1.465821e-01 9.267090e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.6    3.239234e-01 8.380383e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.7    2.996335e-01 8.501832e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.8    7.036896e-02 3.518448e-02 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.9    9.821674e-01 5.089163e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.10   2.601006e-01 1.300503e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.11   7.832137e-01 3.916069e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.12   5.011274e-01 7.494363e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.13   9.623333e-02 9.518833e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.14   3.277747e-01 8.361126e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.15   3.206193e-01 1.603096e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.16   1.495328e-01 7.476642e-02 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.17   2.234408e-02 1.117204e-02 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.18   3.466864e-01 8.266568e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.19   3.693398e-01 1.846699e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.20   9.727978e-01 5.136011e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.21   8.714005e-01 5.642997e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.22   8.661819e-01 4.330909e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.23   7.947807e-01 6.026097e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.24   3.543493e-01 8.228254e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.1                        2.453163e-01 1.226582e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.2                        5.296001e-01 7.352000e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.3                        7.371361e-01 3.685680e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.4                        7.734450e-01 3.867225e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.5                        1.351355e-01 9.324322e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.6                        4.162883e-01 7.918559e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.7                        1.532853e-01 9.233573e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.8                        2.089203e-01 1.044602e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.9                        7.345842e-01 3.672921e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.10                       2.403073e-01 1.201536e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.11                       8.251527e-01 5.874236e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.12                       8.360220e-01 5.819890e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.13                       3.794360e-02 9.810282e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.14                       3.923566e-01 8.038217e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.15                       3.743442e-01 1.871721e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.16                       8.655228e-01 4.327614e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.17                       8.999933e-02 4.499966e-02 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.18                       6.066512e-01 6.966744e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.19                       3.300645e-01 1.650322e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.20                       4.208465e-01 7.895767e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.21                       6.981315e-01 6.509343e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.22                       3.590425e-01 1.795213e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.23                       5.963955e-01 7.018022e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.24                       8.780619e-01 5.609690e-01 58390 58387     ok
+    ##                                                      component p_bh_within_trait
+    ## peak_accessibility.TC.peak_accessibility.1  peak_accessibility      0.2924651104
+    ## peak_accessibility.TC.peak_accessibility.2  peak_accessibility      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.3  peak_accessibility      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.4  peak_accessibility      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.5  peak_accessibility      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.6  peak_accessibility      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.7  peak_accessibility      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.8  peak_accessibility      0.0679424907
+    ## peak_accessibility.TC.peak_accessibility.9  peak_accessibility      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.10 peak_accessibility      0.3930528383
+    ## peak_accessibility.TC.peak_accessibility.11 peak_accessibility      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.12 peak_accessibility      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.13 peak_accessibility      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.14 peak_accessibility      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.15 peak_accessibility      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.16 peak_accessibility      0.0066318789
+    ## peak_accessibility.TC.peak_accessibility.17 peak_accessibility      0.3930528383
+    ## peak_accessibility.TC.peak_accessibility.18 peak_accessibility      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.19 peak_accessibility      0.0014853132
+    ## peak_accessibility.TC.peak_accessibility.20 peak_accessibility      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.21 peak_accessibility      0.5041166828
+    ## peak_accessibility.TC.peak_accessibility.22 peak_accessibility      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.23 peak_accessibility      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.24 peak_accessibility      0.9882626074
+    ## peak_wrs.TC.peak_wrs.1                                peak_wrs      0.4023975269
+    ## peak_wrs.TC.peak_wrs.2                                peak_wrs      0.9924258304
+    ## peak_wrs.TC.peak_wrs.3                                peak_wrs      0.9380721594
+    ## peak_wrs.TC.peak_wrs.4                                peak_wrs      0.9519898524
+    ## peak_wrs.TC.peak_wrs.5                                peak_wrs      0.9924258304
+    ## peak_wrs.TC.peak_wrs.6                                peak_wrs      0.9924258304
+    ## peak_wrs.TC.peak_wrs.7                                peak_wrs      0.9924258304
+    ## peak_wrs.TC.peak_wrs.8                                peak_wrs      0.9380721594
+    ## peak_wrs.TC.peak_wrs.9                                peak_wrs      0.9924258304
+    ## peak_wrs.TC.peak_wrs.10                               peak_wrs      0.8736654982
+    ## peak_wrs.TC.peak_wrs.11                               peak_wrs      0.9924258304
+    ## peak_wrs.TC.peak_wrs.12                               peak_wrs      0.9924258304
+    ## peak_wrs.TC.peak_wrs.13                               peak_wrs      0.8736654982
+    ## peak_wrs.TC.peak_wrs.14                               peak_wrs      0.9924258304
+    ## peak_wrs.TC.peak_wrs.15                               peak_wrs      0.8736654982
+    ## peak_wrs.TC.peak_wrs.16                               peak_wrs      0.0008847613
+    ## peak_wrs.TC.peak_wrs.17                               peak_wrs      0.4023975269
+    ## peak_wrs.TC.peak_wrs.18                               peak_wrs      0.9924258304
+    ## peak_wrs.TC.peak_wrs.19                               peak_wrs      0.4023975269
+    ## peak_wrs.TC.peak_wrs.20                               peak_wrs      0.9924258304
+    ## peak_wrs.TC.peak_wrs.21                               peak_wrs      0.8736654982
+    ## peak_wrs.TC.peak_wrs.22                               peak_wrs      0.9924258304
+    ## peak_wrs.TC.peak_wrs.23                               peak_wrs      0.8736654982
+    ## peak_wrs.TC.peak_wrs.24                               peak_wrs      0.9924258304
+    ## snp_accessibility.TC.snp_accessibility.1     snp_accessibility      0.1340644814
+    ## snp_accessibility.TC.snp_accessibility.2     snp_accessibility      0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.3     snp_accessibility      0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.4     snp_accessibility      0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.5     snp_accessibility      0.9518833326
+    ## snp_accessibility.TC.snp_accessibility.6     snp_accessibility      0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.7     snp_accessibility      0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.8     snp_accessibility      0.2814758335
+    ## snp_accessibility.TC.snp_accessibility.9     snp_accessibility      0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.10    snp_accessibility      0.6242415098
+    ## snp_accessibility.TC.snp_accessibility.11    snp_accessibility      0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.12    snp_accessibility      0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.13    snp_accessibility      0.9518833326
+    ## snp_accessibility.TC.snp_accessibility.14    snp_accessibility      0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.15    snp_accessibility      0.6331539758
+    ## snp_accessibility.TC.snp_accessibility.16    snp_accessibility      0.4485985201
+    ## snp_accessibility.TC.snp_accessibility.17    snp_accessibility      0.1340644814
+    ## snp_accessibility.TC.snp_accessibility.18    snp_accessibility      0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.19    snp_accessibility      0.6331539758
+    ## snp_accessibility.TC.snp_accessibility.20    snp_accessibility      0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.21    snp_accessibility      0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.22    snp_accessibility      0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.23    snp_accessibility      0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.24    snp_accessibility      0.9397560610
+    ## snp_wrs.TC.snp_wrs.1                                   snp_wrs      0.6417328799
+    ## snp_wrs.TC.snp_wrs.2                                   snp_wrs      0.9186533766
+    ## snp_wrs.TC.snp_wrs.3                                   snp_wrs      0.9186533766
+    ## snp_wrs.TC.snp_wrs.4                                   snp_wrs      0.9186533766
+    ## snp_wrs.TC.snp_wrs.5                                   snp_wrs      0.9729727784
+    ## snp_wrs.TC.snp_wrs.6                                   snp_wrs      0.9186533766
+    ## snp_wrs.TC.snp_wrs.7                                   snp_wrs      0.9729727784
+    ## snp_wrs.TC.snp_wrs.8                                   snp_wrs      0.6417328799
+    ## snp_wrs.TC.snp_wrs.9                                   snp_wrs      0.9186533766
+    ## snp_wrs.TC.snp_wrs.10                                  snp_wrs      0.6417328799
+    ## snp_wrs.TC.snp_wrs.11                                  snp_wrs      0.9186533766
+    ## snp_wrs.TC.snp_wrs.12                                  snp_wrs      0.9186533766
+    ## snp_wrs.TC.snp_wrs.13                                  snp_wrs      0.9810282016
+    ## snp_wrs.TC.snp_wrs.14                                  snp_wrs      0.9186533766
+    ## snp_wrs.TC.snp_wrs.15                                  snp_wrs      0.6417328799
+    ## snp_wrs.TC.snp_wrs.16                                  snp_wrs      0.9186533766
+    ## snp_wrs.TC.snp_wrs.17                                  snp_wrs      0.6417328799
+    ## snp_wrs.TC.snp_wrs.18                                  snp_wrs      0.9186533766
+    ## snp_wrs.TC.snp_wrs.19                                  snp_wrs      0.6417328799
+    ## snp_wrs.TC.snp_wrs.20                                  snp_wrs      0.9186533766
+    ## snp_wrs.TC.snp_wrs.21                                  snp_wrs      0.9186533766
+    ## snp_wrs.TC.snp_wrs.22                                  snp_wrs      0.6417328799
+    ## snp_wrs.TC.snp_wrs.23                                  snp_wrs      0.9186533766
+    ## snp_wrs.TC.snp_wrs.24                                  snp_wrs      0.9186533766
+    ##                                             p_bonf_within_trait
+    ## peak_accessibility.TC.peak_accessibility.1         1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.2         1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.3         1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.4         1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.5         1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.6         1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.7         1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.8         0.2038274722
+    ## peak_accessibility.TC.peak_accessibility.9         1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.10        1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.11        1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.12        1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.13        1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.14        1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.15        1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.16        0.0132637578
+    ## peak_accessibility.TC.peak_accessibility.17        1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.18        1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.19        0.0014853132
+    ## peak_accessibility.TC.peak_accessibility.20        1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.21        1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.22        1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.23        1.0000000000
+    ## peak_accessibility.TC.peak_accessibility.24        1.0000000000
+    ## peak_wrs.TC.peak_wrs.1                             1.0000000000
+    ## peak_wrs.TC.peak_wrs.2                             1.0000000000
+    ## peak_wrs.TC.peak_wrs.3                             1.0000000000
+    ## peak_wrs.TC.peak_wrs.4                             1.0000000000
+    ## peak_wrs.TC.peak_wrs.5                             1.0000000000
+    ## peak_wrs.TC.peak_wrs.6                             1.0000000000
+    ## peak_wrs.TC.peak_wrs.7                             1.0000000000
+    ## peak_wrs.TC.peak_wrs.8                             1.0000000000
+    ## peak_wrs.TC.peak_wrs.9                             1.0000000000
+    ## peak_wrs.TC.peak_wrs.10                            1.0000000000
+    ## peak_wrs.TC.peak_wrs.11                            1.0000000000
+    ## peak_wrs.TC.peak_wrs.12                            1.0000000000
+    ## peak_wrs.TC.peak_wrs.13                            1.0000000000
+    ## peak_wrs.TC.peak_wrs.14                            1.0000000000
+    ## peak_wrs.TC.peak_wrs.15                            1.0000000000
+    ## peak_wrs.TC.peak_wrs.16                            0.0008847613
+    ## peak_wrs.TC.peak_wrs.17                            1.0000000000
+    ## peak_wrs.TC.peak_wrs.18                            1.0000000000
+    ## peak_wrs.TC.peak_wrs.19                            1.0000000000
+    ## peak_wrs.TC.peak_wrs.20                            1.0000000000
+    ## peak_wrs.TC.peak_wrs.21                            1.0000000000
+    ## peak_wrs.TC.peak_wrs.22                            1.0000000000
+    ## peak_wrs.TC.peak_wrs.23                            1.0000000000
+    ## peak_wrs.TC.peak_wrs.24                            1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.1           0.2347148670
+    ## snp_accessibility.TC.snp_accessibility.2           1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.3           1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.4           1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.5           1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.6           1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.7           1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.8           0.8444275004
+    ## snp_accessibility.TC.snp_accessibility.9           1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.10          1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.11          1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.12          1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.13          1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.14          1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.15          1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.16          1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.17          0.2681289627
+    ## snp_accessibility.TC.snp_accessibility.18          1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.19          1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.20          1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.21          1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.22          1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.23          1.0000000000
+    ## snp_accessibility.TC.snp_accessibility.24          1.0000000000
+    ## snp_wrs.TC.snp_wrs.1                               1.0000000000
+    ## snp_wrs.TC.snp_wrs.2                               1.0000000000
+    ## snp_wrs.TC.snp_wrs.3                               1.0000000000
+    ## snp_wrs.TC.snp_wrs.4                               1.0000000000
+    ## snp_wrs.TC.snp_wrs.5                               1.0000000000
+    ## snp_wrs.TC.snp_wrs.6                               1.0000000000
+    ## snp_wrs.TC.snp_wrs.7                               1.0000000000
+    ## snp_wrs.TC.snp_wrs.8                               1.0000000000
+    ## snp_wrs.TC.snp_wrs.9                               1.0000000000
+    ## snp_wrs.TC.snp_wrs.10                              1.0000000000
+    ## snp_wrs.TC.snp_wrs.11                              1.0000000000
+    ## snp_wrs.TC.snp_wrs.12                              1.0000000000
+    ## snp_wrs.TC.snp_wrs.13                              1.0000000000
+    ## snp_wrs.TC.snp_wrs.14                              1.0000000000
+    ## snp_wrs.TC.snp_wrs.15                              1.0000000000
+    ## snp_wrs.TC.snp_wrs.16                              1.0000000000
+    ## snp_wrs.TC.snp_wrs.17                              1.0000000000
+    ## snp_wrs.TC.snp_wrs.18                              1.0000000000
+    ## snp_wrs.TC.snp_wrs.19                              1.0000000000
+    ## snp_wrs.TC.snp_wrs.20                              1.0000000000
+    ## snp_wrs.TC.snp_wrs.21                              1.0000000000
+    ## snp_wrs.TC.snp_wrs.22                              1.0000000000
+    ## snp_wrs.TC.snp_wrs.23                              1.0000000000
+    ## snp_wrs.TC.snp_wrs.24                              1.0000000000
+    ## 
+    ## $tissue_cell_type$combined
+    ##    trait                                          group p_snp_accessibility  p_snp_wrs
+    ## 16    TC                      kidney_Ureteric bud cells         0.074766420 0.43276142
+    ## 19    TC                             liver_Hepatoblasts         0.184669910 0.16503224
+    ## 8     TC                           heart_Cardiomyocytes         0.035184479 0.10446017
+    ## 1     TC                   adrenal_Adrenocortical cells         0.009779786 0.12265817
+    ## 17    TC              kidney_Vascular endothelial cells         0.011172040 0.04499966
+    ## 10    TC          intestine_Intestinal epithelial cells         0.130050315 0.12015364
+    ## 15    TC                       kidney_Metanephric cells         0.160309628 0.18717209
+    ## 21    TC                            liver_Myeloid cells         0.564299740 0.65093427
+    ## 3     TC                          adrenal_Stromal cells         0.627228360 0.36856804
+    ## 4     TC                            cerebrum_Astrocytes         0.525386850 0.38672248
+    ## 22    TC               liver_Vascular endothelial cells         0.433090937 0.17952127
+    ## 23    TC lung_Bronchiolar and alveolar epithelial cells         0.602609667 0.70180225
+    ## 11    TC                       intestine_Lymphoid cells         0.391606868 0.58742363
+    ## 24    TC                             lung_Stromal cells         0.822825365 0.56096905
+    ## 12    TC                  intestine_Smooth muscle cells         0.749436324 0.58198901
+    ## 18    TC                            liver_Erythroblasts         0.826656815 0.69667440
+    ## 14    TC                         kidney_Mesangial cells         0.836112648 0.80382170
+    ## 20    TC                           liver_Lymphoid cells         0.513601094 0.78957673
+    ## 7     TC                    cerebrum_Inhibitory neurons         0.850183242 0.92335734
+    ## 13    TC                        intestine_Stromal cells         0.951883333 0.98102820
+    ## 6     TC                    cerebrum_Excitatory neurons         0.838038300 0.79185586
+    ## 9     TC                          intestine_ENS neurons         0.508916311 0.36729209
+    ## 2     TC                       adrenal_Chromaffin cells         0.861443056 0.73519996
+    ## 5     TC           cerebrum_Astrocytes/Oligodendrocytes         0.926708967 0.93243225
+    ##    p_peak_accessibility   p_peak_wrs n_tests_combined     p_cauchy p_cauchy_bh_within_trait
+    ## 16         5.526566e-04 3.686505e-05                4 0.0001381731              0.002965589
+    ## 19         6.188805e-05 5.769048e-02                4 0.0002471324              0.002965589
+    ## 8          8.492811e-03 4.034676e-01                4 0.0255475567              0.137128838
+    ## 1          4.874419e-02 6.706625e-02                4 0.0275158104              0.137128838
+    ## 17         9.094096e-02 5.687058e-02                4 0.0285685079              0.137128838
+    ## 10         9.826321e-02 3.276246e-01                4 0.1390125957              0.556050383
+    ## 15         6.224224e-01 2.630340e-01                4 0.2568565411              0.880650998
+    ## 21         1.470340e-01 2.221950e-01                4 0.3231900515              0.969570155
+    ## 3          4.652182e-01 4.299497e-01                4 0.4722936317              0.976976240
+    ## 4          5.163007e-01 4.759949e-01                4 0.4748997225              0.976976240
+    ## 22         8.036868e-01 5.616596e-01                4 0.4850718245              0.976976240
+    ## 23         4.450122e-01 2.957696e-01                4 0.5117483440              0.976976240
+    ## 11         6.710748e-01 6.120699e-01                4 0.5697486589              0.976976240
+    ## 24         4.424411e-01 7.382741e-01                4 0.6804890815              0.976976240
+    ## 12         6.165824e-01 8.030732e-01                4 0.7072712204              0.976976240
+    ## 18         8.357431e-01 7.401500e-01                4 0.7872096380              0.976976240
+    ## 14         7.688244e-01 7.457474e-01                4 0.7935926973              0.976976240
+    ## 20         9.323145e-01 9.542587e-01                4 0.9040891705              0.976976240
+    ## 7          9.583250e-01 9.444642e-01                4 0.9349682546              0.976976240
+    ## 13         4.504673e-01 1.824117e-01                4 0.9417576415              0.976976240
+    ## 6          9.795375e-01 9.660846e-01                4 0.9548037812              0.976976240
+    ## 9          9.810229e-01 9.812525e-01                4 0.9619444267              0.976976240
+    ## 2          9.882626e-01 9.494602e-01                4 0.9651736255              0.976976240
+    ## 5          9.269520e-01 9.924258e-01                4 0.9769762403              0.976976240
+    ##    p_cauchy_bonf_within_trait
+    ## 16                0.003316153
+    ## 19                0.005931178
+    ## 8                 0.613141360
+    ## 1                 0.660379450
+    ## 17                0.685644190
+    ## 10                1.000000000
+    ## 15                1.000000000
+    ## 21                1.000000000
+    ## 3                 1.000000000
+    ## 4                 1.000000000
+    ## 22                1.000000000
+    ## 23                1.000000000
+    ## 11                1.000000000
+    ## 24                1.000000000
+    ## 12                1.000000000
+    ## 18                1.000000000
+    ## 14                1.000000000
+    ## 20                1.000000000
+    ## 7                 1.000000000
+    ## 13                1.000000000
+    ## 6                 1.000000000
+    ## 9                 1.000000000
+    ## 2                 1.000000000
+    ## 5                 1.000000000
+
+</div>
 
 **Core functions (without YAML)**
 
@@ -865,7 +1771,7 @@ combined <- EPIC2::combine_component_tests(snp_count_fit, snp_wrs_fit, peak_coun
 
 - `tissue_cell_type.component_results.tsv`: 96 rows, covering four components for each of 24 groups.
 - `tissue_cell_type.cauchy_results.tsv`: 24 combined association results.
-- Matching `.rds` files and separate `tissue` tables are also saved. Copies of the result tables are provided in `results/`.
+- Matching `.rds` files are also saved. Copies of the result tables are provided in `results/`.
 
 ``` r
 results <- read.delim("output/05_models/tissue_cell_type.cauchy_results.tsv")
@@ -928,8 +1834,14 @@ The required files depend on the figure. Plotting reads saved results and does n
 EPIC2::run_plot_stage(config, traits = "TC")
 ```
 
+**Core functions (without YAML)**
+
 <details class="epic2-stage-notes" id="executable-examples-by-figure-family">
-<summary>Core functions (without YAML) — show plotting code</summary>
+
+<summary>
+
+Show plotting code by figure family
+</summary>
 
 The examples below rebuild the tutorial figures from saved analysis outputs. Run **Inputs and settings** first, then the figure families you need. All examples are excluded from knitting with `eval=FALSE`.
 
@@ -941,7 +1853,7 @@ The drawing and data-preparation functions are internal EPIC2 helpers, retrieved
 library(EPIC2)
 library(Seurat)
 library(Signac)
-output_dir <- "output"; traits <- "TC"; groupings <- c("tissue_cell_type", "tissue")
+output_dir <- "output"; traits <- "TC"; groupings <- "tissue_cell_type"
 settings <- list(base_size = 13, max_umap_cells = 4788, count_bin_max = 4,
                  ld_heatmap_max_features = 400, wrs_histogram_bins = 50, top_features_per_group = 3, pvalue_cap = 5)
 plot_inputs <- list(output_dir = output_dir, genome = list(build = "hg19"),
@@ -963,8 +1875,8 @@ plots$density_scatter_nCount_TSS <- plot_atac_density_scatter(atac, settings, as
 plot_sizes$density_scatter_nCount_TSS <- c(7.5, 6.5)
 plots$peak_coverage_distribution <- plot_peak_detection_distribution(atac, assay = "ATAC", base_size = 13)
 plot_sizes$peak_coverage_distribution <- c(8, 6)
-plots$UMAP_tissue_and_tissue_cell_type.cellQC.peakQC <- plot_atac_annotation_umap(atac, c("tissue", "tissue_cell_type"), settings)
-plot_sizes$UMAP_tissue_and_tissue_cell_type.cellQC.peakQC <- c(10, 14) # A grid grob containing two panels
+plots$UMAP_tissue_cell_type.cellQC.peakQC <- plot_atac_annotation_umap(atac, "tissue_cell_type", settings) # Default font 10 pt; legend 8 pt
+plot_sizes$UMAP_tissue_cell_type.cellQC.peakQC <- c(9, 9) # One annotation per figure
 ```
 
 **3. GWAS QC**
@@ -1035,7 +1947,7 @@ rm(peak_ld) # Both heatmaps are grid grobs containing full-matrix and off-diagon
 collect_wrs_plot_data <- getFromNamespace("collect_wrs_plot_data", "EPIC2")
 plot_wrs_group_summary <- getFromNamespace("plot_wrs_group_summary", "EPIC2")
 plot_wrs_histogram <- getFromNamespace("plot_wrs_histogram", "EPIC2")
-wrs <- collect_wrs_plot_data(plot_inputs, traits) # Reads both resolutions and both annotation groupings under 04_wrs/
+wrs <- collect_wrs_plot_data(plot_inputs, traits) # Reads SNP and peak results for the selected annotation under 04_wrs/
 for (grouping in groupings) {
   id <- paste0("wrs_group_summary.", grouping)
   plots[[id]] <- plot_wrs_group_summary(wrs$summary, grouping, base_size = 13)
@@ -1121,7 +2033,11 @@ for (id in names(plots)) {
 </details>
 
 <details class="epic2-stage-notes" id="mapping-generated-figures">
-<summary>Mapping generated figures — show functions and filenames</summary>
+
+<summary>
+
+Mapping generated figures — show functions and filenames
+</summary>
 
 Files listed in the same row use the same drawing function; each filename stem has both PNG and PDF versions.
 
@@ -1134,7 +2050,7 @@ Files listed in the same row use the same drawing function; each filename stem h
 | QC metric distributions | `plot_atac_qc_metrics()` | `atac_qc_metric_distributions` |
 | Depth and TSS enrichment | `plot_atac_density_scatter()` | `density_scatter_nCount_TSS` |
 | Peak detection | `plot_peak_detection_distribution()` | `peak_coverage_distribution` |
-| Annotation UMAP | `plot_atac_annotation_umap()` | `UMAP_tissue_and_tissue_cell_type.cellQC.peakQC` |
+| Annotation UMAP | `plot_atac_annotation_umap()` | `UMAP_tissue_cell_type.cellQC.peakQC` |
 
 ###### GWAS QC
 
@@ -1163,20 +2079,20 @@ Files listed in the same row use the same drawing function; each filename stem h
 
 | Figure | Drawing function | Filename stems |
 |:---|:---|:---|
-| Group summaries | `plot_wrs_group_summary()` | `wrs_group_summary.tissue_cell_type`<br>`wrs_group_summary.tissue` |
-| One-sided P-value histograms | `plot_wrs_histogram()` | `TC.snp.tissue_cell_type.onesided_pvalue_hist`<br>`TC.snp.tissue.onesided_pvalue_hist`<br>`TC.peak.tissue_cell_type.onesided_pvalue_hist`<br>`TC.peak.tissue.onesided_pvalue_hist` |
-| Truncated-score histograms | `plot_wrs_histogram()` | `TC.snp.tissue_cell_type.truncated_z_hist`<br>`TC.snp.tissue.truncated_z_hist`<br>`TC.peak.tissue_cell_type.truncated_z_hist`<br>`TC.peak.tissue.truncated_z_hist` |
+| Group summaries | `plot_wrs_group_summary()` | `wrs_group_summary.tissue_cell_type` |
+| One-sided P-value histograms | `plot_wrs_histogram()` | `TC.snp.tissue_cell_type.onesided_pvalue_hist`<br>`TC.peak.tissue_cell_type.onesided_pvalue_hist` |
+| Truncated-score histograms | `plot_wrs_histogram()` | `TC.snp.tissue_cell_type.truncated_z_hist`<br>`TC.peak.tissue_cell_type.truncated_z_hist` |
 | Top-ranked feature dotplots | `plot_top_wrs_dotplot()` | `all_traits.top3_per_group_topSNP_wilcoxon_DotPlot`<br>`all_traits.top3_per_group_topPeak_wilcoxon_DotPlot` |
 
 ###### Association models
 
 | Figure | Drawing function | Filename stems |
 |:---|:---|:---|
-| ACAT dotplots | `plot_cauchy_dotplot()` | `cauchy_tissue_cell_type_dotplot`<br>`cauchy_tissue_dotplot` |
-| Nominal P-value heatmaps | `plot_component_heatmap()` | `cauchy_tissue_cell_type_component_heatmap_nominal`<br>`cauchy_tissue_component_heatmap_nominal` |
-| BH-adjusted heatmaps | `plot_component_heatmap()` | `cauchy_tissue_cell_type_component_heatmap_bh`<br>`cauchy_tissue_component_heatmap_bh` |
-| Bonferroni-adjusted heatmaps | `plot_component_heatmap()` | `cauchy_tissue_cell_type_component_heatmap_bonferroni`<br>`cauchy_tissue_component_heatmap_bonferroni` |
-| Component effect statistics | `plot_component_effect_heatmap()` | `component_effects_tissue_cell_type`<br>`component_effects_tissue` |
+| ACAT dotplots | `plot_cauchy_dotplot()` | `cauchy_tissue_cell_type_dotplot` |
+| Nominal P-value heatmaps | `plot_component_heatmap()` | `cauchy_tissue_cell_type_component_heatmap_nominal` |
+| BH-adjusted heatmaps | `plot_component_heatmap()` | `cauchy_tissue_cell_type_component_heatmap_bh` |
+| Bonferroni-adjusted heatmaps | `plot_component_heatmap()` | `cauchy_tissue_cell_type_component_heatmap_bonferroni` |
+| Component effect statistics | `plot_component_effect_heatmap()` | `component_effects_tissue_cell_type` |
 
 </div>
 
@@ -1193,13 +2109,16 @@ table(figure_manifest$status)
 
     ## 
     ## generated   skipped 
-    ##        37         7
+    ##        27         7
 
 ### Shared requirements for partial runs
 
 <details>
 
-<summary>Configuration, completion records and a partial-run example</summary>
+<summary>
+
+Configuration, completion records and a partial-run example
+</summary>
 
 **Keep completion records and their associated files**
 
@@ -1274,7 +2193,7 @@ How the internal stage helpers map to the core calls
 
 # Selected figures
 
-The completed TC analysis generated **37 figures**, saved as **37 PNG/PDF pairs (74 files in total)**. Browse the complete collection in the [GitHub figures folder](https://github.com/LingxuanZ/EPIC2/tree/main/docs/figures). The table summarizes the complete figure set.
+The completed TC analysis generated **27 figures**, saved as **27 PNG/PDF pairs (54 files in total)**. Browse the complete collection in the [GitHub figures folder](https://github.com/LingxuanZ/EPIC2/tree/main/docs/figures). The table summarizes the complete figure set.
 
 | Figure category | Count | Overview |
 |:---|---:|:---|
@@ -1282,8 +2201,8 @@ The completed TC analysis generated **37 figures**, saved as **37 PNG/PDF pairs 
 | GWAS QC | 2 | SNP retention and coordinate validation. |
 | Accessibility | 6 | Count distributions, feature detection, and SNP/peak accessibility on UMAPs and across cell groups. |
 | Local LD | 3 | LD block sizes, SNP LD and peak covariance heatmaps. |
-| WRS | 12 | SNP/peak P-value and score distributions, cell-group and tissue summaries, and top-ranked features. |
-| Association results | 10 | ACAT associations, nominal and adjusted component-test P-values, and component effect statistics for cell groups and tissues. |
+| WRS | 7 | SNP/peak P-value and score distributions, cell-group summaries, and top-ranked features. |
+| Association results | 5 | ACAT associations, nominal and adjusted component-test P-values, and component effect statistics for cell-type groups. |
 
 **4 selected figures are shown below**, with a PDF link for each figure. Displayed images use files from `figures/`. All generated PNG/PDF files are saved in `output/figures/`.
 
@@ -1293,7 +2212,18 @@ Association P-value color scales span −log10(P) = 0–5.
 
 ### Cell annotations
 
-![Cell annotations](figures/UMAP_tissue_cell_type.cellQC.peakQC.png)\
+<!-- Display-only layout: both viewports reference the unchanged original PNG. -->
+<div class="epic2-cell-annotation-scroll" style="max-width: 100%; overflow-x: auto; margin: 12px 0;">
+<div class="epic2-cell-annotation-layout" style="display: grid; grid-template-columns: minmax(0, 50fr) minmax(0, 50fr); gap: 24px; align-items: center; width: 100%; max-width: 1100px; min-width: 800px;">
+<div class="epic2-cell-umap-viewport" style="position: relative; overflow: hidden; aspect-ratio: 1170 / 1340;">
+<img src="figures/UMAP_tissue_cell_type.cellQC.peakQC.png" alt="Cell annotations UMAP" style="position: absolute; left: -36.75213675%; top: 0.00000000%; width: 169.23076923%; max-width: none; height: auto; display: block;" />
+</div>
+<div class="epic2-cell-legend-viewport" style="position: relative; overflow: hidden; aspect-ratio: 1080 / 610;">
+<img src="figures/UMAP_tissue_cell_type.cellQC.peakQC.png" alt="Cell-type legend" style="position: absolute; left: -42.59259259%; top: -221.31147541%; width: 183.33333333%; max-width: none; height: auto; display: block;" />
+</div>
+</div>
+</div>
+
 UMAP of all supplied cells, colored by tissue–cell-type group. [PDF](figures/UMAP_tissue_cell_type.cellQC.peakQC.pdf)
 
 ## WRS
