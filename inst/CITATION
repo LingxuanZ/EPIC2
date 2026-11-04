@@ -1,6 +1,6 @@
 bibentry(
   bibtype = "Manual",
-  title = "EPIC2: LD-Aware Integration of Single-Cell Chromatin Accessibility and GWAS",
+  title = "EPIC2: integrating single-cell chromatin accessibility with human genetics to identify trait-relevant cell types",
   author = c(person("Lingxuan", "Zhu"), person("Yuchao", "Jiang")),
   year = "2026",
   note = paste("R package version", meta$Version),
