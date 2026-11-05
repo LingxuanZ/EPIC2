@@ -26,10 +26,10 @@ EPIC2_defaults <- function() {
     atac = list(
       assay = "ATAC",
       genome = NULL,
-      tissue_column = "tissue",
       group_column = "tissue_cell_type",
       attach_fragments = FALSE,
       fragment_files = NULL,
+      fragment_group_column = NULL,
       fragment_barcode_column = NULL,
       validate_fragments = TRUE,
       compute_qc_metrics = FALSE,
@@ -98,7 +98,7 @@ EPIC2_defaults <- function() {
       )
     ),
     model = list(
-      groupings = c("tissue_cell_type", "tissue"),
+      groupings = "tissue_cell_type",
       require_all_components = FALSE
     ),
     plots = list(
@@ -303,6 +303,10 @@ read_EPIC2_config <- function(path, check_files = FALSE) {
   path <- assert_file(path, "Configuration file")
   user_config <- yaml::read_yaml(path)
   require_explicit_genome_build(user_config)
+  unknown_atac <- setdiff(names(user_config$atac), c(names(EPIC2_defaults()$atac), "input", "object_name"))
+  if (length(unknown_atac)) {
+    stop("Unknown ATAC option(s): ", paste(unknown_atac, collapse = ", "), call. = FALSE)
+  }
   config <- deep_merge(EPIC2_defaults(), user_config)
   config$.config_file <- path
   config$.config_dir <- dirname(path)
@@ -322,6 +326,10 @@ read_EPIC2_config <- function(path, check_files = FALSE) {
 validate_EPIC2_config <- function(config, check_files = FALSE) {
   config <- normalize_common_genome_config(config)
   errors <- character()
+  unknown_atac <- setdiff(names(config$atac), c(names(EPIC2_defaults()$atac), "input", "object_name"))
+  if (length(unknown_atac)) {
+    errors <- c(errors, paste0("Unknown ATAC option(s): ", paste(unknown_atac, collapse = ", ")))
+  }
   if (is.null(config$atac$input)) errors <- c(errors, "atac.input is required")
   if (length(config$gwas$traits) == 0L) errors <- c(errors, "gwas.traits must contain at least one trait")
   if (is.null(names(config$gwas$traits)) || any(!nzchar(names(config$gwas$traits)))) {
@@ -344,17 +352,27 @@ validate_EPIC2_config <- function(config, check_files = FALSE) {
       errors <- c(errors, paste0("atac.", name, " must be true or false"))
     }
   }
+  fragment_group_column <- config$atac$fragment_group_column
+  if (!is.null(fragment_group_column) && (!is.character(fragment_group_column) ||
+      length(fragment_group_column) != 1L || is.na(fragment_group_column) ||
+      !nzchar(fragment_group_column))) {
+    errors <- c(errors, "atac.fragment_group_column must be null or one metadata column name")
+  }
   if (isTRUE(config$atac$attach_fragments)) {
     fragment_files <- config$atac$fragment_files
     if (!is.list(fragment_files) || !length(fragment_files) || is.null(names(fragment_files)) ||
-        any(!nzchar(names(fragment_files))) ||
+        anyNA(names(fragment_files)) || any(!nzchar(names(fragment_files))) ||
+        anyDuplicated(names(fragment_files)) ||
         any(!vapply(fragment_files, function(path) {
           is.character(path) && length(path) == 1L && !is.na(path) && nzchar(path)
         }, logical(1)))) {
-      errors <- c(
-        errors,
-        "atac.fragment_files must be a named tissue-to-path mapping when attach_fragments is true"
-      )
+      errors <- c(errors, "atac.fragment_files must map unique file labels to paths when attach_fragments is true")
+    }
+    if (length(fragment_files) > 1L && is.null(fragment_group_column)) {
+      errors <- c(errors, paste0(
+        "atac.fragment_group_column is required to match cells to multiple fragment files ",
+        "(for example, sample_id)"
+      ))
     }
   }
   barcode_column <- config$atac$fragment_barcode_column

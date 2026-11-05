@@ -10,7 +10,6 @@ genome:
 atac:
   input: inputs/data/atac.rds
   assay: ATAC
-  tissue_column: null
   group_column: tissue_cell_type
   attach_fragments: no
   compute_qc_metrics: no

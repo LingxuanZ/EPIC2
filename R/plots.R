@@ -18,10 +18,8 @@ run_plot_stage <- function(config, traits = names(config$gwas$traits)) {
   as_figure <- function(plot, width = 10, height = 7) {
     if (is.null(plot)) NULL else publication_figure(plot, width, height)
   }
-  # Include every configured annotation level, saving repeated columns only once.
-  umap_columns <- unique(c(
-    config$atac$tissue_column, config$atac$group_column, config$model$groupings
-  ))
+  # Annotation UMAPs follow the same levels selected for WRS and association tests.
+  umap_columns <- unique(config$model$groupings)
   umap_columns <- umap_columns[!is.na(umap_columns) & nzchar(umap_columns)]
 
   atac_path <- file.path(config$output_dir, "01_atac", "atac.qc.rds")

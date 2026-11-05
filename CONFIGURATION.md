@@ -36,10 +36,10 @@ preprocessing.
 | `atac.object_name` | null | Object name when an `.rda` contains multiple objects. |
 | `atac.assay` | `ATAC` | Chromatin assay name. |
 | `atac.genome` | inherits `genome.build` | Optional legacy declaration; must match the common assembly. |
-| `atac.tissue_column` | `tissue` | Tissue metadata column. |
-| `atac.group_column` | `tissue_cell_type` | Column used for minimum group-size QC. |
+| `atac.group_column` | `tissue_cell_type` | Primary grouping for minimum group-size QC and accessibility plots. |
 | `atac.attach_fragments` | `false` | Attach files listed under `atac.fragment_files`. |
-| `atac.fragment_files` | null | Named tissue-to-fragment-file mapping. |
+| `atac.fragment_files` | null | Named mapping from file labels to fragment paths. |
+| `atac.fragment_group_column` | null | Metadata column matching cells to file labels when attaching fragments. Required for multiple files; a single file covers all cells when omitted. Independent of analysis annotations. |
 | `atac.fragment_barcode_column` | null | Metadata column containing raw fragment-file barcodes when attaching files to renamed cells. |
 | `atac.validate_fragments` | `true` | Ask Signac to validate cell barcodes during attachment. |
 | `atac.compute_qc_metrics` | `false` | Compute nucleosome, TSS, FRIP, and blacklist metrics. |
@@ -56,6 +56,37 @@ preprocessing.
 | `atac.qc.peak_min_cells` | `1` | Minimum number of cells in which a peak is detected. |
 | `atac.qc.peak_autosomes_only` | `true` | Retain peaks on chromosomes 1-22 only. |
 | `atac.qc.peak_remove_blacklist` | `true` | Remove peaks using the Signac blacklist matching `genome.build`. |
+
+A separate tissue annotation is not required. Set `atac.group_column` to the
+metadata column used for group-size QC and `model.groupings` to the annotation
+levels to test. For example, use `group_column: cell_type` and
+`groupings: [cell_type]` for cell-type annotations, or
+`groupings: [cell_type, tissue]` to also test a supplied tissue annotation.
+Annotation UMAPs use only the columns in `model.groupings`. A QC grouping does
+not add an annotation UMAP unless it is also listed there.
+
+When fragment objects are already attached, leave `atac.attach_fragments: false`.
+To attach a single file containing all cells, no file-group column is needed:
+
+```yaml
+atac:
+  attach_fragments: true
+  fragment_files:
+    all_cells: data/fragments.tsv.gz
+```
+
+For multiple files, identify each cell's source using a metadata column whose
+values match the file labels. Sample identifiers need not match any analysis
+annotation. Every cell must have a non-missing file label with a configured path:
+
+```yaml
+atac:
+  attach_fragments: true
+  fragment_group_column: sample_id
+  fragment_files:
+    sample1: data/sample1.fragments.tsv.gz
+    sample2: data/sample2.fragments.tsv.gz
+```
 
 With `atac.compute_qc_metrics: false`, supply `TSS.enrichment`, `FRIP`,
 `nCount_<assay>`, `BlacklistRatio`, and `nucleosome_signal` in the input metadata.
@@ -164,7 +195,7 @@ Other GWAS and reference QC filters still apply.
 | `wrs.balanced.auc_cutoff` | `0.55` | Selection threshold for repeat-pair stability. |
 | `wrs.balanced.stability_frequency_cutoff` | `0.8` | Minimum selected-repeat proportion for a feature to be marked stable. |
 | `wrs.balanced.top_n` | `100` | Top-ranked features compared between repeat pairs. |
-| `model.groupings` | `[tissue_cell_type, tissue]` | Metadata resolutions modeled independently. |
+| `model.groupings` | `[tissue_cell_type]` | Metadata columns analyzed independently by WRS and the association models. Tissue is optional. |
 | `model.require_all_components` | `false` | Combine available valid P-values; set true to require all four components. |
 
 Balanced WRS is optional. For `[500, 1000]`, one analysis samples 500 target

@@ -14,24 +14,56 @@ load_hg19_blacklist <- function() {
   load_genome_blacklist("hg19")
 }
 
-attach_fragment_files <- function(atac, fragment_files, tissue_column, assay = "ATAC",
-                                  validate = TRUE, barcode_column = NULL) {
+attach_fragment_files <- function(atac, fragment_files, fragment_group_column = NULL,
+                                  assay = "ATAC", validate = TRUE, barcode_column = NULL) {
+  if (is.character(fragment_files)) fragment_files <- as.list(fragment_files)
+  if (!is.list(fragment_files) || !length(fragment_files) || is.null(names(fragment_files)) ||
+      anyNA(names(fragment_files)) || any(!nzchar(names(fragment_files))) ||
+      anyDuplicated(names(fragment_files)) ||
+      any(!vapply(fragment_files, function(path) {
+        is.character(path) && length(path) == 1L && !is.na(path) && nzchar(path)
+      }, logical(1)))) {
+    stop("atac.fragment_files must map unique file labels to paths.", call. = FALSE)
+  }
+  if (!is.null(fragment_group_column) && (!is.character(fragment_group_column) ||
+      length(fragment_group_column) != 1L || is.na(fragment_group_column) ||
+      !nzchar(fragment_group_column))) {
+    stop("atac.fragment_group_column must be null or one metadata column name.", call. = FALSE)
+  }
+  if (length(fragment_files) > 1L && is.null(fragment_group_column)) {
+    stop("Multiple fragment files require atac.fragment_group_column to identify each cell's file.",
+         call. = FALSE)
+  }
+  if (!is.null(barcode_column) && (!is.character(barcode_column) ||
+      length(barcode_column) != 1L || is.na(barcode_column) || !nzchar(barcode_column))) {
+    stop("atac.fragment_barcode_column must be null or one metadata column name.", call. = FALSE)
+  }
   require_namespaces(c("Signac", "Seurat"), "fragment attachment")
   metadata <- get_atac_metadata(atac)
-  if (!tissue_column %in% colnames(metadata)) {
-    stop("ATAC metadata column not found: ", tissue_column, call. = FALSE)
+  if (!is.null(barcode_column) && !barcode_column %in% colnames(metadata)) {
+    stop("Fragment barcode metadata column not found: ", barcode_column, call. = FALSE)
   }
-  if (is.null(names(fragment_files)) || any(!nzchar(names(fragment_files)))) {
-    stop("atac.fragment_files must be a named tissue-to-file mapping.", call. = FALSE)
+  if (is.null(fragment_group_column)) {
+    file_labels <- rep(names(fragment_files)[[1L]], nrow(metadata))
+  } else {
+    if (!fragment_group_column %in% colnames(metadata)) {
+      stop("Fragment group metadata column not found: ", fragment_group_column, call. = FALSE)
+    }
+    file_labels <- as.character(metadata[[fragment_group_column]])
+    if (anyNA(file_labels) || any(!nzchar(file_labels))) {
+      stop("Fragment group labels must be non-missing and non-empty for every cell.", call. = FALSE)
+    }
+    missing_files <- setdiff(unique(file_labels), names(fragment_files))
+    if (length(missing_files)) {
+      stop("No fragment file configured for label(s): ", paste(missing_files, collapse = ", "),
+           call. = FALSE)
+    }
   }
 
-  fragments <- lapply(names(fragment_files), function(tissue) {
-    path <- assert_file(fragment_files[[tissue]], paste0("Fragment file for ", tissue))
-    cells <- rownames(metadata)[as.character(metadata[[tissue_column]]) == tissue]
-    if (length(cells) == 0L) stop("No cells found for fragment tissue: ", tissue, call. = FALSE)
-    if (!is.null(barcode_column) && !barcode_column %in% colnames(metadata)) {
-      stop("Fragment barcode metadata column not found: ", barcode_column, call. = FALSE)
-    }
+  fragments <- lapply(names(fragment_files), function(label) {
+    path <- assert_file(fragment_files[[label]], paste0("Fragment file for ", label))
+    cells <- rownames(metadata)[file_labels == label]
+    if (length(cells) == 0L) stop("No cells found for fragment label: ", label, call. = FALSE)
     barcodes <- if (is.null(barcode_column)) cells else as.character(metadata[cells, barcode_column])
     if (anyNA(barcodes) || any(!nzchar(barcodes)) || anyDuplicated(barcodes)) {
       stop("Each fragment file requires unique, non-missing raw barcodes.", call. = FALSE)
@@ -316,7 +348,7 @@ run_atac_stage <- function(config) {
       names(files)
     )
     atac <- attach_fragment_files(
-      atac, files, config$atac$tissue_column, assay,
+      atac, files, fragment_group_column = config$atac$fragment_group_column, assay = assay,
       validate = config$atac$validate_fragments %||% TRUE,
       barcode_column = config$atac$fragment_barcode_column
     )

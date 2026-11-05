@@ -16,7 +16,6 @@ genome:
 atac:
   input: data/atac.with_fragments.rds
   assay: ATAC
-  tissue_column: tissue
   group_column: tissue_cell_type
   attach_fragments: false
   # When attaching files to renamed cells, name the metadata column with raw barcodes.
@@ -106,7 +105,8 @@ wrs:
     top_n: 100
 
 model:
-  groupings: [tissue_cell_type, tissue]
+  # Add other metadata columns here to test additional annotation levels.
+  groupings: [tissue_cell_type]
   # Combine all available valid component P-values.
   require_all_components: false
 

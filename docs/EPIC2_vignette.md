@@ -18,7 +18,6 @@ EPIC2 integrates scATAC-seq accessibility with GWAS summary statistics to test t
 if (!requireNamespace("devtools", quietly = TRUE)) install.packages("devtools")
 devtools::install_github(
   "LingxuanZ/EPIC2",
-  ref = "8d901581e7a8a57379bfa785b0e872fa24120f49",
   upgrade = "never", build_vignettes = FALSE
 )
 ```
@@ -282,7 +281,6 @@ genome:
 atac:
   input: inputs/data/atac.rds
   assay: ATAC
-  tissue_column: null
   group_column: tissue_cell_type
   attach_fragments: no
   compute_qc_metrics: no
@@ -395,12 +393,12 @@ head(atac[[]][, "tissue_cell_type", drop = FALSE])
 
 | Setting | Purpose |
 |:---|:---|
-| `atac.group_column` | Metadata column used for minimum group-size filtering during ATAC QC. This tutorial uses a post-QC object and skips that stage. |
-| `model.groupings` | Metadata columns used for WRS scoring and association tests; each column is analyzed separately. |
+| `atac.group_column` | Primary grouping for minimum group-size filtering and accessibility plots. This tutorial uses a post-QC object and skips ATAC QC. |
+| `model.groupings` | Metadata columns used for WRS scoring, association tests and annotation UMAPs; each column is analyzed separately. |
 
 </div>
 
-The supplied configuration uses `model.groupings: [tissue_cell_type]` and `atac.tissue_column: null`. Only the 24 cell-type groups are tested and shown; no separate tissue-level analysis is run.
+The supplied configuration uses `model.groupings: [tissue_cell_type]`. Only the 24 cell-type groups are tested and shown. A separate tissue annotation is optional: include `tissue` in `model.groupings` to analyze it as an additional annotation level, provided that column exists in the metadata. Annotation UMAPs use only the columns selected in `model.groupings`.
 
 ## Choose annotation levels for your own data
 
@@ -422,7 +420,6 @@ project:
   output_dir: output_annotation_levels
 atac:
   input: inputs/data/atac_with_levels.rds
-  tissue_column: null
   group_column: tissue_cell_type
 model:
   groupings: [tissue_cell_type, broader_cell_type]
@@ -445,7 +442,6 @@ project:
   output_dir: output_broader_cell_type
 atac:
   input: inputs/data/atac_with_levels.rds
-  tissue_column: null
   group_column: broader_cell_type
 model:
   groupings: [broader_cell_type]
@@ -598,7 +594,6 @@ To change these thresholds, edit `atac.qc` in the configuration YAML. For your o
 atac:
   input: data/atac_before_qc.rds
   assay: ATAC
-  tissue_column: null
   group_column: tissue_cell_type
   attach_fragments: false
   fragment_barcode_column: null
