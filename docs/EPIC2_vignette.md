@@ -2787,8 +2787,6 @@ BH-adjusted P-values for the four components and ACAT; stars indicate displayed 
 
 Because this tutorial uses a sampled subset of real scATAC-seq data, with up to 200 cells per tissue–cell-type group, the BH-adjusted results shown here may differ slightly from the manuscript results obtained using the complete dataset. The main enrichment signals remain consistent.
 
-The full data used in the manuscript are available on [Dropbox](https://www.dropbox.com/scl/fo/sryw79ywmy7gcty6pbm45/AOkzY5IFfC20oXzgY2vxoqM?rlkey=drrktk7uumyazina4woawdgl7&st=ino5s6so&dl=0).
-
 # Expected outputs
 
 Stage outputs are saved beneath `project.output_dir` (`output/` in this tutorial). Directory contents depend on the stages run and options enabled. See [Run one stage at a time](#stage-inputs-and-outputs) for each stage’s required inputs and detailed outputs.
