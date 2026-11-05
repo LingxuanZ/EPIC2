@@ -1,8 +1,8 @@
 # EPIC2
 
-**LD-aware integration of GWAS and single-cell chromatin accessibility**
+**Integrating single-cell chromatin accessibility with human genetics to identify trait-relevant cell types**
 
-EPIC2 integrates GWAS summary statistics, reference genotypes, and single-cell or single-nucleus ATAC-seq data to test associations between traits and annotated cell groups. It fits four LD-adjusted models using SNP- and peak-level accessibility counts and Wilcoxon rank-sum (WRS) scores, then combines their P-values with the aggregated Cauchy association test (ACAT).
+EPIC2 is an R package for prioritizing trait-relevant cell types by integrating GWAS summary statistics with single-cell or single-nucleus ATAC-seq data. It accounts for linkage disequilibrium (LD) in four association models at SNP and regulatory-peak resolutions, using library-size-adjusted accessibility counts or cell-type-specific Wilcoxon rank-sum (WRS) test Z-scores. For each trait–cell-type pair, it combines the four nominal one-sided P-values with equal weights using the Cauchy combination test to obtain an omnibus P-value.
 
 [Installation](#installation) · [Vignette](#vignette)  · [Methods](METHODS.md)
 

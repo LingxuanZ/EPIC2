@@ -45,7 +45,7 @@ The analysis also requires Seurat, Signac ([Stuart et al. 2021](#ref-stuart2021s
 
 This tutorial uses **a sampled subset of real scATAC-seq data from human fetal tissues** ([Domcke et al. 2020](#ref-domcke2020human)), together with real TC GWAS summary statistics ([<span class="nocase">Willer et al.</span> 2013](#ref-willer2013lipids)) and reference genotypes ([1000 Genomes Project Consortium 2015](#ref-auton2015global)). The tutorial combines TC GWAS summary statistics for **63,867 input SNPs** with LD-reference genotypes for these SNPs from **503 individuals**. The scATAC-seq dataset contains **4,788 sampled cells** in **24 tissue–cell-type groups** across **seven human fetal tissues**, with **915,345 post-QC peaks**. All genomic coordinates use **hg19/GRCh37**. For the scATAC-seq inputs, both cells and peaks had undergone QC. Cells were sampled at **up to 200 per group**. All SNPs meeting the GWAS input-selection criteria were retained without SNP subsampling. The GWAS inputs have already undergone LD pruning and ambiguous-variant removal, and include variants with valid statistics, a reference-genotype match and overlap with accessible autosomal peaks.
 
-# Prepare inputs and configure EPIC2
+# Inputs and configuration
 
 ## Required input files
 
@@ -62,6 +62,7 @@ For the stage-based workflow, EPIC2 requires GWAS summary statistics, an annotat
 <col class="input-type-col" />
 
 <col class="input-file-col" />
+
 <col class="input-formats-col" />
 
 <col class="input-contents-col" />
@@ -81,7 +82,11 @@ Input category
 
 Example file
 </th>
-<th scope="col">Supported file formats</th>
+
+<th scope="col">
+
+Supported file formats
+</th>
 
 <th scope="col">
 
@@ -110,7 +115,11 @@ ATAC object
 
 <code>inputs/<wbr>data/<wbr>atac.rds</code>
 </td>
-<td class="input-formats"><code>.rds</code>, <code>.rda</code>, <code>.RData</code></td>
+
+<td class="input-formats">
+
+<code>.rds</code>, <code>.rda</code>, <code>.RData</code>
+</td>
 
 <td>
 
@@ -130,7 +139,11 @@ Fragments
 
 <code>inputs/<wbr>data/<wbr>fragments.tsv.gz</code> and its <code>.tbi</code> index
 </td>
-<td class="input-formats">BGZF-compressed fragments (usually <code>.tsv.gz</code>) with a <code>.tbi</code> or <code>.csi</code> index.</td>
+
+<td class="input-formats">
+
+BGZF-compressed fragments (usually <code>.tsv.gz</code>) with a <code>.tbi</code> or <code>.csi</code> index.
+</td>
 
 <td>
 
@@ -150,7 +163,11 @@ GWAS
 
 <code>inputs/<wbr>data/<wbr>gwas/<wbr>TC.rds</code>
 </td>
-<td class="input-formats"><code>.rds</code>, <code>.rda</code>, <code>.RData</code><br><code>.csv</code>, <code>.csv.gz</code><br><code>.tsv</code>, <code>.tsv.gz</code><br><code>.txt</code>, <code>.txt.gz</code></td>
+
+<td class="input-formats">
+
+<code>.rds</code>, <code>.rda</code>, <code>.RData</code><br><code>.csv</code>, <code>.csv.gz</code><br><code>.tsv</code>, <code>.tsv.gz</code><br><code>.txt</code>, <code>.txt.gz</code>
+</td>
 
 <td>
 
@@ -170,7 +187,11 @@ Reference genotypes
 
 <code>inputs/<wbr>data/<wbr>genotypes/<wbr>TC.rds</code>
 </td>
-<td class="input-formats"><code>.rds</code>, <code>.rda</code>, <code>.RData</code><br><code>.csv</code>, <code>.csv.gz</code><br><code>.tsv</code>, <code>.tsv.gz</code><br><code>.txt</code>, <code>.txt.gz</code></td>
+
+<td class="input-formats">
+
+<code>.rds</code>, <code>.rda</code>, <code>.RData</code><br><code>.csv</code>, <code>.csv.gz</code><br><code>.tsv</code>, <code>.tsv.gz</code><br><code>.txt</code>, <code>.txt.gz</code>
+</td>
 
 <td>
 
@@ -194,7 +215,11 @@ Configuration
 
 <a href="config.yml"><code>config.yml</code></a>
 </td>
-<td class="input-formats">YAML text (usually <code>.yml</code> or <code>.yaml</code>).</td>
+
+<td class="input-formats">
+
+YAML text (usually <code>.yml</code> or <code>.yaml</code>).
+</td>
 
 <td>
 
@@ -210,13 +235,34 @@ A YAML file required for the stage-based workflow, defining input paths and anal
 </div>
 
 <details class="epic2-stage-notes">
-<summary>File-format notes</summary>
+
+<summary>
+
+File-format notes
+</summary>
 
 <ul>
-<li>Use comma-delimited CSV or tab-delimited TSV/TXT files with column headers. For <code>.csv.gz</code>, <code>.tsv.gz</code> and <code>.txt.gz</code>, reading through <code>data.table::fread()</code> requires <code>R.utils</code>; install it or decompress the files first.</li>
-<li>For multi-object <code>.rda</code>/<code>.RData</code> files, specify <code>atac.object_name</code>, <code>gwas.traits.&lt;trait&gt;.summary_object</code> or <code>gwas.traits.&lt;trait&gt;.genotype_object</code>, as appropriate.</li>
-<li>For genotype tables with variant IDs in a column, set <code>gwas.genotype_variant_id_column</code> to that column name. Use unique variant IDs so EPIC2 can match them to the GWAS.</li>
-<li>PLINK, VCF, BGEN and GDS files are not read directly; export their genotypes to a supported matrix or table first.</li>
+
+<li>
+
+Use comma-delimited CSV or tab-delimited TSV/TXT files with column headers. For <code>.csv.gz</code>, <code>.tsv.gz</code> and <code>.txt.gz</code>, reading through <code>data.table::fread()</code> requires <code>R.utils</code>; install it or decompress the files first.
+</li>
+
+<li>
+
+For multi-object <code>.rda</code>/<code>.RData</code> files, specify <code>atac.object_name</code>, <code>gwas.traits.\<trait\>.summary_object</code> or <code>gwas.traits.\<trait\>.genotype_object</code>, as appropriate.
+</li>
+
+<li>
+
+For genotype tables with variant IDs in a column, set <code>gwas.genotype_variant_id_column</code> to that column name. Use unique variant IDs so EPIC2 can match them to the GWAS.
+</li>
+
+<li>
+
+PLINK, VCF, BGEN and GDS files are not read directly; export their genotypes to a supported matrix or table first.
+</li>
+
 </ul>
 
 </details>
@@ -249,7 +295,7 @@ untar(archive, files = input_files, exdir = "inputs")
 
 Keep the full post-QC peak-by-cell counts in the chromatin assay’s `counts` layer, with genomic peak IDs such as `chr1-100-200` and cell names matching the metadata. EPIC2 derives library-size scaling from the full autosomal peak counts. The assay is named `ATAC` in this tutorial; another name can be selected with `atac.assay`, with matching changes to explicit assay names in the example code.
 
-UMAP coordinates are only needed for plotting. Retain the Seurat object's `umap` reduction to reproduce the tutorial’s UMAP figures.
+UMAP coordinates are only needed for plotting. Retain the Seurat object’s `umap` reduction to reproduce the tutorial’s UMAP figures.
 
 ### Minimum metadata for analysis
 
@@ -281,7 +327,11 @@ head(atac[[]][, "tissue_cell_type", drop = FALSE])
 See [Choose annotation levels for your own data (optional)](#choose-annotation-levels-for-your-own-data-optional) for additional annotation levels.
 
 <details class="epic2-stage-notes">
-<summary>Additional metadata depends on the workflow</summary>
+
+<summary>
+
+Additional metadata depends on the workflow
+</summary>
 
 <div class="epic2-stage-map">
 
@@ -790,10 +840,10 @@ EPIC2::run_gwas_stage(config, gwas_name = "TC")
 
     ## $TC
     ## $TC$gwas
-    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_gwas/TC.gwas.rds"
+    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_gwas/TC.gwas.rds"
     ## 
     ## $TC$genotype
-    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_gwas/TC.genotype.rds"
+    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_gwas/TC.genotype.rds"
 
 **Core functions (without YAML)**
 
@@ -876,19 +926,19 @@ EPIC2::run_accessibility_stage(config, traits = "TC")
 
     ## $TC
     ## $TC$snp
-    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.snp_by_cell.rds"
+    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_accessibility/TC.snp_by_cell.rds"
     ## 
     ## $TC$peak
-    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.peak_by_cell.rds"
+    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_accessibility/TC.peak_by_cell.rds"
     ## 
     ## $TC$overlap
-    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.snp_peak_overlap.tsv"
+    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_accessibility/TC.snp_peak_overlap.tsv"
     ## 
     ## $TC$genotype
-    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.snp_genotype.rds"
+    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_accessibility/TC.snp_genotype.rds"
     ## 
     ## $TC$genome_qc
-    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.genome_qc.tsv"
+    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_accessibility/TC.genome_qc.tsv"
 
 **Core functions (without YAML)**
 
@@ -994,16 +1044,16 @@ EPIC2::run_ld_stage(config, traits = "TC")
 
     ## $TC
     ## $TC$snp_sigma
-    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/03_ld/TC.snp_sigma.rds"
+    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/03_ld/TC.snp_sigma.rds"
     ## 
     ## $TC$snp_inverse
-    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/03_ld/TC.snp_inverse_sqrt.rds"
+    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/03_ld/TC.snp_inverse_sqrt.rds"
     ## 
     ## $TC$snp_blocks
-    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/03_ld/TC.snp_blocks.rds"
+    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/03_ld/TC.snp_blocks.rds"
     ## 
     ## $TC$peak_model
-    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/03_ld/TC.peak_ld_model.rds"
+    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/03_ld/TC.peak_ld_model.rds"
 
 **Core functions (without YAML)**
 
@@ -1149,10 +1199,10 @@ EPIC2::run_wrs_stage(config, traits = "TC")
 ```
 
     ## $TC.snp.tissue_cell_type
-    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/04_wrs/TC.snp.tissue_cell_type.rds"
+    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/04_wrs/TC.snp.tissue_cell_type.rds"
     ## 
     ## $TC.peak.tissue_cell_type
-    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/04_wrs/TC.peak.tissue_cell_type.rds"
+    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/04_wrs/TC.peak.tissue_cell_type.rds"
 
 **Core functions (without YAML)**
 
@@ -2693,15 +2743,25 @@ Association P-value color scales span −log10(P) = 0–5.
 ### Cell annotations
 
 <!-- Display-only layout: both viewports reference the unchanged original PNG. -->
+
 <div class="epic2-cell-annotation-scroll" style="max-width: 100%; overflow-x: auto; margin: 12px 0;">
+
 <div class="epic2-cell-annotation-layout" style="display: grid; grid-template-columns: minmax(0, 50fr) minmax(0, 50fr); gap: 24px; align-items: center; width: 100%; max-width: 1100px; min-width: 800px;">
+
 <div class="epic2-cell-umap-viewport" style="position: relative; overflow: hidden; aspect-ratio: 1170 / 1340;">
+
 <img src="figures/UMAP_tissue_cell_type.cellQC.peakQC.png" alt="Cell annotations UMAP" style="position: absolute; left: -36.75213675%; top: 0.00000000%; width: 169.23076923%; max-width: none; height: auto; display: block;" />
+
 </div>
+
 <div class="epic2-cell-legend-viewport" style="position: relative; overflow: hidden; aspect-ratio: 1080 / 610;">
+
 <img src="figures/UMAP_tissue_cell_type.cellQC.peakQC.png" alt="Cell-type legend" style="position: absolute; left: -42.59259259%; top: -221.31147541%; width: 183.33333333%; max-width: none; height: auto; display: block;" />
+
 </div>
+
 </div>
+
 </div>
 
 UMAP of all supplied cells, colored by tissue–cell-type group. [PDF](figures/UMAP_tissue_cell_type.cellQC.peakQC.pdf)
@@ -2731,11 +2791,9 @@ The full data used in the manuscript are available on [Dropbox](https://www.drop
 
 # Expected outputs
 
-Stage outputs are saved beneath `project.output_dir` (`output/` in this tutorial).
-Directory contents depend on the stages run and options enabled. See
-[Run one stage at a time](#stage-inputs-and-outputs) for each stage's required inputs and detailed outputs.
+Stage outputs are saved beneath `project.output_dir` (`output/` in this tutorial). Directory contents depend on the stages run and options enabled. See [Run one stage at a time](#stage-inputs-and-outputs) for each stage’s required inputs and detailed outputs.
 
-```text
+``` text
 output/
 ├── 01_atac/             # ATAC checkpoint; QC summaries if QC is run
 ├── 02_gwas/             # Matched GWAS, genotypes and QC records
@@ -2750,15 +2808,14 @@ output/
 └── run_history/         # Per-invocation settings and session manifests
 ```
 
-**Run records:** The final four entries are written by `run_EPIC2()`.
-The individual `run_*_stage()` calls used during this knit do not create these global run records.
+**Run records:** The final four entries are written by `run_EPIC2()`. The individual `run_*_stage()` calls used during this knit do not create these global run records.
 
 In the filenames below, `<grouping>` is `tissue_cell_type` for this tutorial.
 
 <div class="epic2-input-table">
 
 | Main file | Contents |
-|:--|:--|
+|:---|:---|
 | [`05_models/<grouping>.component_results.tsv`](#outputs-in-output05_models) | Focal coefficient estimates, standard errors, P-values and model statuses. |
 | [`05_models/<grouping>.cauchy_results.tsv`](#outputs-in-output05_models) | Component P-values, `p_cauchy`, number of tests combined and adjusted P-values. |
 | [`figures/figure_manifest.tsv`](#outputs-in-outputfigures) | Figure paths and `generated`, `skipped` or `error` status. |
@@ -2767,7 +2824,7 @@ In the filenames below, `<grouping>` is `tissue_cell_type` for this tutorial.
 
 </div>
 
-The tutorial's separate `results/` and `figures/` folders contain copies of result tables and figures.
+The tutorial’s separate `results/` and `figures/` folders contain copies of result tables and figures.
 
 # Session information
 
@@ -2775,75 +2832,73 @@ The tutorial's separate `results/` and `figures/` folders contain copies of resu
 sessionInfo()
 ```
 
-```
-## R version 4.6.0 (2026-04-24)
-## Platform: aarch64-apple-darwin23
-## Running under: macOS Tahoe 26.7.2
-## 
-## Matrix products: default
-## BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
-## LAPACK: /Library/Frameworks/R.framework/Versions/4.6/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
-## 
-## locale:
-## [1] C.UTF-8/C.UTF-8/C.UTF-8/C/C.UTF-8/C.UTF-8
-## 
-## time zone: America/Chicago
-## tzcode source: internal
-## 
-## attached base packages:
-## [1] stats     graphics  grDevices utils     datasets  methods   base     
-## 
-## other attached packages:
-## [1] Signac_1.17.1      EPIC2_0.3.0        Seurat_5.5.0       SeuratObject_5.4.0
-## [5] sp_2.2-1          
-## 
-## loaded via a namespace (and not attached):
-##   [1] RColorBrewer_1.1-3       jsonlite_2.0.0           magrittr_2.0.5          
-##   [4] spatstat.utils_3.2-2     farver_2.1.2             rmarkdown_2.31          
-##   [7] ragg_1.5.2               vctrs_0.7.3              ROCR_1.0-12             
-##  [10] Rsamtools_2.28.0         spatstat.explore_3.8-0   RcppRoll_0.3.2          
-##  [13] htmltools_0.5.9          sass_0.4.10              sctransform_0.4.3       
-##  [16] parallelly_1.47.0        KernSmooth_2.23-26       bslib_0.10.0            
-##  [19] htmlwidgets_1.6.4        ica_1.0-3                plyr_1.8.9              
-##  [22] plotly_4.12.0            zoo_1.8-15               cachem_1.1.0            
-##  [25] igraph_2.3.1             mime_0.13                lifecycle_1.0.5         
-##  [28] pkgconfig_2.0.3          Matrix_1.7-5             R6_2.6.1                
-##  [31] fastmap_1.2.0            MatrixGenerics_1.24.0    fitdistrplus_1.2-6      
-##  [34] future_1.70.0            shiny_1.13.0             digest_0.6.39           
-##  [37] patchwork_1.3.2          S4Vectors_0.50.1         tensor_1.5.1            
-##  [40] RSpectra_0.16-2          irlba_2.3.7              textshaping_1.0.5       
-##  [43] GenomicRanges_1.64.0     labeling_0.4.3           progressr_0.19.0        
-##  [46] spatstat.sparse_3.1-0    httr_1.4.8               polyclip_1.10-7         
-##  [49] abind_1.4-8              compiler_4.6.0           withr_3.0.2             
-##  [52] S7_0.2.2                 BiocParallel_1.46.0      fastDummies_1.7.6       
-##  [55] MASS_7.3-65              tools_4.6.0              lmtest_0.9-40           
-##  [58] otel_0.2.0               httpuv_1.6.17            future.apply_1.20.2     
-##  [61] goftest_1.2-3            glue_1.8.1               nlme_3.1-169            
-##  [64] promises_1.5.0           grid_4.6.0               Rtsne_0.17              
-##  [67] cluster_2.1.8.2          reshape2_1.4.5           generics_0.1.4          
-##  [70] gtable_0.3.6             spatstat.data_3.1-9      tidyr_1.3.2             
-##  [73] data.table_1.18.4        XVector_0.52.0           BiocGenerics_0.58.1     
-##  [76] spatstat.geom_3.7-3      RcppAnnoy_0.0.23         ggrepel_0.9.8           
-##  [79] RANN_2.6.2               pillar_1.11.1            stringr_1.6.0           
-##  [82] spam_2.11-3              RcppHNSW_0.6.0           later_1.4.8             
-##  [85] splines_4.6.0            dplyr_1.2.1              lattice_0.22-9          
-##  [88] survival_3.8-6           deldir_2.0-4             tidyselect_1.2.1        
-##  [91] Biostrings_2.80.1        miniUI_0.1.2             pbapply_1.7-4           
-##  [94] knitr_1.51               gridExtra_2.3            IRanges_2.46.0          
-##  [97] Seqinfo_1.2.0            scattermore_1.2          stats4_4.6.0            
-## [100] xfun_0.57                matrixStats_1.5.0        stringi_1.8.7           
-## [103] UCSC.utils_1.8.0         lazyeval_0.2.3           yaml_2.3.12             
-## [106] evaluate_1.0.5           codetools_0.2-20         tibble_3.3.1            
-## [109] cli_3.6.6                uwot_0.2.4               systemfonts_1.3.2       
-## [112] xtable_1.8-8             reticulate_1.46.0        jquerylib_0.1.4         
-## [115] Rcpp_1.1.1-1.1           GenomeInfoDb_1.48.0      globals_0.19.1          
-## [118] spatstat.random_3.4-5    png_0.1-9                spatstat.univar_3.1-7   
-## [121] parallel_4.6.0           ggplot2_4.0.3            presto_1.1.0            
-## [124] dotCall64_1.2            sparseMatrixStats_1.24.0 bitops_1.0-9            
-## [127] listenv_0.10.1           viridisLite_0.4.3        scales_1.4.0            
-## [130] ggridges_0.5.7           crayon_1.5.3             purrr_1.2.2             
-## [133] rlang_1.2.0              fastmatch_1.1-8          cowplot_1.2.0
-```
+    ## R version 4.6.0 (2026-04-24)
+    ## Platform: aarch64-apple-darwin23
+    ## Running under: macOS Tahoe 26.7.2
+    ## 
+    ## Matrix products: default
+    ## BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+    ## LAPACK: /Library/Frameworks/R.framework/Versions/4.6/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
+    ## 
+    ## locale:
+    ## [1] C.UTF-8/C.UTF-8/C.UTF-8/C/C.UTF-8/C.UTF-8
+    ## 
+    ## time zone: America/Chicago
+    ## tzcode source: internal
+    ## 
+    ## attached base packages:
+    ## [1] stats     graphics  grDevices utils     datasets  methods   base     
+    ## 
+    ## other attached packages:
+    ## [1] Signac_1.17.1      EPIC2_0.3.0        Seurat_5.5.0       SeuratObject_5.4.0
+    ## [5] sp_2.2-1          
+    ## 
+    ## loaded via a namespace (and not attached):
+    ##   [1] RColorBrewer_1.1-3       jsonlite_2.0.0           magrittr_2.0.5          
+    ##   [4] spatstat.utils_3.2-2     farver_2.1.2             rmarkdown_2.31          
+    ##   [7] ragg_1.5.2               vctrs_0.7.3              ROCR_1.0-12             
+    ##  [10] Rsamtools_2.28.0         spatstat.explore_3.8-0   RcppRoll_0.3.2          
+    ##  [13] htmltools_0.5.9          sass_0.4.10              sctransform_0.4.3       
+    ##  [16] parallelly_1.47.0        KernSmooth_2.23-26       bslib_0.10.0            
+    ##  [19] htmlwidgets_1.6.4        ica_1.0-3                plyr_1.8.9              
+    ##  [22] plotly_4.12.0            zoo_1.8-15               cachem_1.1.0            
+    ##  [25] igraph_2.3.1             mime_0.13                lifecycle_1.0.5         
+    ##  [28] pkgconfig_2.0.3          Matrix_1.7-5             R6_2.6.1                
+    ##  [31] fastmap_1.2.0            MatrixGenerics_1.24.0    fitdistrplus_1.2-6      
+    ##  [34] future_1.70.0            shiny_1.13.0             digest_0.6.39           
+    ##  [37] patchwork_1.3.2          S4Vectors_0.50.1         tensor_1.5.1            
+    ##  [40] RSpectra_0.16-2          irlba_2.3.7              textshaping_1.0.5       
+    ##  [43] GenomicRanges_1.64.0     labeling_0.4.3           progressr_0.19.0        
+    ##  [46] spatstat.sparse_3.1-0    httr_1.4.8               polyclip_1.10-7         
+    ##  [49] abind_1.4-8              compiler_4.6.0           withr_3.0.2             
+    ##  [52] S7_0.2.2                 BiocParallel_1.46.0      fastDummies_1.7.6       
+    ##  [55] MASS_7.3-65              tools_4.6.0              lmtest_0.9-40           
+    ##  [58] otel_0.2.0               httpuv_1.6.17            future.apply_1.20.2     
+    ##  [61] goftest_1.2-3            glue_1.8.1               nlme_3.1-169            
+    ##  [64] promises_1.5.0           grid_4.6.0               Rtsne_0.17              
+    ##  [67] cluster_2.1.8.2          reshape2_1.4.5           generics_0.1.4          
+    ##  [70] gtable_0.3.6             spatstat.data_3.1-9      tidyr_1.3.2             
+    ##  [73] data.table_1.18.4        XVector_0.52.0           BiocGenerics_0.58.1     
+    ##  [76] spatstat.geom_3.7-3      RcppAnnoy_0.0.23         ggrepel_0.9.8           
+    ##  [79] RANN_2.6.2               pillar_1.11.1            stringr_1.6.0           
+    ##  [82] spam_2.11-3              RcppHNSW_0.6.0           later_1.4.8             
+    ##  [85] splines_4.6.0            dplyr_1.2.1              lattice_0.22-9          
+    ##  [88] survival_3.8-6           deldir_2.0-4             tidyselect_1.2.1        
+    ##  [91] Biostrings_2.80.1        miniUI_0.1.2             pbapply_1.7-4           
+    ##  [94] knitr_1.51               gridExtra_2.3            IRanges_2.46.0          
+    ##  [97] Seqinfo_1.2.0            scattermore_1.2          stats4_4.6.0            
+    ## [100] xfun_0.57                matrixStats_1.5.0        stringi_1.8.7           
+    ## [103] UCSC.utils_1.8.0         lazyeval_0.2.3           yaml_2.3.12             
+    ## [106] evaluate_1.0.5           codetools_0.2-20         tibble_3.3.1            
+    ## [109] cli_3.6.6                uwot_0.2.4               systemfonts_1.3.2       
+    ## [112] xtable_1.8-8             reticulate_1.46.0        jquerylib_0.1.4         
+    ## [115] Rcpp_1.1.1-1.1           GenomeInfoDb_1.48.0      globals_0.19.1          
+    ## [118] spatstat.random_3.4-5    png_0.1-9                spatstat.univar_3.1-7   
+    ## [121] parallel_4.6.0           ggplot2_4.0.3            presto_1.1.0            
+    ## [124] dotCall64_1.2            sparseMatrixStats_1.24.0 bitops_1.0-9            
+    ## [127] listenv_0.10.1           viridisLite_0.4.3        scales_1.4.0            
+    ## [130] ggridges_0.5.7           crayon_1.5.3             purrr_1.2.2             
+    ## [133] rlang_1.2.0              fastmatch_1.1-8          cowplot_1.2.0
 
 # References
 

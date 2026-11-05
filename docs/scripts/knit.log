@@ -1,0 +1,108 @@
+EPIC2 GitHub commit: 868e4cb91c154eb95d5f34092986e581e7948bf7 
+Package library: /private/tmp/EPIC2-main-knit.5b3mjtw3/lib/EPIC2 
+BLAS: /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+
+
+processing file: EPIC2_vignette.Rmd
+1/97                            
+2/97 [setup]                    
+3/97                            
+4/97 [install]                  
+5/97                            
+6/97 [extract-inputs]           
+7/97                            
+8/97 [inspect-annotations]      
+9/97                            
+10/97 [show-configuration]       
+11/97                            
+12/97 [broader-cell-annotations] 
+13/97                            
+14/97 [run-annotation-levels]    
+15/97                            
+16/97 [multiple-traits]          
+17/97                            
+18/97 [configuration]            
+19/97                            
+20/97 [prepare-atac]             
+21/97                            
+22/97 [run-full-workflow]        
+23/97                            
+24/97 [run-together]             
+25/97                            
+26/97 [rerun-single-stage]       
+27/97                            
+28/97 [optional-atac-qc]         
+29/97                            
+30/97 [core-atac]                
+31/97                            
+32/97 [stage-gwas]               
+33/97                            
+34/97 [core-gwas]                
+35/97                            
+36/97 [check-gwas]               
+37/97                            
+38/97 [stage-accessibility]      
+39/97                            
+40/97 [core-accessibility]       
+41/97                            
+42/97 [check-accessibility]      
+43/97                            
+44/97 [stage-ld]                 
+45/97                            
+46/97 [core-ld]                  
+47/97                            
+48/97 [check-ld]                 
+49/97                            
+50/97 [stage-wrs]                
+51/97                            
+52/97 [core-wrs]                 
+53/97                            
+54/97 [check-wrs]                
+55/97                            
+56/97 [stage-model]              
+57/97                            
+58/97 [export-results]           
+59/97                            
+60/97 [core-model]               
+61/97                            
+62/97 [read-results]             
+63/97                            
+64/97 [result-preview]           
+65/97                            
+66/97 [component-example]        
+67/97                            
+68/97 [component-example-table]  
+69/97                            
+70/97 [stage-plots]              
+71/97                            
+72/97 [core-plot-settings]       
+73/97                            
+74/97 [core-plot-atac]           
+75/97                            
+76/97 [core-plot-gwas]           
+77/97                            
+78/97 [core-plot-accessibility]  
+79/97                            
+80/97 [core-plot-ld]             
+81/97                            
+82/97 [core-plot-wrs]            
+83/97                            
+84/97 [core-plot-top-features]   
+85/97                            
+86/97 [core-plot-models]         
+87/97                            
+88/97 [core-plot-display-save]   
+89/97                            
+90/97 [check-plots]              
+91/97                            
+92/97 [export-figures]           
+93/97                            
+94/97 [session-information]      
+95/97                            
+96/97 [saved-session-information]
+97/97                            
+output file: EPIC2_vignette.knit.md
+
+/Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/pandoc +RTS -K512m -RTS EPIC2_vignette.knit.md --to html4 --from markdown+autolink_bare_uris+tex_math_single_backslash --output EPIC2_vignette.html --lua-filter /Library/Frameworks/R.framework/Versions/4.6/Resources/library/rmarkdown/rmarkdown/lua/pagebreak.lua --lua-filter /Library/Frameworks/R.framework/Versions/4.6/Resources/library/rmarkdown/rmarkdown/lua/latex-div.lua --lua-filter /Library/Frameworks/R.framework/Versions/4.6/Resources/library/rmarkdown/rmarkdown/lua/table-classes.lua --embed-resources --standalone --mathml --variable bs3=TRUE --section-divs --table-of-contents --toc-depth 4 --variable toc_float=1 --variable toc_selectors=h1,h2,h3,h4 --variable toc_collapsed=1 --variable toc_smooth_scroll=1 --variable toc_print=1 --template /Library/Frameworks/R.framework/Versions/4.6/Resources/library/rmarkdown/rmd/h/default.html --syntax-highlighting none --variable highlightjs=1 --variable theme=readable --css vignette.css --include-in-header /var/folders/x4/9m3wy3w53gxc40c26h6l_l7w0000gp/T//RtmpWCKu7Z/rmarkdown-str80bc6f3e5f00.html --citeproc 
+
+Output created: EPIC2_vignette.html

@@ -93,7 +93,7 @@ All SNPs meeting the GWAS input-selection criteria were retained without SNP sub
 and ambiguous-variant removal, and include variants with valid statistics,
 a reference-genotype match and overlap with accessible autosomal peaks.
 
-# Prepare inputs and configure EPIC2
+# Inputs and configuration
 
 ## Required input files
 

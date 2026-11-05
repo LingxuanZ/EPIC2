@@ -110,3 +110,18 @@
   .main-container h2 { font-size: 23px; }
   .main-container h3 { font-size: 20px; }
 }
+
+.main-container pre {
+  padding: 12px 14px;
+  line-height: 1.55;
+  overflow-x: auto;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+.main-container pre code,
+.main-container .epic2-stage-notes pre code {
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+}

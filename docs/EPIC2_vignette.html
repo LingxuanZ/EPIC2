@@ -1679,8 +1679,8 @@ inputs have already undergone LD pruning and ambiguous-variant removal,
 and include variants with valid statistics, a reference-genotype match
 and overlap with accessible autosomal peaks.</p>
 </div>
-<div id="prepare-inputs-and-configure-epic2" class="section level1">
-<h1>Prepare inputs and configure EPIC2</h1>
+<div id="inputs-and-configuration" class="section level1">
+<h1>Inputs and configuration</h1>
 <div id="required-input-files" class="section level2">
 <h2>Required input files</h2>
 <p>For the stage-based workflow, EPIC2 requires GWAS summary statistics,
@@ -1804,9 +1804,8 @@ YAML text (usually <code>.yml</code> or <code>.yaml</code>).
 </td>
 <td>
 A YAML file required for the stage-based workflow, defining input paths
-and analysis settings. See
-<a href="#configure-the-analysis">Configure the analysis</a> for this
-tutorial’s complete settings.
+and analysis settings. See <a href="#configure-the-analysis">Configure
+the analysis</a> for this tutorial’s complete settings.
 </td>
 </tr>
 </tbody>
@@ -1845,7 +1844,9 @@ assembly</strong> (<strong>hg19/GRCh37</strong> here); setting
 <code>genome.build</code> does not convert coordinates. Reference
 variant IDs must match GWAS <code>rsid</code> values, and genotype
 dosage must count the GWAS effect allele (<code>A1</code>).</p>
-<p>Extract the example data into <code>inputs/data/</code> with the following code. If you downloaded the archive manually, place it in <code>inputs/</code> first.</p>
+<p>Extract the example data into <code>inputs/data/</code> with the
+following code. If you downloaded the archive manually, place it in
+<code>inputs/</code> first.</p>
 <pre class="r"><code>dir.create(&quot;inputs&quot;, showWarnings = FALSE)
 archive &lt;- &quot;inputs/EPIC2_inputs_TC_SCZ_all_snps_raw.tar.gz&quot;
 if (!file.exists(archive)) {
@@ -1873,7 +1874,8 @@ assay is named <code>ATAC</code> in this tutorial; another name can be
 selected with <code>atac.assay</code>, with matching changes to explicit
 assay names in the example code.</p>
 <p>UMAP coordinates are only needed for plotting. Retain the Seurat
-object’s <code>umap</code> reduction to reproduce the tutorial’s UMAP figures.</p>
+object’s <code>umap</code> reduction to reproduce the tutorial’s UMAP
+figures.</p>
 </div>
 <div id="minimum-metadata-for-analysis" class="section level3">
 <h3>Minimum metadata for analysis</h3>
@@ -1884,13 +1886,16 @@ tutorial selects only <code>tissue_cell_type</code>; its labels define
 the groups compared by WRS and tested by the association models. Each
 grouping needs at least two labelled groups; cells with missing labels
 are excluded from that grouping’s analysis.</p>
-<p>A single cell-type annotation column is sufficient for cell-type association testing. A separate tissue annotation column is not required.</p>
+<p>A single cell-type annotation column is sufficient for cell-type
+association testing. A separate tissue annotation column is not
+required.</p>
 <p><code>tissue_cell_type</code> combines tissue and cell-type labels,
 for example <code>liver_Hepatoblasts</code> and
 <code>kidney_Ureteric bud cells</code>. Its 24 groups therefore
-represent <strong>cell types within tissues</strong>. To test a different
-grouping, supply the corresponding per-cell annotations.</p>
-<p>Use the following code to inspect the <code>tissue_cell_type</code> labels in the example data.</p>
+represent <strong>cell types within tissues</strong>. To test a
+different grouping, supply the corresponding per-cell annotations.</p>
+<p>Use the following code to inspect the <code>tissue_cell_type</code>
+labels in the example data.</p>
 <pre class="r"><code>library(Seurat)
 
 # Read
@@ -1904,7 +1909,9 @@ head(atac[[]][, &quot;tissue_cell_type&quot;, drop = FALSE])</code></pre>
 ## C00004 adrenal_Adrenocortical cells
 ## C00005 adrenal_Adrenocortical cells
 ## C00006 adrenal_Adrenocortical cells</code></pre>
-<p>See <a href="#choose-annotation-levels-for-your-own-data-optional">Choose annotation levels for your own data (optional)</a> for additional annotation levels.</p>
+<p>See <a href="#choose-annotation-levels-for-your-own-data-optional">Choose
+annotation levels for your own data (optional)</a> for additional
+annotation levels.</p>
 <details class="epic2-stage-notes">
 <summary>
 Additional metadata depends on the workflow
@@ -1988,9 +1995,13 @@ not skip filtering.</p>
 </div>
 <div id="configure-the-analysis" class="section level2">
 <h2>Configure the analysis</h2>
-<p>The stage-based workflow requires a YAML file (usually <code>.yml</code> or <code>.yaml</code>) that defines input paths and analysis settings.</p>
+<p>The stage-based workflow requires a YAML file (usually
+<code>.yml</code> or <code>.yaml</code>) that defines input paths and
+analysis settings.</p>
 <p><a href="config.yml">Download the complete config.yml for this
-tutorial</a>. The full configuration is shown below. Run the tutorial from the directory containing <code>config.yml</code> and the extracted <code>inputs/</code> folder. Analysis outputs will be saved in
+tutorial</a>. The full configuration is shown below. Run the tutorial
+from the directory containing <code>config.yml</code> and the extracted
+<code>inputs/</code> folder. Analysis outputs will be saved in
 <code>output/</code> under that directory.</p>
 <p>The scATAC-seq and GWAS inputs have undergone upstream QC, so this
 tutorial skips ATAC QC and does not repeat GWAS LD pruning or
@@ -2399,8 +2410,8 @@ them</strong>, run the <code>readRDS()</code>, <code>read.delim()</code>
 and inspection code provided with each stage. Calling
 <code>run_*_stage()</code> actually reruns that stage.</p>
 </details>
-</div>
 <p><a id="atac-qc"></a></p>
+</div>
 <div id="atac-processing-and-qc-optional" class="section level3">
 <h3>2.1 ATAC processing and QC (optional)</h3>
 <p><strong>This step is not run in this tutorial because the supplied
@@ -2617,10 +2628,10 @@ reducing unnecessary downstream computation.</li>
 <pre class="r"><code>EPIC2::run_gwas_stage(config, gwas_name = &quot;TC&quot;)</code></pre>
 <pre><code>## $TC
 ## $TC$gwas
-## [1] &quot;/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_gwas/TC.gwas.rds&quot;
+## [1] &quot;/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_gwas/TC.gwas.rds&quot;
 ## 
 ## $TC$genotype
-## [1] &quot;/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_gwas/TC.genotype.rds&quot;</code></pre>
+## [1] &quot;/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_gwas/TC.genotype.rds&quot;</code></pre>
 <p><strong>Core functions (without YAML)</strong></p>
 <pre class="r"><code># Read
 gwas_input &lt;- readRDS(&quot;inputs/data/gwas/TC.rds&quot;) # GWAS summary statistics
@@ -2703,19 +2714,19 @@ metadata.</li>
 <pre class="r"><code>EPIC2::run_accessibility_stage(config, traits = &quot;TC&quot;)</code></pre>
 <pre><code>## $TC
 ## $TC$snp
-## [1] &quot;/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.snp_by_cell.rds&quot;
+## [1] &quot;/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_accessibility/TC.snp_by_cell.rds&quot;
 ## 
 ## $TC$peak
-## [1] &quot;/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.peak_by_cell.rds&quot;
+## [1] &quot;/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_accessibility/TC.peak_by_cell.rds&quot;
 ## 
 ## $TC$overlap
-## [1] &quot;/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.snp_peak_overlap.tsv&quot;
+## [1] &quot;/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_accessibility/TC.snp_peak_overlap.tsv&quot;
 ## 
 ## $TC$genotype
-## [1] &quot;/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.snp_genotype.rds&quot;
+## [1] &quot;/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_accessibility/TC.snp_genotype.rds&quot;
 ## 
 ## $TC$genome_qc
-## [1] &quot;/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.genome_qc.tsv&quot;</code></pre>
+## [1] &quot;/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_accessibility/TC.genome_qc.tsv&quot;</code></pre>
 <p><strong>Core functions (without YAML)</strong></p>
 <pre class="r"><code># Read
 atac &lt;- readRDS(&quot;output/01_atac/atac.qc.rds&quot;) # Peak counts, metadata and attached fragments with .tbi indexes
@@ -2861,16 +2872,16 @@ baseline)</strong> before ordinary least-squares fitting.</p>
 <pre class="r"><code>EPIC2::run_ld_stage(config, traits = &quot;TC&quot;)</code></pre>
 <pre><code>## $TC
 ## $TC$snp_sigma
-## [1] &quot;/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/03_ld/TC.snp_sigma.rds&quot;
+## [1] &quot;/private/tmp/EPIC2-main-knit.5b3mjtw3/output/03_ld/TC.snp_sigma.rds&quot;
 ## 
 ## $TC$snp_inverse
-## [1] &quot;/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/03_ld/TC.snp_inverse_sqrt.rds&quot;
+## [1] &quot;/private/tmp/EPIC2-main-knit.5b3mjtw3/output/03_ld/TC.snp_inverse_sqrt.rds&quot;
 ## 
 ## $TC$snp_blocks
-## [1] &quot;/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/03_ld/TC.snp_blocks.rds&quot;
+## [1] &quot;/private/tmp/EPIC2-main-knit.5b3mjtw3/output/03_ld/TC.snp_blocks.rds&quot;
 ## 
 ## $TC$peak_model
-## [1] &quot;/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/03_ld/TC.peak_ld_model.rds&quot;</code></pre>
+## [1] &quot;/private/tmp/EPIC2-main-knit.5b3mjtw3/output/03_ld/TC.peak_ld_model.rds&quot;</code></pre>
 <p><strong>Core functions (without YAML)</strong></p>
 <p><code>split_sparse_components()</code> is the internal EPIC2 helper
 used by this stage; it groups SNPs using nonzero off-diagonal covariance
@@ -3027,10 +3038,10 @@ selected by <code>model.groupings</code>.</li>
 <p><strong>Stage function (with YAML)</strong></p>
 <pre class="r"><code>EPIC2::run_wrs_stage(config, traits = &quot;TC&quot;)</code></pre>
 <pre><code>## $TC.snp.tissue_cell_type
-## [1] &quot;/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/04_wrs/TC.snp.tissue_cell_type.rds&quot;
+## [1] &quot;/private/tmp/EPIC2-main-knit.5b3mjtw3/output/04_wrs/TC.snp.tissue_cell_type.rds&quot;
 ## 
 ## $TC.peak.tissue_cell_type
-## [1] &quot;/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/04_wrs/TC.peak.tissue_cell_type.rds&quot;</code></pre>
+## [1] &quot;/private/tmp/EPIC2-main-knit.5b3mjtw3/output/04_wrs/TC.peak.tissue_cell_type.rds&quot;</code></pre>
 <p><strong>Core functions (without YAML)</strong></p>
 <p>Set <code>grouping</code> to the metadata column to test. This
 example uses <code>tissue_cell_type</code>; choose another metadata
@@ -5060,8 +5071,8 @@ tests combined and adjusted P-values.</td>
 <td align="left"><code>config.used.yml</code> /
 <code>config.used.rds</code></td>
 <td align="left">Effective configuration, including in-memory overrides;
-written by <code>run_EPIC2()</code>. See <a href="#shared-requirements-for-partial-runs">Shared
-requirements for partial runs</a> for details on when these files are updated.</td>
+written by <code>run_EPIC2()</code>. See <a href="#shared-requirements-for-partial-runs">Shared requirements for
+partial runs</a> for details on when these files are updated.</td>
 </tr>
 <tr class="odd">
 <td align="left"><a href="#shared-requirements-for-partial-runs"><code>run_manifest.txt</code></a></td>
