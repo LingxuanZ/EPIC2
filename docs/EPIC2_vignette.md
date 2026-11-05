@@ -8,6 +8,20 @@ $(function () { $("#header .author, #header .date").addClass("toc-ignore"); });
 
 <style>
 #refs .csl-entry { margin-bottom: 0.75em; }
+.main-container pre {
+  padding: 12px 14px;
+  line-height: 1.55;
+  overflow-x: auto;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+.main-container pre code,
+.main-container .epic2-stage-notes pre code {
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+}
 </style>
 
 EPIC2 integrates scATAC-seq accessibility with GWAS summary statistics to test trait associations in cell groups. This vignette analyzes total cholesterol (**TC**) using all eligible SNPs in the example inputs. To reproduce this example, use the supplied `config.yml` and follow the data preparation steps below.
@@ -18,21 +32,24 @@ EPIC2 integrates scATAC-seq accessibility with GWAS summary statistics to test t
 if (!requireNamespace("devtools", quietly = TRUE)) install.packages("devtools")
 devtools::install_github(
   "LingxuanZ/EPIC2",
-  upgrade = "never", build_vignettes = FALSE
+  upgrade = "never",
+  build_vignettes = FALSE
 )
 ```
 
 The analysis also requires Seurat, Signac ([Stuart et al. 2021](#ref-stuart2021signac)), BiocParallel, Rsamtools and presto ([Korsunsky et al. 2022](#ref-korsunsky2022presto)). The repository provides an [analysis dependency installer](https://github.com/LingxuanZ/EPIC2/blob/main/scripts/install_dependencies.R).
 
-# Example data and required inputs
+# Example data
 
 [Download the all-SNPs inputs (115.4 MB)](https://www.dropbox.com/scl/fi/waibphblujax44w9h0rvt/EPIC2_inputs_TC_SCZ_all_snps_raw.tar.gz?rlkey=hsg9z8hd94v1s2y4m5a8h8ck1&st=xy9u9vlc&dl=1).
 
 This tutorial uses **a sampled subset of real scATAC-seq data from human fetal tissues** ([Domcke et al. 2020](#ref-domcke2020human)), together with real TC GWAS summary statistics ([<span class="nocase">Willer et al.</span> 2013](#ref-willer2013lipids)) and reference genotypes ([1000 Genomes Project Consortium 2015](#ref-auton2015global)). The tutorial combines TC GWAS summary statistics for **63,867 input SNPs** with LD-reference genotypes for these SNPs from **503 individuals**. The scATAC-seq dataset contains **4,788 sampled cells** in **24 tissue–cell-type groups** across **seven human fetal tissues**, with **915,345 post-QC peaks**. All genomic coordinates use **hg19/GRCh37**. For the scATAC-seq inputs, both cells and peaks had undergone QC. Cells were sampled at **up to 200 per group**. All SNPs meeting the GWAS input-selection criteria were retained without SNP subsampling. The GWAS inputs have already undergone LD pruning and ambiguous-variant removal, and include variants with valid statistics, a reference-genotype match and overlap with accessible autosomal peaks.
 
-The full data used in the manuscript are available on [Dropbox](https://www.dropbox.com/scl/fo/sryw79ywmy7gcty6pbm45/AOkzY5IFfC20oXzgY2vxoqM?rlkey=drrktk7uumyazina4woawdgl7&st=ino5s6so&dl=0).
+# Prepare inputs and configure EPIC2
 
-EPIC2 requires GWAS summary statistics, an annotated scATAC-seq object, indexed fragments for SNP accessibility, and LD reference genotypes:
+## Required input files
+
+For the stage-based workflow, EPIC2 requires GWAS summary statistics, an annotated scATAC-seq object, indexed fragments for SNP accessibility, LD reference genotypes, and a YAML configuration file that you set up with your input paths and analysis settings.
 
 <div class="epic2-input-categories">
 
@@ -181,7 +198,7 @@ Configuration
 
 <td>
 
-A YAML file required for the stage-based workflow, defining input paths and analysis settings. See <a href="#configuration-and-cell-type-annotations">Configuration and cell-type annotations</a> for this tutorial’s complete settings.
+A YAML file required for the stage-based workflow, defining input paths and analysis settings. See <a href="#configure-the-analysis">Configure the analysis</a> for this tutorial’s complete settings.
 </td>
 
 </tr>
@@ -204,15 +221,64 @@ A YAML file required for the stage-based workflow, defining input paths and anal
 
 </details>
 
-**Required ATAC contents**
+GWAS, ATAC peaks and fragments **must use the same genome assembly** (**hg19/GRCh37** here); setting `genome.build` does not convert coordinates. Reference variant IDs must match GWAS `rsid` values, and genotype dosage must count the GWAS effect allele (`A1`).
+
+Extract the example data into `inputs/data/` with the following code. If you downloaded the archive manually, place it in `inputs/` first.
+
+``` r
+dir.create("inputs", showWarnings = FALSE)
+archive <- "inputs/EPIC2_inputs_TC_SCZ_all_snps_raw.tar.gz"
+if (!file.exists(archive)) {
+  download.file(
+    "https://www.dropbox.com/scl/fi/waibphblujax44w9h0rvt/EPIC2_inputs_TC_SCZ_all_snps_raw.tar.gz?rlkey=hsg9z8hd94v1s2y4m5a8h8ck1&st=xy9u9vlc&dl=1",
+    archive,
+    mode = "wb"
+  )
+}
+stopifnot(
+  identical(
+    digest::digest(file = archive, algo = "sha256"),
+    "b6172b11214ad4c43a6dd1d39132a4ca863ed5ebb894234baf70b0039add6275"
+  )
+)
+input_files <- grep("^data/", untar(archive, list = TRUE), value = TRUE)
+untar(archive, files = input_files, exdir = "inputs")
+```
+
+### Required ATAC contents
 
 Keep the full post-QC peak-by-cell counts in the chromatin assay’s `counts` layer, with genomic peak IDs such as `chr1-100-200` and cell names matching the metadata. EPIC2 derives library-size scaling from the full autosomal peak counts. The assay is named `ATAC` in this tutorial; another name can be selected with `atac.assay`, with matching changes to explicit assay names in the example code.
 
-**Minimum metadata for analysis**
+UMAP coordinates are only needed for plotting. Retain the Seurat object's `umap` reduction to reproduce the tutorial’s UMAP figures.
+
+### Minimum metadata for analysis
 
 Cell annotations belong in `atac[[]]`, with one row per cell and row names matching `colnames(atac)`. **Every column listed in `model.groupings` must exist**. This tutorial selects only `tissue_cell_type`; its labels define the groups compared by WRS and tested by the association models. Each grouping needs at least two labelled groups; cells with missing labels are excluded from that grouping’s analysis.
 
-A single cell-type annotation column is sufficient for cell-type association testing. In this example, the column is named `tissue_cell_type`, and its labels include tissue of origin. A separate tissue annotation column is not required. Analyses are performed using the cell-type groups defined by this column. See [Choose annotation levels for your own data](#choose-annotation-levels-for-your-own-data) for additional annotation levels.
+A single cell-type annotation column is sufficient for cell-type association testing. A separate tissue annotation column is not required.
+
+`tissue_cell_type` combines tissue and cell-type labels, for example `liver_Hepatoblasts` and `kidney_Ureteric bud cells`. Its 24 groups therefore represent **cell types within tissues**. To test a different grouping, supply the corresponding per-cell annotations.
+
+Use the following code to inspect the `tissue_cell_type` labels in the example data.
+
+``` r
+library(Seurat)
+
+# Read
+atac <- readRDS("inputs/data/atac.rds")
+
+head(atac[[]][, "tissue_cell_type", drop = FALSE])
+```
+
+    ##                    tissue_cell_type
+    ## C00001 adrenal_Adrenocortical cells
+    ## C00002 adrenal_Adrenocortical cells
+    ## C00003 adrenal_Adrenocortical cells
+    ## C00004 adrenal_Adrenocortical cells
+    ## C00005 adrenal_Adrenocortical cells
+    ## C00006 adrenal_Adrenocortical cells
+
+See [Choose annotation levels for your own data (optional)](#choose-annotation-levels-for-your-own-data-optional) for additional annotation levels.
 
 <details class="epic2-stage-notes">
 <summary>Additional metadata depends on the workflow</summary>
@@ -239,32 +305,11 @@ In this tutorial, both `atac.group_column` and `model.groupings` select `tissue_
 
 </details>
 
-UMAP coordinates are only needed for plotting. Retain the Seurat object's `umap` reduction to reproduce this figure.
+## Configure the analysis
 
-GWAS, ATAC peaks and fragments **must use the same genome assembly** (**hg19/GRCh37** here); setting `genome.build` does not convert coordinates. Reference variant IDs must match GWAS `rsid` values, and genotype dosage must count the GWAS effect allele (`A1`).
+The stage-based workflow requires a YAML file (usually `.yml` or `.yaml`) that defines input paths and analysis settings.
 
-Place the downloaded archive and the supplied [config.yml](config.yml) in your working directory, then extract the data. This configuration selects TC only.
-
-``` r
-dir.create("inputs", showWarnings = FALSE)
-archive <- "inputs/EPIC2_inputs_TC_SCZ_all_snps_raw.tar.gz"
-if (!file.exists(archive)) {
-  download.file(
-    "https://www.dropbox.com/scl/fi/waibphblujax44w9h0rvt/EPIC2_inputs_TC_SCZ_all_snps_raw.tar.gz?rlkey=hsg9z8hd94v1s2y4m5a8h8ck1&st=xy9u9vlc&dl=1",
-    archive, mode = "wb"
-  )
-}
-stopifnot(identical(
-  digest::digest(file = archive, algo = "sha256"),
-  "b6172b11214ad4c43a6dd1d39132a4ca863ed5ebb894234baf70b0039add6275"
-))
-input_files <- grep("^data/", untar(archive, list = TRUE), value = TRUE)
-untar(archive, files = input_files, exdir = "inputs")
-```
-
-# Configuration and cell-type annotations
-
-[Download the complete config.yml for this tutorial](config.yml). The full configuration is shown below. Keep `config.yml` and the `inputs/` folder in the same working directory. Analysis outputs will be saved in `output/` under that directory.
+[Download the complete config.yml for this tutorial](config.yml). The full configuration is shown below. Run the tutorial from the directory containing `config.yml` and the extracted `inputs/` folder. Analysis outputs will be saved in `output/` under that directory.
 
 The scATAC-seq and GWAS inputs have undergone upstream QC, so this tutorial skips ATAC QC and does not repeat GWAS LD pruning or ambiguous-variant removal; GWAS/reference checks still run. See the [full workflow configuration](https://github.com/LingxuanZ/EPIC2/blob/main/inst/extdata/config.example.yml) for the complete settings. For details on each configuration parameter, see [CONFIGURATION.md](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md).
 
@@ -340,55 +385,6 @@ plots:
 
 `TC` is the trait name used in the analysis and plotting calls below. LD pruning and ambiguous-variant removal are disabled here because the supplied GWAS inputs have already undergone these steps.
 
-## Multiple traits (optional)
-
-**This tutorial runs TC only; all results shown below are for TC.** The input archive also includes schizophrenia (SCZ) GWAS summary statistics from the 2014 Psychiatric Genomics Consortium study ([Schizophrenia Working Group of the Psychiatric Genomics Consortium 2014](#ref-ripke2014biological)). To analyze both traits, replace the `traits` block under `gwas` in `config.yml` with the following entries, keeping the other GWAS settings:
-
-``` yaml
-gwas:
-  traits:
-    TC:
-      summary: inputs/data/gwas/TC.rds
-      genotype: inputs/data/genotypes/TC.rds
-    SCZ:
-      summary: inputs/data/gwas/SCZ.rds
-      genotype: inputs/data/genotypes/SCZ.rds
-```
-
-After preparing the ATAC checkpoint as described below, reload the edited configuration and use these calls in place of the TC-only analysis and plotting calls. This optional example is not executed when knitting this tutorial.
-
-``` r
-config <- EPIC2::read_EPIC2_config("config.yml", check_files = TRUE)
-EPIC2::run_EPIC2(
-  config,
-  stages = c("gwas", "accessibility", "ld", "wrs", "model"),
-  gwas_name = c("TC", "SCZ")
-)
-EPIC2::run_plot_stage(config, traits = c("TC", "SCZ"))
-```
-
-EPIC2 processes traits **sequentially within each stage**: for example, the GWAS stage processes TC and then SCZ before the accessibility stage begins. `parameters.workers` controls parallel SNP-accessibility chunks within a trait; it does not enable parallel execution across traits. To run traits in parallel, users must arrange parallel execution themselves, for example by launching one R process or cluster job per trait, each with its own output directory.
-
-## Inspect the cell annotations
-
-Cell annotations must be stored in the Seurat object’s metadata, accessed with `atac[[]]`. Each row corresponds to one cell, with row names matching the object’s cell names. This tutorial uses the `tissue_cell_type` annotation:
-
-``` r
-library(Seurat)
-atac <- readRDS("inputs/data/atac.rds")
-head(atac[[]][, "tissue_cell_type", drop = FALSE])
-```
-
-    ##                    tissue_cell_type
-    ## C00001 adrenal_Adrenocortical cells
-    ## C00002 adrenal_Adrenocortical cells
-    ## C00003 adrenal_Adrenocortical cells
-    ## C00004 adrenal_Adrenocortical cells
-    ## C00005 adrenal_Adrenocortical cells
-    ## C00006 adrenal_Adrenocortical cells
-
-`tissue_cell_type` combines tissue and cell-type labels, for example `liver_Hepatoblasts` and `kidney_Ureteric bud cells`. Its 24 groups therefore represent **cell types within tissues**, rather than cell types pooled across tissues. Renaming this column does not change its labels or group membership. To test a different grouping, supply the corresponding per-cell annotations.
-
 <div class="epic2-input-table epic2-annotation-settings">
 
 | Setting | Purpose |
@@ -400,15 +396,22 @@ head(atac[[]][, "tissue_cell_type", drop = FALSE])
 
 The supplied configuration uses `model.groupings: [tissue_cell_type]`. Only the 24 cell-type groups are tested and shown. A separate tissue annotation is optional: include `tissue` in `model.groupings` to analyze it as an additional annotation level, provided that column exists in the metadata. Annotation UMAPs use only the columns selected in `model.groupings`.
 
-## Choose annotation levels for your own data
+### Choose annotation levels for your own data (optional)
 
 Add another metadata column to test a broader annotation level. For example, the following **optional illustration** merges two liver immune-cell groups while retaining the other labels. Choose biologically appropriate groupings for your own data; this example is not executed when knitting the TC tutorial.
 
 ``` r
+# Read
 atac <- readRDS("inputs/data/atac.rds")
+
 atac$broader_cell_type <- as.character(atac$tissue_cell_type)
-immune <- atac$tissue_cell_type %in% c("liver_Lymphoid cells", "liver_Myeloid cells")
-atac$broader_cell_type[immune] <- "liver_Immune cells" # Merge selected cell types into a broader group
+immune <- atac$tissue_cell_type %in% c(
+  "liver_Lymphoid cells",
+  "liver_Myeloid cells"
+)
+
+# Merge selected cell types into a broader group
+atac$broader_cell_type[immune] <- "liver_Immune cells"
 head(atac[[]][, c("tissue_cell_type", "broader_cell_type")])
 saveRDS(atac, "inputs/data/atac_with_levels.rds")
 ```
@@ -428,9 +431,18 @@ model:
 Save the complete file as `config_annotation_levels.yml`, load it, and prepare its ATAC checkpoint using **Prepare the shared inputs** below. Then one call runs both annotation levels:
 
 ``` r
-config <- EPIC2::read_EPIC2_config("config_annotation_levels.yml", check_files = TRUE)
+# Read
+config <- EPIC2::read_EPIC2_config(
+  "config_annotation_levels.yml",
+  check_files = TRUE
+)
+
 # Prepare the shared inputs below with this config before running the stages.
-EPIC2::run_EPIC2(config, stages = c("gwas", "accessibility", "ld", "wrs", "model", "plot"), gwas_name = "TC")
+EPIC2::run_EPIC2(
+  config,
+  stages = c("gwas", "accessibility", "ld", "wrs", "model", "plot"),
+  gwas_name = "TC"
+)
 ```
 
 EPIC2 processes the annotation levels **sequentially within each WRS and model stage**. Each level is analyzed separately: WRS files include the annotation name, and Models saves separate `<annotation>.component_results.*` and `<annotation>.cauchy_results.*` files. Results are **not combined across annotation levels**.
@@ -451,45 +463,36 @@ In that session, read `config_broader.yml`, prepare its checkpoint, and run the 
 
 See the [configuration reference](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md) for the remaining options.
 
-# Expected outputs
+### Analyze multiple traits (optional)
 
-Stage outputs are saved beneath `project.output_dir` (`output/` in this tutorial).
-Directory contents depend on the stages run and options enabled. See
-[Run one stage at a time](#stage-inputs-and-outputs) for each stage's required inputs and detailed outputs.
+**This tutorial runs TC only; all results shown below are for TC.** The input archive also includes schizophrenia (SCZ) GWAS summary statistics from the 2014 Psychiatric Genomics Consortium study ([Schizophrenia Working Group of the Psychiatric Genomics Consortium 2014](#ref-ripke2014biological)). To analyze both traits, replace the `traits` block under `gwas` in `config.yml` with the following entries, keeping the other GWAS settings:
 
-```text
-output/
-├── 01_atac/             # ATAC checkpoint; QC summaries if QC is run
-├── 02_gwas/             # Matched GWAS, genotypes and QC records
-├── 02_accessibility/    # SNP/peak matrices and overlap tables
-├── 03_ld/               # LD covariance models and inverse square roots
-├── 04_wrs/              # WRS scores; stability summaries if enabled
-├── 05_models/           # Component and ACAT results
-├── figures/             # Figures, supporting tables and figure_manifest.tsv
-├── run_manifest.txt
-├── config.used.yml
-├── config.used.rds
-└── run_history/         # Per-invocation settings and session manifests
+``` yaml
+gwas:
+  traits:
+    TC:
+      summary: inputs/data/gwas/TC.rds
+      genotype: inputs/data/genotypes/TC.rds
+    SCZ:
+      summary: inputs/data/gwas/SCZ.rds
+      genotype: inputs/data/genotypes/SCZ.rds
 ```
 
-**Run records:** The final four entries are written by `run_EPIC2()`.
-The individual `run_*_stage()` calls used during this knit do not create these global run records.
+After preparing the ATAC checkpoint as described below, reload the edited configuration and use these calls in place of the TC-only analysis and plotting calls. This optional example is not executed when knitting this tutorial.
 
-In the filenames below, `<grouping>` is `tissue_cell_type` for this tutorial.
+``` r
+# Read
+config <- EPIC2::read_EPIC2_config("config.yml", check_files = TRUE)
 
-<div class="epic2-input-table">
+EPIC2::run_EPIC2(
+  config,
+  stages = c("gwas", "accessibility", "ld", "wrs", "model"),
+  gwas_name = c("TC", "SCZ")
+)
+EPIC2::run_plot_stage(config, traits = c("TC", "SCZ"))
+```
 
-| Main file | Contents |
-|:--|:--|
-| [`05_models/<grouping>.component_results.tsv`](#outputs-in-output05_models) | Focal coefficient estimates, standard errors, P-values and model statuses. |
-| [`05_models/<grouping>.cauchy_results.tsv`](#outputs-in-output05_models) | Component P-values, `p_cauchy`, number of tests combined and adjusted P-values. |
-| [`figures/figure_manifest.tsv`](#outputs-in-outputfigures) | Figure paths and `generated`, `skipped` or `error` status. |
-| [`config.used.yml` / `config.used.rds`](#shared-requirements-for-partial-runs) | Effective configuration, including in-memory overrides; written by `run_EPIC2()`. |
-| [`run_manifest.txt`](#shared-requirements-for-partial-runs) | Software environment, selected stages and traits, assembly, seed and worker settings; written by `run_EPIC2()`. |
-
-</div>
-
-The tutorial's separate `results/` and `figures/` folders contain copies of result tables and figures.
+EPIC2 processes traits **sequentially within each stage**: for example, the GWAS stage processes TC and then SCZ before the accessibility stage begins. `parameters.workers` controls parallel SNP-accessibility chunks within a trait; it does not enable parallel execution across traits. To run traits in parallel, users must arrange parallel execution themselves, for example by launching one R process or cluster job per trait, each with its own output directory.
 
 # Run the analysis
 
@@ -504,18 +507,24 @@ With `recompute: true` (the default), knitting executes the preparation and stag
 ``` r
 library(EPIC2)
 library(Signac)
+
+# Read
 config <- EPIC2::read_EPIC2_config("config.yml", check_files = TRUE)
+
 set.seed(config$parameters$seed)
 ```
 
 The ATAC object has already passed QC. For a fresh run, attach the supplied fragment file and save the checkpoint used by every downstream stage. Fragment barcode validation is disabled because this example file contains fragments only near the selected loci. [Preparation script](scripts/00_prepare_atac.R).
 
 ``` r
+# Read
 atac <- readRDS(config$atac$input)
+
 fragment <- Signac::CreateFragmentObject(
   path = normalizePath("inputs/data/fragments.tsv.gz"),
   cells = setNames(colnames(atac), colnames(atac)),
-  validate.fragments = FALSE, verbose = FALSE
+  validate.fragments = FALSE,
+  verbose = FALSE
 )
 Signac::Fragments(atac[["ATAC"]]) <- NULL
 Signac::Fragments(atac[["ATAC"]]) <- fragment
@@ -531,14 +540,18 @@ Output: `output/01_atac/atac.qc.rds`, containing the 4,788 supplied cells, 915,3
 **For scATAC-seq inputs requiring cell and peak filtering:** download the [complete-settings YAML template](https://github.com/LingxuanZ/EPIC2/blob/main/inst/extdata/config.example.yml), save it as `config.yml`, and edit it for your input files and analysis settings. This full workflow includes ATAC preprocessing and is **not run in this tutorial**.
 
 ``` r
+# Read
 config <- EPIC2::read_EPIC2_config("config.yml", check_files = TRUE)
+
 EPIC2::run_EPIC2(config, gwas_name = "TC")
 ```
 
 **For a post-QC checkpoint prepared as described above, use this instead:** this is the workflow used in this tutorial, with the supplied [config.yml](config.yml). After preparation, this call runs GWAS processing, accessibility, LD, WRS, association models and plotting for TC only. [Run-all script](scripts/run_all.R).
 
 ``` r
+# Read
 config <- EPIC2::read_EPIC2_config("config.yml", check_files = TRUE)
+
 EPIC2::run_EPIC2(
   config,
   stages = c("gwas", "accessibility", "ld", "wrs", "model", "plot"),
@@ -563,6 +576,51 @@ Intermediate paths below are relative to `project.output_dir` (`output/` here). 
 For routine analyses, use the **stage functions with YAML**, which automatically save the files described under **Outputs**. Displayed tutorial results were read from these saved files.
 
 Use the **core functions without YAML** examples to debug or inspect intermediate calculations within a stage. They return R objects. Run them from this tutorial folder using the listed input files. **To keep their results on disk, create the required output directories and save the objects yourself**, using `saveRDS()`, `write.table()` or `ggplot2::ggsave()` as appropriate. Alternatively, pass the returned objects directly to subsequent functions. These examples do not write stage completion records and are not executed while knitting.
+
+### Shared requirements for partial runs
+
+<details>
+
+<summary>
+
+Configuration, completion records and a partial-run example
+</summary>
+
+**Keep completion records and their associated files**
+
+The supplied results include `*.receipt.rds` completion records. Downstream stages validate recorded file paths, checksums, software versions and relevant settings. These checks may require files beyond the direct inputs listed at each stage:
+
+- GWAS records include the original GWAS and reference-genotype files as well as their processed outputs.
+- Accessibility records include the ATAC checkpoint, processed GWAS and genotypes, accessibility matrices, SNP–peak mapping and aligned genotypes.
+- Models requires `03_ld/TC.ld_receipt.rds`, `04_wrs/TC.wrs_receipt.rds` and a `COMPLETED` status in `03_ld/TC.ld_runtime.tsv`. The LD receipt also checks the saved SNP covariance and blocks files.
+
+**Keep the complete `inputs/` and `output/` directories when reusing these results.** An isolated LD matrix or WRS table is generally insufficient to resume Models. Preserve the paths recorded in the receipts; simply moving files does not update those records.
+
+**Configure a partial run**
+
+Continue using the complete [config.yml](config.yml); do not remove the configuration blocks for stages you want to skip.
+
+1.  Keep `project.output_dir` pointed at the directory containing the saved intermediate results (`output` here). An empty directory has no upstream results to reuse.
+2.  Keep the original input paths. For example, do not replace `gwas.traits.TC.summary` with `output/02_gwas/TC.gwas.rds` to skip GWAS processing; later stages read intermediate files from their fixed subdirectories under the output directory.
+3.  Keep settings consistent with the saved results, including genome assembly, assay, LD parameters and WRS settings. If inputs or settings change, rerun the affected stage and its downstream stages. Changing `model.groupings` requires matching WRS results before rerunning Models.
+4.  Select stages in the R command rather than deleting YAML blocks.
+
+For example, run only WRS using existing inputs:
+
+``` r
+# Read
+config <- EPIC2::read_EPIC2_config("config.yml", check_files = TRUE)
+
+EPIC2::run_EPIC2(config, stages = "wrs", gwas_name = "TC")
+```
+
+This recalculates WRS without running GWAS, Accessibility or LD. Replace `"wrs"` with `"ld"`, `"model"`, `"plot"` or `c("model", "plot")` to select other stages. This example is not executed when knitting the tutorial. Using `run_EPIC2()` also updates `run_manifest.txt`, `config.used.yml`, `config.used.rds` and `run_history/`. Calling the individual `run_*_stage()` functions shown above does not update these global run records.
+
+`check_files = TRUE` checks the original input files listed in the configuration, even when the selected stage does not directly read them. For plotting from saved outputs when the original inputs are unavailable, you can use `check_files = FALSE`. **This only disables the configuration’s file-existence check; it does not bypass stage completion-record checks or make missing plotting inputs available.**
+
+To **inspect existing results without recalculating them**, run the `readRDS()`, `read.delim()` and inspection code provided with each stage. Calling `run_*_stage()` actually reruns that stage.
+
+</details>
 
 <a id="atac-qc"></a>
 
@@ -622,7 +680,9 @@ With `compute_qc_metrics: true`, EPIC2 computes nucleosome signal, TSS enrichmen
 For your own data, reload the edited configuration and run only ATAC QC:
 
 ``` r
+# Read
 config <- EPIC2::read_EPIC2_config("config.yml", check_files = TRUE)
+
 EPIC2::run_EPIC2(config, stages = "atac")
 ```
 
@@ -633,23 +693,70 @@ This dispatches `run_atac_stage()`, which computes the requested QC metrics, cal
 For your own unfiltered object, replace the input paths below. Use complete indexed fragments and gene annotations in the same assembly. Omit the fragment-attachment lines if the correct fragments are already attached.
 
 ``` r
+# Read
 atac <- readRDS("data/atac_before_qc.rds") # Unfiltered Seurat/Signac object with cell annotations
-assay <- "ATAC"; genome <- "hg19"; qc_group <- "tissue_cell_type" # Assay, assembly and QC grouping
+
+# Assay, assembly and QC grouping
+assay <- "ATAC"
+genome <- "hg19"
+qc_group <- "tissue_cell_type"
 SeuratObject::DefaultAssay(atac) <- assay
-cell_map <- setNames(colnames(atac), colnames(atac)) # Raw fragment barcodes as values, Seurat cell names as names
-fragment <- Signac::CreateFragmentObject("data/fragments.tsv.gz", cells = cell_map, validate.fragments = TRUE)
+
+# Raw fragment barcodes as values, Seurat cell names as names
+cell_map <- setNames(colnames(atac), colnames(atac))
+fragment <- Signac::CreateFragmentObject(
+  "data/fragments.tsv.gz",
+  cells = cell_map,
+  validate.fragments = TRUE
+)
 Signac::Fragments(atac[[assay]]) <- NULL
-Signac::Fragments(atac[[assay]]) <- fragment # Attach indexed fragments without a tissue metadata column
-atac <- Signac::NucleosomeSignal(atac) # Fragment-length QC
-atac <- Signac::TSSEnrichment(atac) # TSS enrichment from the object's gene annotations
-atac <- EPIC2::add_frip(atac, assay = assay) # Fraction of fragments in peaks
-atac <- EPIC2::add_blacklist_ratio(atac, assay = assay, genome = genome) # Fraction in the assembly's blacklist
-cell_qc <- list(tss_min = 2.5, frip_min = 0.3, count_quantile_min = 0.01,
-                blacklist_max = 0.02, nucleosome_max = 4, min_cells_per_group = 50)
-peak_qc <- list(peak_width_min = 100, peak_width_max = 1000, peak_min_total_counts = 1,
-                peak_min_cells = 1, peak_autosomes_only = TRUE, peak_remove_blacklist = TRUE)
-atac <- EPIC2::filter_atac_cells(atac, thresholds = cell_qc, group_column = qc_group, assay = assay) # Filter cells, then groups
-atac_qc <- EPIC2::filter_atac_peaks(atac, thresholds = peak_qc, assay = assay, genome = genome) # Filter peaks after cells
+
+# Attach indexed fragments without a tissue metadata column
+Signac::Fragments(atac[[assay]]) <- fragment
+
+# Fragment-length QC
+atac <- Signac::NucleosomeSignal(atac)
+
+# TSS enrichment from the object's gene annotations
+atac <- Signac::TSSEnrichment(atac)
+
+# Fraction of fragments in peaks
+atac <- EPIC2::add_frip(atac, assay = assay)
+
+# Fraction in the assembly's blacklist
+atac <- EPIC2::add_blacklist_ratio(atac, assay = assay, genome = genome)
+cell_qc <- list(
+  tss_min = 2.5,
+  frip_min = 0.3,
+  count_quantile_min = 0.01,
+  blacklist_max = 0.02,
+  nucleosome_max = 4,
+  min_cells_per_group = 50
+)
+peak_qc <- list(
+  peak_width_min = 100,
+  peak_width_max = 1000,
+  peak_min_total_counts = 1,
+  peak_min_cells = 1,
+  peak_autosomes_only = TRUE,
+  peak_remove_blacklist = TRUE
+)
+
+# Filter cells, then groups
+atac <- EPIC2::filter_atac_cells(
+  atac,
+  thresholds = cell_qc,
+  group_column = qc_group,
+  assay = assay
+)
+
+# Filter peaks after cells
+atac_qc <- EPIC2::filter_atac_peaks(
+  atac,
+  thresholds = peak_qc,
+  assay = assay,
+  genome = genome
+)
 ```
 
 #### Outputs in `output/01_atac/`
@@ -691,15 +798,46 @@ EPIC2::run_gwas_stage(config, gwas_name = "TC")
 **Core functions (without YAML)**
 
 ``` r
+# Read
 gwas_input <- readRDS("inputs/data/gwas/TC.rds") # GWAS summary statistics
 genotype_input <- readRDS("inputs/data/genotypes/TC.rds") # SNP-by-individual reference dosages, named by rsID
-columns <- list(rsid = "rsid", chr = "chr", pos = "pos", a1 = "A1", a2 = "A2", maf = "MAF", p = "P", beta = "beta", se = "se")
-processed <- EPIC2::harmonize_gwas(gwas_input, genotype_input, columns = columns, gwas_name = "TC", genome_build = "hg19",
-  genotype_format = "dosage", genotype_orientation = "variants_by_samples", genotype_ploidy = 2, seed = 1000,
-  maf_min = 0.05, reference_missing_rate_max = 0.01, ld_prune = FALSE, remove_ambiguous = FALSE, duplicate_action = "drop")
-gwas <- processed$gwas # Matched, filtered GWAS with Z-scores and coord_id
-genotype <- processed$genotype # Reference dosages aligned to the retained GWAS
-processed$summary # QC counts and settings; upstream pruning/ambiguous-variant removal are not repeated
+
+columns <- list(
+  rsid = "rsid",
+  chr = "chr",
+  pos = "pos",
+  a1 = "A1",
+  a2 = "A2",
+  maf = "MAF",
+  p = "P",
+  beta = "beta",
+  se = "se"
+)
+processed <- EPIC2::harmonize_gwas(
+  gwas_input,
+  genotype_input,
+  columns = columns,
+  gwas_name = "TC",
+  genome_build = "hg19",
+  genotype_format = "dosage",
+  genotype_orientation = "variants_by_samples",
+  genotype_ploidy = 2,
+  seed = 1000,
+  maf_min = 0.05,
+  reference_missing_rate_max = 0.01,
+  ld_prune = FALSE,
+  remove_ambiguous = FALSE,
+  duplicate_action = "drop"
+)
+
+# Matched, filtered GWAS with Z-scores and coord_id
+gwas <- processed$gwas
+
+# Reference dosages aligned to the retained GWAS
+genotype <- processed$genotype
+
+# QC counts and settings; upstream pruning/ambiguous-variant removal are not repeated
+processed$summary
 ```
 
 #### Outputs in `output/02_gwas/`
@@ -709,7 +847,9 @@ processed$summary # QC counts and settings; upstream pruning/ambiguous-variant r
 - `TC.gwas_qc.tsv`: counts and effective QC settings. Here, 643 input SNPs fail the reference-panel MAF threshold.
 
 ``` r
+# Read
 gwas_qc <- read.delim("output/02_gwas/TC.gwas_qc.tsv")
+
 gwas_qc[, c("n_input", "n_reference_matched", "n_after_maf", "n_final")]
 ```
 
@@ -753,17 +893,43 @@ EPIC2::run_accessibility_stage(config, traits = "TC")
 **Core functions (without YAML)**
 
 ``` r
+# Read
 atac <- readRDS("output/01_atac/atac.qc.rds") # Peak counts, metadata and attached fragments with .tbi indexes
 gwas <- readRDS("output/02_gwas/TC.gwas.rds") # Processed GWAS, including chr, pos, rsid and coord_id
 genotype <- readRDS("output/02_gwas/TC.genotype.rds") # Processed reference dosages named by rsID
-snp_counts <- EPIC2::build_snp_accessibility(atac, gwas, assay = "ATAC", genome_build = "hg19",
-  workers = 1, chunks = 20, duplicate_action = "drop") # Count fragments at SNP positions; remove zero-count SNPs
-peak_result <- EPIC2::build_peak_accessibility(atac, gwas, assay = "ATAC", genome_build = "hg19", duplicate_action = "drop")
-peak_counts <- peak_result$matrix # Stored counts for GWAS-overlapping peaks
-snp_peak_overlap <- peak_result$overlap # SNP-to-peak mapping for peak LD
-genotype_coord <- genotype[match(gwas$rsid, rownames(genotype)), , drop = FALSE] # Align reference rows to GWAS
-rownames(genotype_coord) <- gwas$coord_id # Use the coordinate IDs of the accessibility matrices
-snp_genotype <- genotype_coord[rownames(snp_counts), , drop = FALSE] # Reference genotypes for accessible SNPs
+
+# Count fragments at SNP positions; remove zero-count SNPs
+snp_counts <- EPIC2::build_snp_accessibility(
+  atac,
+  gwas,
+  assay = "ATAC",
+  genome_build = "hg19",
+  workers = 1,
+  chunks = 20,
+  duplicate_action = "drop"
+)
+peak_result <- EPIC2::build_peak_accessibility(
+  atac,
+  gwas,
+  assay = "ATAC",
+  genome_build = "hg19",
+  duplicate_action = "drop"
+)
+
+# Stored counts for GWAS-overlapping peaks
+peak_counts <- peak_result$matrix
+
+# SNP-to-peak mapping for peak LD
+snp_peak_overlap <- peak_result$overlap
+
+# Align reference rows to GWAS
+genotype_coord <- genotype[match(gwas$rsid, rownames(genotype)), , drop = FALSE]
+
+# Use the coordinate IDs of the accessibility matrices
+rownames(genotype_coord) <- gwas$coord_id
+
+# Reference genotypes for accessible SNPs
+snp_genotype <- genotype_coord[rownames(snp_counts), , drop = FALSE]
 ```
 
 #### Outputs in `output/02_accessibility/`
@@ -776,8 +942,10 @@ snp_genotype <- genotype_coord[rownames(snp_counts), , drop = FALSE] # Reference
 Both accessibility matrices retain individual cells; group-level predictors are constructed during model fitting.
 
 ``` r
+# Read
 snp_accessibility <- readRDS("output/02_accessibility/TC.snp_by_cell.rds")
 peak_accessibility <- readRDS("output/02_accessibility/TC.peak_by_cell.rds")
+
 data.frame(
   branch = c("SNP", "Peak"),
   features = c(nrow(snp_accessibility), nrow(peak_accessibility)),
@@ -842,27 +1010,72 @@ EPIC2::run_ld_stage(config, traits = "TC")
 `split_sparse_components()` is the internal EPIC2 helper used by this stage; it groups SNPs using nonzero off-diagonal covariance entries. The code below recomputes LD. The model example in 2.6 reads the saved LD objects instead.
 
 ``` r
+# Read
 gwas <- readRDS("output/02_gwas/TC.gwas.rds") # Harmonized GWAS with coord_id and Z-scores
 genotype <- readRDS("output/02_gwas/TC.genotype.rds") # Reference dosages named by rsID
 snp_counts <- readRDS("output/02_accessibility/TC.snp_by_cell.rds") # Defines the accessible SNP set
 peak_counts <- readRDS("output/02_accessibility/TC.peak_by_cell.rds") # Defines the peak set
 overlap <- read.delim("output/02_accessibility/TC.snp_peak_overlap.tsv") # Columns: snp and peak
+
 genotype <- genotype[match(gwas$rsid, rownames(genotype)), , drop = FALSE]
-rownames(genotype) <- gwas$coord_id # Match LD inputs by genomic coordinate
-snp_ids <- Reduce(intersect, list(rownames(snp_counts), gwas$coord_id, rownames(genotype)))
-snp_sigma <- EPIC2::compute_snp_ld_covariance(genotype[snp_ids, , drop = FALSE], gwas[match(snp_ids, gwas$coord_id), ],
-  window_bp = 5000000, factor_two = FALSE, correlation_block_size = 256) # Local SNP r-squared matrix
-split_sparse_components <- getFromNamespace("split_sparse_components", "EPIC2") # Internal stage helper
-snp_blocks <- split_sparse_components(snp_sigma) # Independent connected components
-inverse_blocks <- lapply(snp_blocks, function(ids) EPIC2::compute_inverse_sqrt(snp_sigma[ids, ids, drop = FALSE],
-  ridge = 0.01, eigen_tolerance = 1e-8, max_dense_block_size = 6000)) # Whiten each component separately
-snp_inverse <- methods::as(methods::as(Matrix::bdiag(inverse_blocks), "generalMatrix"), "CsparseMatrix")
+
+# Match LD inputs by genomic coordinate
+rownames(genotype) <- gwas$coord_id
+snp_ids <- Reduce(
+  intersect,
+  list(rownames(snp_counts), gwas$coord_id, rownames(genotype))
+)
+
+# Local SNP r-squared matrix
+snp_sigma <- EPIC2::compute_snp_ld_covariance(
+  genotype[snp_ids, , drop = FALSE],
+  gwas[match(snp_ids, gwas$coord_id), ],
+  window_bp = 5000000,
+  factor_two = FALSE,
+  correlation_block_size = 256
+)
+
+# Internal stage helper
+split_sparse_components <- getFromNamespace("split_sparse_components", "EPIC2")
+
+# Independent connected components
+snp_blocks <- split_sparse_components(snp_sigma)
+
+# Whiten each component separately
+inverse_blocks <- lapply(
+  snp_blocks,
+  function(ids) EPIC2::compute_inverse_sqrt(
+    snp_sigma[ids, ids, drop = FALSE],
+    ridge = 0.01,
+    eigen_tolerance = 1e-8,
+    max_dense_block_size = 6000
+  )
+)
+snp_inverse <- methods::as(
+  methods::as(Matrix::bdiag(inverse_blocks), "generalMatrix"),
+  "CsparseMatrix"
+)
 inverse_ids <- unlist(lapply(inverse_blocks, rownames), use.names = FALSE)
-dimnames(snp_inverse) <- list(inverse_ids, inverse_ids) # Restore feature IDs after block assembly
-peak_ld <- EPIC2::build_peak_ld_model(gwas, genotype, peak_counts, overlap, window_bp = 5000000,
-  ridge = 0.01, eigen_tolerance = 1e-8, max_snps_for_chr_ld = 15000, max_dense_block_size = 6000)
-peak_response <- peak_ld$response # LD-adjusted peak GWAS statistic
-peak_inverse <- peak_ld$inverse_sqrt # Transformation for the peak models
+
+# Restore feature IDs after block assembly
+dimnames(snp_inverse) <- list(inverse_ids, inverse_ids)
+peak_ld <- EPIC2::build_peak_ld_model(
+  gwas,
+  genotype,
+  peak_counts,
+  overlap,
+  window_bp = 5000000,
+  ridge = 0.01,
+  eigen_tolerance = 1e-8,
+  max_snps_for_chr_ld = 15000,
+  max_dense_block_size = 6000
+)
+
+# LD-adjusted peak GWAS statistic
+peak_response <- peak_ld$response
+
+# Transformation for the peak models
+peak_inverse <- peak_ld$inverse_sqrt
 ```
 
 #### Outputs in `output/03_ld/`
@@ -873,7 +1086,9 @@ peak_inverse <- peak_ld$inverse_sqrt # Transformation for the peak models
 - `TC.ld_runtime.tsv`: completion status and LD settings.
 
 ``` r
+# Read
 ld_status <- read.delim("output/03_ld/TC.ld_runtime.tsv")
+
 ld_status[ld_status$setting == "status", , drop = FALSE]
 ```
 
@@ -881,7 +1096,9 @@ ld_status[ld_status$setting == "status", , drop = FALSE]
     ## 2  status COMPLETED
 
 ``` r
+# Read
 snp_blocks <- readRDS("output/03_ld/TC.snp_blocks.rds")
+
 data.frame(
   SNP_blocks = length(snp_blocks),
   largest_block = max(lengths(snp_blocks))
@@ -942,17 +1159,44 @@ EPIC2::run_wrs_stage(config, traits = "TC")
 Set `grouping` to the metadata column to test. This example uses `tissue_cell_type`; choose another metadata column to test a different annotation level.
 
 ``` r
+# Read
 metadata <- readRDS("output/01_atac/atac.qc.rds")[[]] # Cell annotations from the ATAC object
 snp_counts <- readRDS("output/02_accessibility/TC.snp_by_cell.rds") # Raw SNP-by-cell counts
 peak_counts <- readRDS("output/02_accessibility/TC.peak_by_cell.rds") # Raw peak-by-cell counts
-grouping <- "tissue_cell_type" # Annotation column for the one-versus-rest comparisons
-groups <- setNames(as.character(metadata[[grouping]]), rownames(metadata)) # Labels indexed by cell name
-snp_cells <- colnames(snp_counts)[!is.na(groups[colnames(snp_counts)])] # Align cells and exclude missing annotations
+
+# Annotation column for the one-versus-rest comparisons
+grouping <- "tissue_cell_type"
+
+# Labels indexed by cell name
+groups <- setNames(as.character(metadata[[grouping]]), rownames(metadata))
+
+# Align cells and exclude missing annotations
+snp_cells <- colnames(snp_counts)[!is.na(groups[colnames(snp_counts)])]
 peak_cells <- colnames(peak_counts)[!is.na(groups[colnames(peak_counts)])]
-snp_wrs <- presto::wilcoxauc(X = snp_counts[, snp_cells, drop = FALSE], y = unname(groups[snp_cells])) # SNP WRS and AUC
-peak_wrs <- presto::wilcoxauc(X = peak_counts[, peak_cells, drop = FALSE], y = unname(groups[peak_cells])) # Peak WRS and AUC
-snp_wrs <- EPIC2::make_one_sided_wrs(snp_wrs, truncation_quantiles = c(0.02, 0.98)) # One-sided P-values and capped Z-scores
-peak_wrs <- EPIC2::make_one_sided_wrs(peak_wrs, truncation_quantiles = c(0.02, 0.98)) # Same conversion for peaks
+
+# SNP WRS and AUC
+snp_wrs <- presto::wilcoxauc(
+  X = snp_counts[, snp_cells, drop = FALSE],
+  y = unname(groups[snp_cells])
+)
+
+# Peak WRS and AUC
+peak_wrs <- presto::wilcoxauc(
+  X = peak_counts[, peak_cells, drop = FALSE],
+  y = unname(groups[peak_cells])
+)
+
+# One-sided P-values and capped Z-scores
+snp_wrs <- EPIC2::make_one_sided_wrs(
+  snp_wrs,
+  truncation_quantiles = c(0.02, 0.98)
+)
+
+# Same conversion for peaks
+peak_wrs <- EPIC2::make_one_sided_wrs(
+  peak_wrs,
+  truncation_quantiles = c(0.02, 0.98)
+)
 ```
 
 #### Outputs in `output/04_wrs/`
@@ -965,9 +1209,18 @@ Each row represents one feature–cell-group comparison.
 `pval_one_sided_enriched` is $`p^{(+)}`$; `z_one_sided_enriched_trunc` is the capped WRS score used for model fitting.
 
 ``` r
+# Read
 snp_wrs <- readRDS("output/04_wrs/TC.snp.tissue_cell_type.rds")
-head(snp_wrs[, c("feature", "group", "pval_one_sided_enriched",
-                 "z_one_sided_enriched_trunc")], 3)
+
+head(
+  snp_wrs[, c(
+    "feature",
+    "group",
+    "pval_one_sided_enriched",
+    "z_one_sided_enriched_trunc"
+  )],
+  3
+)
 ```
 
     ##                feature                        group pval_one_sided_enriched
@@ -1730,7 +1983,11 @@ EPIC2::run_model_stage(config, traits = "TC")
 This example reads the saved accessibility, WRS and LD results for TC. Choose `grouping` explicitly; matching WRS files must exist for that column.
 
 ``` r
-trait <- "TC"; grouping <- "tissue_cell_type" # Trait and metadata column to test
+# Trait and metadata column to test
+trait <- "TC"
+grouping <- "tissue_cell_type"
+
+# Read
 atac <- readRDS("output/01_atac/atac.qc.rds") # Full post-QC counts and cell annotations
 metadata <- atac[[]]
 gwas <- readRDS("output/02_gwas/TC.gwas.rds") # GWAS Z-scores and coordinate IDs
@@ -1740,26 +1997,94 @@ snp_inverse <- readRDS("output/03_ld/TC.snp_inverse_sqrt.rds") # Complete SNP wh
 peak_ld <- readRDS("output/03_ld/TC.peak_ld_model.rds") # Peak response and complete whitening matrix
 snp_wrs <- readRDS(paste0("output/04_wrs/TC.snp.", grouping, ".rds")) # WRS for this annotation column
 peak_wrs <- readRDS(paste0("output/04_wrs/TC.peak.", grouping, ".rds"))
-groups <- setNames(as.character(metadata[[grouping]]), rownames(metadata)) # Align annotations by cell name
-full_counts <- SeuratObject::LayerData(atac[["ATAC"]], layer = "counts") # Library-size background: all retained peaks
+
+# Align annotations by cell name
+groups <- setNames(as.character(metadata[[grouping]]), rownames(metadata))
+
+# Library-size background: all retained peaks
+full_counts <- SeuratObject::LayerData(atac[["ATAC"]], layer = "counts")
 ranges <- Signac::StringToGRanges(rownames(full_counts), sep = c("-", "-"))
-autosomal <- sub("^chr", "", as.character(GenomicRanges::seqnames(ranges)), ignore.case = TRUE) %in% as.character(1:22)
-library_size <- Matrix::colSums(full_counts[autosomal, , drop = FALSE]) # Exclude non-autosomal peaks
+autosomal <- sub(
+  "^chr",
+  "",
+  as.character(GenomicRanges::seqnames(ranges)),
+  ignore.case = TRUE
+) %in% as.character(1:22)
+
+# Exclude non-autosomal peaks
+library_size <- Matrix::colSums(full_counts[autosomal, , drop = FALSE])
 library_size[library_size <= 0] <- NA_real_
-cell_scale <- median(library_size, na.rm = TRUE) / library_size # Multiplicative library-size adjustment
-snp_A <- EPIC2::build_group_accessibility(snp_counts, groups, cell_scale) # Group totals and cross-group baseline
+
+# Multiplicative library-size adjustment
+cell_scale <- median(library_size, na.rm = TRUE) / library_size
+
+# Group totals and cross-group baseline
+snp_A <- EPIC2::build_group_accessibility(snp_counts, groups, cell_scale)
 peak_A <- EPIC2::build_group_accessibility(peak_counts, groups, cell_scale)
-snp_Z <- lapply(split(snp_wrs, snp_wrs$group), function(x) setNames(as.numeric(x$z_one_sided_enriched_trunc), x$feature))
-peak_Z <- lapply(split(peak_wrs, peak_wrs$group), function(x) setNames(as.numeric(x$z_one_sided_enriched_trunc), x$feature))
-snp_response <- setNames(as.numeric(gwas$Z)^2, gwas$coord_id) # Squared SNP GWAS Z-scores
-snp_count_fit <- EPIC2::fit_whitened_groups(snp_response, snp_A$by_group, snp_A$baseline, snp_inverse, trait, "A_kj")
-snp_wrs_fit <- EPIC2::fit_whitened_groups(snp_response, snp_Z, snp_A$baseline, snp_inverse, trait, "Z_kj") # Count-based baseline
-peak_count_fit <- EPIC2::fit_whitened_groups(peak_ld$response, peak_A$by_group, peak_A$baseline, peak_ld$inverse_sqrt, trait, "A_kp")
-peak_wrs_fit <- EPIC2::fit_whitened_groups(peak_ld$response, peak_Z, peak_A$baseline, peak_ld$inverse_sqrt, trait, "Z_kp")
-fits <- list(snp_accessibility = snp_count_fit, snp_wrs = snp_wrs_fit, peak_accessibility = peak_count_fit, peak_wrs = peak_wrs_fit)
-component_results <- lapply(fits, EPIC2::adjust_pvalues_within_trait) # Named list of component tables with BH/Bonferroni correction
-combined <- EPIC2::combine_component_tests(snp_count_fit, snp_wrs_fit, peak_count_fit, peak_wrs_fit, require_all = FALSE)
-# combined contains ACAT P-values and within-trait BH/Bonferroni correction; ACAT uses the nominal component P-values.
+snp_Z <- lapply(
+  split(snp_wrs, snp_wrs$group),
+  function(x) setNames(as.numeric(x$z_one_sided_enriched_trunc), x$feature)
+)
+peak_Z <- lapply(
+  split(peak_wrs, peak_wrs$group),
+  function(x) setNames(as.numeric(x$z_one_sided_enriched_trunc), x$feature)
+)
+
+# Squared SNP GWAS Z-scores
+snp_response <- setNames(as.numeric(gwas$Z)^2, gwas$coord_id)
+snp_count_fit <- EPIC2::fit_whitened_groups(
+  snp_response,
+  snp_A$by_group,
+  snp_A$baseline,
+  snp_inverse,
+  trait,
+  "A_kj"
+)
+
+# Count-based baseline
+snp_wrs_fit <- EPIC2::fit_whitened_groups(
+  snp_response,
+  snp_Z,
+  snp_A$baseline,
+  snp_inverse,
+  trait,
+  "Z_kj"
+)
+peak_count_fit <- EPIC2::fit_whitened_groups(
+  peak_ld$response,
+  peak_A$by_group,
+  peak_A$baseline,
+  peak_ld$inverse_sqrt,
+  trait,
+  "A_kp"
+)
+peak_wrs_fit <- EPIC2::fit_whitened_groups(
+  peak_ld$response,
+  peak_Z,
+  peak_A$baseline,
+  peak_ld$inverse_sqrt,
+  trait,
+  "Z_kp"
+)
+fits <- list(
+  snp_accessibility = snp_count_fit,
+  snp_wrs = snp_wrs_fit,
+  peak_accessibility = peak_count_fit,
+  peak_wrs = peak_wrs_fit
+)
+
+# Named list of component tables with BH/Bonferroni correction
+component_results <- lapply(fits, EPIC2::adjust_pvalues_within_trait)
+combined <- EPIC2::combine_component_tests(
+  snp_count_fit,
+  snp_wrs_fit,
+  peak_count_fit,
+  peak_wrs_fit,
+  require_all = FALSE
+)
+
+# combined contains ACAT P-values and within-trait BH/Bonferroni correction;
+# ACAT uses the nominal component P-values.
 ```
 
 #### Outputs in `output/05_models/`
@@ -1769,6 +2094,7 @@ combined <- EPIC2::combine_component_tests(snp_count_fit, snp_wrs_fit, peak_coun
 - Matching `.rds` files are also saved. Copies of the result tables are provided in `results/`.
 
 ``` r
+# Read
 results <- read.delim("output/05_models/tissue_cell_type.cauchy_results.tsv")
 head(results[order(results$p_cauchy),
   c("group", "p_cauchy", "p_cauchy_bh_within_trait")], 6)
@@ -1848,67 +2174,159 @@ The drawing and data-preparation functions are internal EPIC2 helpers, retrieved
 library(EPIC2)
 library(Seurat)
 library(Signac)
-output_dir <- "output"; traits <- "TC"; groupings <- "tissue_cell_type"
-settings <- list(base_size = 13, max_umap_cells = 4788, count_bin_max = 4,
-                 ld_heatmap_max_features = 400, wrs_histogram_bins = 50, top_features_per_group = 3, pvalue_cap = 5)
-plot_inputs <- list(output_dir = output_dir, genome = list(build = "hg19"),
-                    atac = list(group_column = "tissue_cell_type"), model = list(groupings = groupings), plots = settings)
+output_dir <- "output"
+traits <- "TC"
+groupings <- "tissue_cell_type"
+settings <- list(
+  base_size = 13,
+  max_umap_cells = 4788,
+  count_bin_max = 4,
+  ld_heatmap_max_features = 400,
+  wrs_histogram_bins = 50,
+  top_features_per_group = 3,
+  pvalue_cap = 5
+)
+plot_inputs <- list(
+  output_dir = output_dir,
+  genome = list(build = "hg19"),
+  atac = list(group_column = "tissue_cell_type"),
+  model = list(groupings = groupings),
+  plots = settings
+)
+
+# Read
 atac <- readRDS(file.path(output_dir, "01_atac/atac.qc.rds")) # Counts, QC metadata, cell labels and existing UMAP
-plots <- list(); plot_sizes <- list() # Named plot objects and stage-matched width/height in inches
+
+# Named plot objects and stage-matched width/height in inches
+plots <- list()
+plot_sizes <- list()
 ```
 
 **2. ATAC QC and annotation UMAP**
 
 ``` r
 plot_atac_qc_metrics <- getFromNamespace("plot_atac_qc_metrics", "EPIC2")
-plot_atac_density_scatter <- getFromNamespace("plot_atac_density_scatter", "EPIC2")
-plot_peak_detection_distribution <- getFromNamespace("plot_peak_detection_distribution", "EPIC2")
-plot_atac_annotation_umap <- getFromNamespace("plot_atac_annotation_umap", "EPIC2")
-plots$atac_qc_metric_distributions <- plot_atac_qc_metrics(atac, settings, assay = "ATAC")
+plot_atac_density_scatter <- getFromNamespace(
+  "plot_atac_density_scatter",
+  "EPIC2"
+)
+plot_peak_detection_distribution <- getFromNamespace(
+  "plot_peak_detection_distribution",
+  "EPIC2"
+)
+plot_atac_annotation_umap <- getFromNamespace(
+  "plot_atac_annotation_umap",
+  "EPIC2"
+)
+plots$atac_qc_metric_distributions <- plot_atac_qc_metrics(
+  atac,
+  settings,
+  assay = "ATAC"
+)
 plot_sizes$atac_qc_metric_distributions <- c(10, 8)
-plots$density_scatter_nCount_TSS <- plot_atac_density_scatter(atac, settings, assay = "ATAC")
+plots$density_scatter_nCount_TSS <- plot_atac_density_scatter(
+  atac,
+  settings,
+  assay = "ATAC"
+)
 plot_sizes$density_scatter_nCount_TSS <- c(7.5, 6.5)
-plots$peak_coverage_distribution <- plot_peak_detection_distribution(atac, assay = "ATAC", base_size = 13)
+plots$peak_coverage_distribution <- plot_peak_detection_distribution(
+  atac,
+  assay = "ATAC",
+  base_size = 13
+)
 plot_sizes$peak_coverage_distribution <- c(8, 6)
-plots$UMAP_tissue_cell_type.cellQC.peakQC <- plot_atac_annotation_umap(atac, "tissue_cell_type", settings) # Default font 10 pt; legend 8 pt
-plot_sizes$UMAP_tissue_cell_type.cellQC.peakQC <- c(9, 9) # One annotation per figure
+
+# Default font 10 pt; legend 8 pt
+plots$UMAP_tissue_cell_type.cellQC.peakQC <- plot_atac_annotation_umap(
+  atac,
+  "tissue_cell_type",
+  settings
+)
+
+# One annotation per figure
+plot_sizes$UMAP_tissue_cell_type.cellQC.peakQC <- c(9, 9)
 ```
 
 **3. GWAS QC**
 
 ``` r
+# Read
 gwas_qc <- read.delim(file.path(output_dir, "02_gwas/gwas_qc_summary.tsv"))
+
 gwas_qc <- gwas_qc[gwas_qc$gwas_name %in% traits, , drop = FALSE]
-plot_gwas_filtering_waterfall <- getFromNamespace("plot_gwas_filtering_waterfall", "EPIC2")
-plot_genome_validation_qc <- getFromNamespace("plot_genome_validation_qc", "EPIC2")
-plots$gwas_filtering_waterfall <- plot_gwas_filtering_waterfall(gwas_qc, base_size = 13)
+plot_gwas_filtering_waterfall <- getFromNamespace(
+  "plot_gwas_filtering_waterfall",
+  "EPIC2"
+)
+plot_genome_validation_qc <- getFromNamespace(
+  "plot_genome_validation_qc",
+  "EPIC2"
+)
+plots$gwas_filtering_waterfall <- plot_gwas_filtering_waterfall(
+  gwas_qc,
+  base_size = 13
+)
 plot_sizes$gwas_filtering_waterfall <- c(11, 7)
-plots$gwas_coordinate_validation <- plot_genome_validation_qc(gwas_qc, base_size = 13)
+plots$gwas_coordinate_validation <- plot_genome_validation_qc(
+  gwas_qc,
+  base_size = 13
+)
 plot_sizes$gwas_coordinate_validation <- c(9, 6)
 ```
 
 **4. Accessibility distributions, UMAPs and violins**
 
 ``` r
-collect_accessibility_plot_data <- getFromNamespace("collect_accessibility_plot_data", "EPIC2")
-plot_accessibility_count_distributions <- getFromNamespace("plot_accessibility_count_distributions", "EPIC2")
-plot_accessibility_coverage <- getFromNamespace("plot_accessibility_coverage", "EPIC2")
-accessibility <- collect_accessibility_plot_data(plot_inputs, traits) # Reads TC.snp_by_cell.rds and TC.peak_by_cell.rds
-plots$accessibility_count_distributions <- plot_accessibility_count_distributions(accessibility$distributions, base_size = 13)
+collect_accessibility_plot_data <- getFromNamespace(
+  "collect_accessibility_plot_data",
+  "EPIC2"
+)
+plot_accessibility_count_distributions <- getFromNamespace(
+  "plot_accessibility_count_distributions",
+  "EPIC2"
+)
+plot_accessibility_coverage <- getFromNamespace(
+  "plot_accessibility_coverage",
+  "EPIC2"
+)
+
+# Reads TC.snp_by_cell.rds and TC.peak_by_cell.rds
+accessibility <- collect_accessibility_plot_data(plot_inputs, traits)
+plots$accessibility_count_distributions <-
+  plot_accessibility_count_distributions(
+    accessibility$distributions,
+    base_size = 13
+  )
 plot_sizes$accessibility_count_distributions <- c(12, 5.5)
-plots$accessibility_coverage_summary <- plot_accessibility_coverage(accessibility$coverage, base_size = 13)
+plots$accessibility_coverage_summary <- plot_accessibility_coverage(
+  accessibility$coverage,
+  base_size = 13
+)
 plot_sizes$accessibility_coverage_summary <- c(10, 6)
-collect_signal_umap_data <- getFromNamespace("collect_signal_umap_data", "EPIC2")
+collect_signal_umap_data <- getFromNamespace(
+  "collect_signal_umap_data",
+  "EPIC2"
+)
 plot_signal_umap <- getFromNamespace("plot_signal_umap", "EPIC2")
-plot_signal_group_violin <- getFromNamespace("plot_signal_group_violin", "EPIC2")
+plot_signal_group_violin <- getFromNamespace(
+  "plot_signal_group_violin",
+  "EPIC2"
+)
 for (resolution in c("snp", "peak")) {
-  signal <- collect_signal_umap_data(plot_inputs, atac, traits, resolution) # Align counts to UMAP cells; prepare display scale
+  # Align counts to UMAP cells; prepare display scale
+  signal <- collect_signal_umap_data(plot_inputs, atac, traits, resolution)
   label <- if (resolution == "snp") "SNP" else "peak"
   id <- paste0("all_traits_GWAS_", label, "_count_FeaturePlot")
   plots[[id]] <- plot_signal_umap(signal, resolution, base_size = 13)
   plot_sizes[[id]] <- c(8, 7)
   id <- paste0("all_traits_GWAS_", label, "_count_VlnPlot")
-  plots[[id]] <- plot_signal_group_violin(signal, resolution, "tissue_cell_type", base_size = 13)
+  plots[[id]] <- plot_signal_group_violin(
+    signal,
+    resolution,
+    "tissue_cell_type",
+    base_size = 13
+  )
   plot_sizes[[id]] <- c(10, max(5, 0.3 * length(unique(signal$group)) + 2))
 }
 ```
@@ -1916,24 +2334,54 @@ for (resolution in c("snp", "peak")) {
 **5. LD diagnostics**
 
 ``` r
-collect_ld_block_summary <- getFromNamespace("collect_ld_block_summary", "EPIC2")
+collect_ld_block_summary <- getFromNamespace(
+  "collect_ld_block_summary",
+  "EPIC2"
+)
 plot_ld_block_sizes <- getFromNamespace("plot_ld_block_sizes", "EPIC2")
 largest_ld_block <- getFromNamespace("largest_ld_block", "EPIC2")
 plot_ld_heatmap <- getFromNamespace("plot_ld_heatmap", "EPIC2")
-block_summary <- collect_ld_block_summary(plot_inputs, traits) # SNP blocks and peak-model block_indices
-plots$ld_block_size_distribution <- plot_ld_block_sizes(block_summary, base_size = 13)
+
+# SNP blocks and peak-model block_indices
+block_summary <- collect_ld_block_summary(plot_inputs, traits)
+plots$ld_block_size_distribution <- plot_ld_block_sizes(
+  block_summary,
+  base_size = 13
+)
 plot_sizes$ld_block_size_distribution <- c(10, 6)
+
+# Read
 snp_sigma <- readRDS(file.path(output_dir, "03_ld/TC.snp_sigma.rds"))
 snp_blocks <- readRDS(file.path(output_dir, "03_ld/TC.snp_blocks.rds"))
-snp_view <- largest_ld_block(snp_sigma, snp_blocks, maximum = 400) # Central window in the largest connected component
-plots$TC.snp_ld_heatmap <- plot_ld_heatmap(snp_view, "TC SNP local LD", base_size = 13, fill_label = expression(r^2))
+
+# Central window in the largest connected component
+snp_view <- largest_ld_block(snp_sigma, snp_blocks, maximum = 400)
+plots$TC.snp_ld_heatmap <- plot_ld_heatmap(
+  snp_view,
+  "TC SNP local LD",
+  base_size = 13,
+  fill_label = expression(r^2)
+)
 plot_sizes$TC.snp_ld_heatmap <- c(12, 7)
 rm(snp_sigma)
+
+# Read
 peak_ld <- readRDS(file.path(output_dir, "03_ld/TC.peak_ld_model.rds"))
-peak_view <- largest_ld_block(peak_ld$sigma, peak_ld$block_indices, maximum = 400)
-plots$TC.peak_ld_heatmap <- plot_ld_heatmap(peak_view, "TC peak local covariance", base_size = 13)
+
+peak_view <- largest_ld_block(
+  peak_ld$sigma,
+  peak_ld$block_indices,
+  maximum = 400
+)
+plots$TC.peak_ld_heatmap <- plot_ld_heatmap(
+  peak_view,
+  "TC peak local covariance",
+  base_size = 13
+)
 plot_sizes$TC.peak_ld_heatmap <- c(12, 7)
-rm(peak_ld) # Both heatmaps are grid grobs containing full-matrix and off-diagonal panels
+
+# Both heatmaps are grid grobs containing full-matrix and off-diagonal panels
+rm(peak_ld)
 ```
 
 **6. WRS summaries and histograms**
@@ -1942,24 +2390,43 @@ rm(peak_ld) # Both heatmaps are grid grobs containing full-matrix and off-diagon
 collect_wrs_plot_data <- getFromNamespace("collect_wrs_plot_data", "EPIC2")
 plot_wrs_group_summary <- getFromNamespace("plot_wrs_group_summary", "EPIC2")
 plot_wrs_histogram <- getFromNamespace("plot_wrs_histogram", "EPIC2")
-wrs <- collect_wrs_plot_data(plot_inputs, traits) # Reads SNP and peak results for the selected annotation under 04_wrs/
+
+# Reads SNP and peak results for the selected annotation under 04_wrs/
+wrs <- collect_wrs_plot_data(plot_inputs, traits)
 for (grouping in groupings) {
   id <- paste0("wrs_group_summary.", grouping)
   plots[[id]] <- plot_wrs_group_summary(wrs$summary, grouping, base_size = 13)
-  n_groups <- length(unique(wrs$summary$group[wrs$summary$grouping == grouping]))
+  n_groups <- length(
+    unique(wrs$summary$group[wrs$summary$grouping == grouping])
+  )
   plot_sizes[[id]] <- c(13, max(7, 0.28 * n_groups + 3))
 }
 for (key in names(wrs$tables)) {
-  item <- wrs$tables[[key]]; table <- item$data # Columns include group, pval_one_sided_enriched and z_one_sided_enriched_trunc
+  # Columns include group, pval_one_sided_enriched and
+  # z_one_sided_enriched_trunc
+  item <- wrs$tables[[key]]
+  table <- item$data
   title <- paste(item$trait, item$resolution, item$grouping)
   height <- max(6, 2.1 * ceiling(length(unique(table$group)) / 3))
   id <- paste0(key, ".onesided_pvalue_hist")
-  plots[[id]] <- plot_wrs_histogram(table, "pval_one_sided_enriched", paste(title, "one-sided WRS P-values"),
-                                  "One-sided enriched WRS P-value", bins = 50, base_size = 13)
+  plots[[id]] <- plot_wrs_histogram(
+    table,
+    "pval_one_sided_enriched",
+    paste(title, "one-sided WRS P-values"),
+    "One-sided enriched WRS P-value",
+    bins = 50,
+    base_size = 13
+  )
   plot_sizes[[id]] <- c(11, height)
   id <- paste0(key, ".truncated_z_hist")
-  plots[[id]] <- plot_wrs_histogram(table, "z_one_sided_enriched_trunc", paste(title, "truncated WRS Z-scores"),
-                                  "One-sided enriched truncated Z", bins = 50, base_size = 13)
+  plots[[id]] <- plot_wrs_histogram(
+    table,
+    "z_one_sided_enriched_trunc",
+    paste(title, "truncated WRS Z-scores"),
+    "One-sided enriched truncated Z",
+    bins = 50,
+    base_size = 13
+  )
   plot_sizes[[id]] <- c(11, height)
 }
 rm(wrs, table, item)
@@ -1968,14 +2435,30 @@ rm(wrs, table, item)
 **7. Top WRS-ranked SNP/peak dotplots**
 
 ``` r
-collect_top_wrs_dot_data <- getFromNamespace("collect_top_wrs_dot_data", "EPIC2")
+collect_top_wrs_dot_data <- getFromNamespace(
+  "collect_top_wrs_dot_data",
+  "EPIC2"
+)
 plot_top_wrs_dotplot <- getFromNamespace("plot_top_wrs_dotplot", "EPIC2")
 for (resolution in c("snp", "peak")) {
-  top_data <- collect_top_wrs_dot_data(plot_inputs, atac, traits, resolution, "tissue_cell_type")
+  top_data <- collect_top_wrs_dot_data(
+    plot_inputs,
+    atac,
+    traits,
+    resolution,
+    "tissue_cell_type"
+  )
   label <- if (resolution == "snp") "SNP" else "Peak"
   id <- paste0("all_traits.top3_per_group_top", label, "_wilcoxon_DotPlot")
-  plots[[id]] <- plot_top_wrs_dotplot(top_data, resolution, "tissue_cell_type", base_size = 13)
-  plot_sizes[[id]] <- c(14, 8) # Top three positive-direction WRS features per group
+  plots[[id]] <- plot_top_wrs_dotplot(
+    top_data,
+    resolution,
+    "tissue_cell_type",
+    base_size = 13
+  )
+
+  # Top three positive-direction WRS features per group
+  plot_sizes[[id]] <- c(14, 8)
 }
 ```
 
@@ -1984,9 +2467,16 @@ for (resolution in c("snp", "peak")) {
 ``` r
 plot_cauchy_dotplot <- getFromNamespace("plot_cauchy_dotplot", "EPIC2")
 plot_component_heatmap <- getFromNamespace("plot_component_heatmap", "EPIC2")
-plot_component_effect_heatmap <- getFromNamespace("plot_component_effect_heatmap", "EPIC2")
+plot_component_effect_heatmap <- getFromNamespace(
+  "plot_component_effect_heatmap",
+  "EPIC2"
+)
 for (grouping in groupings) {
-  results <- read.delim(file.path(output_dir, "05_models", paste0(grouping, ".cauchy_results.tsv")))
+  # Read
+  results <- read.delim(
+    file.path(output_dir, "05_models", paste0(grouping, ".cauchy_results.tsv"))
+  )
+
   results <- results[results$trait %in% traits, , drop = FALSE]
   height <- max(5, 0.3 * length(unique(results$group)) + 3)
   id <- paste0("cauchy_", grouping, "_dotplot")
@@ -1994,13 +2484,32 @@ for (grouping in groupings) {
   plot_sizes[[id]] <- c(10, height)
   for (adjustment in c("nominal", "bh", "bonferroni")) {
     id <- paste0("cauchy_", grouping, "_component_heatmap_", adjustment)
-    plots[[id]] <- plot_component_heatmap(results, grouping, adjustment, cap = 5, base_size = 13)
+    plots[[id]] <- plot_component_heatmap(
+      results,
+      grouping,
+      adjustment,
+      cap = 5,
+      base_size = 13
+    )
     plot_sizes[[id]] <- c(15, height)
   }
-  components <- read.delim(file.path(output_dir, "05_models", paste0(grouping, ".component_results.tsv")))
+
+  # Read
+  components <- read.delim(
+    file.path(
+      output_dir,
+      "05_models",
+      paste0(grouping, ".component_results.tsv")
+    )
+  )
+
   components <- components[components$trait %in% traits, , drop = FALSE]
   id <- paste0("component_effects_", grouping)
-  plots[[id]] <- plot_component_effect_heatmap(components, grouping, base_size = 13)
+  plots[[id]] <- plot_component_effect_heatmap(
+    components,
+    grouping,
+    base_size = 13
+  )
   plot_sizes[[id]] <- c(10, max(6, 0.3 * length(unique(components$group)) + 3))
 }
 ```
@@ -2010,18 +2519,40 @@ for (grouping in groupings) {
 Use `print()` for ggplots. The combined annotation UMAP and LD heatmaps are grid grobs and use `grid::grid.draw()`. The loop below displays all available plot objects. The saving commands write PNG/PDF files to `figures_manual/`, using the same dimensions and PNG resolution as the stage output; run only the display or saving commands you need.
 
 ``` r
-print(plots$cauchy_tissue_cell_type_dotplot) # A single ggplot
-grid::grid.newpage(); grid::grid.draw(plots$TC.snp_ld_heatmap) # A combined grid grob
+# A single ggplot
+print(plots$cauchy_tissue_cell_type_dotplot)
+
+# A combined grid grob
+grid::grid.newpage()
+grid::grid.draw(plots$TC.snp_ld_heatmap)
 for (p in plots) {
-  if (inherits(p, "grob")) { grid::grid.newpage(); grid::grid.draw(p) } else print(p)
+  if (inherits(p, "grob")) {
+    grid::grid.newpage()
+    grid::grid.draw(p)
+  } else print(p)
 }
 dir.create("figures_manual", showWarnings = FALSE, recursive = TRUE)
 for (id in names(plots)) {
   size <- plot_sizes[[id]]
-  ggplot2::ggsave(file.path("figures_manual", paste0(id, ".png")), plots[[id]], width = size[1], height = size[2],
-                 units = "in", dpi = 220, bg = "white", limitsize = FALSE)
-  ggplot2::ggsave(file.path("figures_manual", paste0(id, ".pdf")), plots[[id]], width = size[1], height = size[2],
-                 units = "in", bg = "white", limitsize = FALSE)
+  ggplot2::ggsave(
+    file.path("figures_manual", paste0(id, ".png")),
+    plots[[id]],
+    width = size[1],
+    height = size[2],
+    units = "in",
+    dpi = 220,
+    bg = "white",
+    limitsize = FALSE
+  )
+  ggplot2::ggsave(
+    file.path("figures_manual", paste0(id, ".pdf")),
+    plots[[id]],
+    width = size[1],
+    height = size[2],
+    units = "in",
+    bg = "white",
+    limitsize = FALSE
+  )
 }
 ```
 
@@ -2098,61 +2629,15 @@ Files listed in the same row use the same drawing function; each filename stem h
 PNG/PDF figures are saved in `output/figures/`. `figure_manifest.tsv` records generated and skipped figures.
 
 ``` r
+# Read
 figure_manifest <- read.delim("output/figures/figure_manifest.tsv")
+
 table(figure_manifest$status)
 ```
 
     ## 
     ## generated   skipped 
     ##        27         7
-
-### Shared requirements for partial runs
-
-<details>
-
-<summary>
-
-Configuration, completion records and a partial-run example
-</summary>
-
-**Keep completion records and their associated files**
-
-The supplied results include `*.receipt.rds` completion records. Downstream stages validate recorded file paths, checksums, software versions and relevant settings. These checks may require files beyond the direct inputs listed at each stage:
-
-- GWAS records include the original GWAS and reference-genotype files as well as their processed outputs.
-- Accessibility records include the ATAC checkpoint, processed GWAS and genotypes, accessibility matrices, SNP–peak mapping and aligned genotypes.
-- Models requires `03_ld/TC.ld_receipt.rds`, `04_wrs/TC.wrs_receipt.rds` and a `COMPLETED` status in `03_ld/TC.ld_runtime.tsv`. The LD receipt also checks the saved SNP covariance and blocks files.
-
-**Keep the complete `inputs/` and `output/` directories when reusing these results.** An isolated LD matrix or WRS table is generally insufficient to resume Models. Preserve the paths recorded in the receipts; simply moving files does not update those records.
-
-**Configure a partial run**
-
-Continue using the complete [config.yml](config.yml); do not remove the configuration blocks for stages you want to skip.
-
-1.  Keep `project.output_dir` pointed at the directory containing the saved intermediate results (`output` here). An empty directory has no upstream results to reuse.
-2.  Keep the original input paths. For example, do not replace `gwas.traits.TC.summary` with `output/02_gwas/TC.gwas.rds` to skip GWAS processing; later stages read intermediate files from their fixed subdirectories under the output directory.
-3.  Keep settings consistent with the saved results, including genome assembly, assay, LD parameters and WRS settings. If inputs or settings change, rerun the affected stage and its downstream stages. Changing `model.groupings` requires matching WRS results before rerunning Models.
-4.  Select stages in the R command rather than deleting YAML blocks.
-
-For example, run only WRS using existing inputs:
-
-``` r
-config <- EPIC2::read_EPIC2_config("config.yml", check_files = TRUE)
-
-EPIC2::run_EPIC2(
-  config,
-  stages = "wrs",
-  gwas_name = "TC"
-)
-```
-
-This recalculates WRS without running GWAS, Accessibility or LD. Replace `"wrs"` with `"ld"`, `"model"`, `"plot"` or `c("model", "plot")` to select other stages. This example is not executed when knitting the tutorial. Using `run_EPIC2()` also updates `run_manifest.txt`, `config.used.yml`, `config.used.rds` and `run_history/`. Calling the individual `run_*_stage()` functions shown above does not update these global run records.
-
-`check_files = TRUE` checks the original input files listed in the configuration, even when the selected stage does not directly read them. For plotting from saved outputs when the original inputs are unavailable, you can use `check_files = FALSE`. **This only disables the configuration’s file-existence check; it does not bypass stage completion-record checks or make missing plotting inputs available.**
-
-To **inspect existing results without recalculating them**, run the `readRDS()`, `read.delim()` and inspection code provided with each stage. Calling `run_*_stage()` actually reruns that stage.
-
-</details>
 
 ## Which EPIC2 functions run here?
 
@@ -2241,6 +2726,124 @@ Accessibility of WRS-ranked peak features for TC, selecting up to three features
 BH-adjusted P-values for the four components and ACAT; stars indicate displayed P \< 0.05. [PDF](figures/05_models/cauchy_tissue_cell_type_component_heatmap_bh.pdf)
 
 Because this tutorial uses a sampled subset of real scATAC-seq data, with up to 200 cells per tissue–cell-type group, the BH-adjusted results shown here may differ slightly from the manuscript results obtained using the complete dataset. The main enrichment signals remain consistent.
+
+The full data used in the manuscript are available on [Dropbox](https://www.dropbox.com/scl/fo/sryw79ywmy7gcty6pbm45/AOkzY5IFfC20oXzgY2vxoqM?rlkey=drrktk7uumyazina4woawdgl7&st=ino5s6so&dl=0).
+
+# Expected outputs
+
+Stage outputs are saved beneath `project.output_dir` (`output/` in this tutorial).
+Directory contents depend on the stages run and options enabled. See
+[Run one stage at a time](#stage-inputs-and-outputs) for each stage's required inputs and detailed outputs.
+
+```text
+output/
+├── 01_atac/             # ATAC checkpoint; QC summaries if QC is run
+├── 02_gwas/             # Matched GWAS, genotypes and QC records
+├── 02_accessibility/    # SNP/peak matrices and overlap tables
+├── 03_ld/               # LD covariance models and inverse square roots
+├── 04_wrs/              # WRS scores; stability summaries if enabled
+├── 05_models/           # Component and ACAT results
+├── figures/             # Figures, supporting tables and figure_manifest.tsv
+├── run_manifest.txt
+├── config.used.yml
+├── config.used.rds
+└── run_history/         # Per-invocation settings and session manifests
+```
+
+**Run records:** The final four entries are written by `run_EPIC2()`.
+The individual `run_*_stage()` calls used during this knit do not create these global run records.
+
+In the filenames below, `<grouping>` is `tissue_cell_type` for this tutorial.
+
+<div class="epic2-input-table">
+
+| Main file | Contents |
+|:--|:--|
+| [`05_models/<grouping>.component_results.tsv`](#outputs-in-output05_models) | Focal coefficient estimates, standard errors, P-values and model statuses. |
+| [`05_models/<grouping>.cauchy_results.tsv`](#outputs-in-output05_models) | Component P-values, `p_cauchy`, number of tests combined and adjusted P-values. |
+| [`figures/figure_manifest.tsv`](#outputs-in-outputfigures) | Figure paths and `generated`, `skipped` or `error` status. |
+| `config.used.yml` / `config.used.rds` | Effective configuration, including in-memory overrides; written by `run_EPIC2()`. See [Shared requirements for partial runs](#shared-requirements-for-partial-runs) for details on when these files are updated. |
+| [`run_manifest.txt`](#shared-requirements-for-partial-runs) | Software environment, selected stages and traits, assembly, seed and worker settings; written by `run_EPIC2()`. |
+
+</div>
+
+The tutorial's separate `results/` and `figures/` folders contain copies of result tables and figures.
+
+# Session information
+
+``` r
+sessionInfo()
+```
+
+```
+## R version 4.6.0 (2026-04-24)
+## Platform: aarch64-apple-darwin23
+## Running under: macOS Tahoe 26.7.2
+## 
+## Matrix products: default
+## BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+## LAPACK: /Library/Frameworks/R.framework/Versions/4.6/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
+## 
+## locale:
+## [1] C.UTF-8/C.UTF-8/C.UTF-8/C/C.UTF-8/C.UTF-8
+## 
+## time zone: America/Chicago
+## tzcode source: internal
+## 
+## attached base packages:
+## [1] stats     graphics  grDevices utils     datasets  methods   base     
+## 
+## other attached packages:
+## [1] Signac_1.17.1      EPIC2_0.3.0        Seurat_5.5.0       SeuratObject_5.4.0
+## [5] sp_2.2-1          
+## 
+## loaded via a namespace (and not attached):
+##   [1] RColorBrewer_1.1-3       jsonlite_2.0.0           magrittr_2.0.5          
+##   [4] spatstat.utils_3.2-2     farver_2.1.2             rmarkdown_2.31          
+##   [7] ragg_1.5.2               vctrs_0.7.3              ROCR_1.0-12             
+##  [10] Rsamtools_2.28.0         spatstat.explore_3.8-0   RcppRoll_0.3.2          
+##  [13] htmltools_0.5.9          sass_0.4.10              sctransform_0.4.3       
+##  [16] parallelly_1.47.0        KernSmooth_2.23-26       bslib_0.10.0            
+##  [19] htmlwidgets_1.6.4        ica_1.0-3                plyr_1.8.9              
+##  [22] plotly_4.12.0            zoo_1.8-15               cachem_1.1.0            
+##  [25] igraph_2.3.1             mime_0.13                lifecycle_1.0.5         
+##  [28] pkgconfig_2.0.3          Matrix_1.7-5             R6_2.6.1                
+##  [31] fastmap_1.2.0            MatrixGenerics_1.24.0    fitdistrplus_1.2-6      
+##  [34] future_1.70.0            shiny_1.13.0             digest_0.6.39           
+##  [37] patchwork_1.3.2          S4Vectors_0.50.1         tensor_1.5.1            
+##  [40] RSpectra_0.16-2          irlba_2.3.7              textshaping_1.0.5       
+##  [43] GenomicRanges_1.64.0     labeling_0.4.3           progressr_0.19.0        
+##  [46] spatstat.sparse_3.1-0    httr_1.4.8               polyclip_1.10-7         
+##  [49] abind_1.4-8              compiler_4.6.0           withr_3.0.2             
+##  [52] S7_0.2.2                 BiocParallel_1.46.0      fastDummies_1.7.6       
+##  [55] MASS_7.3-65              tools_4.6.0              lmtest_0.9-40           
+##  [58] otel_0.2.0               httpuv_1.6.17            future.apply_1.20.2     
+##  [61] goftest_1.2-3            glue_1.8.1               nlme_3.1-169            
+##  [64] promises_1.5.0           grid_4.6.0               Rtsne_0.17              
+##  [67] cluster_2.1.8.2          reshape2_1.4.5           generics_0.1.4          
+##  [70] gtable_0.3.6             spatstat.data_3.1-9      tidyr_1.3.2             
+##  [73] data.table_1.18.4        XVector_0.52.0           BiocGenerics_0.58.1     
+##  [76] spatstat.geom_3.7-3      RcppAnnoy_0.0.23         ggrepel_0.9.8           
+##  [79] RANN_2.6.2               pillar_1.11.1            stringr_1.6.0           
+##  [82] spam_2.11-3              RcppHNSW_0.6.0           later_1.4.8             
+##  [85] splines_4.6.0            dplyr_1.2.1              lattice_0.22-9          
+##  [88] survival_3.8-6           deldir_2.0-4             tidyselect_1.2.1        
+##  [91] Biostrings_2.80.1        miniUI_0.1.2             pbapply_1.7-4           
+##  [94] knitr_1.51               gridExtra_2.3            IRanges_2.46.0          
+##  [97] Seqinfo_1.2.0            scattermore_1.2          stats4_4.6.0            
+## [100] xfun_0.57                matrixStats_1.5.0        stringi_1.8.7           
+## [103] UCSC.utils_1.8.0         lazyeval_0.2.3           yaml_2.3.12             
+## [106] evaluate_1.0.5           codetools_0.2-20         tibble_3.3.1            
+## [109] cli_3.6.6                uwot_0.2.4               systemfonts_1.3.2       
+## [112] xtable_1.8-8             reticulate_1.46.0        jquerylib_0.1.4         
+## [115] Rcpp_1.1.1-1.1           GenomeInfoDb_1.48.0      globals_0.19.1          
+## [118] spatstat.random_3.4-5    png_0.1-9                spatstat.univar_3.1-7   
+## [121] parallel_4.6.0           ggplot2_4.0.3            presto_1.1.0            
+## [124] dotCall64_1.2            sparseMatrixStats_1.24.0 bitops_1.0-9            
+## [127] listenv_0.10.1           viridisLite_0.4.3        scales_1.4.0            
+## [130] ggridges_0.5.7           crayon_1.5.3             purrr_1.2.2             
+## [133] rlang_1.2.0              fastmatch_1.1-8          cowplot_1.2.0
+```
 
 # References
 
