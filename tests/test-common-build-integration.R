@@ -221,6 +221,75 @@ run_common_build_integration <- function(genome_build = "hg19") {
       all(combined$p_cauchy >= 0 & combined$p_cauchy <= 1)
     )
   }
+  # Export switches must leave numerical outputs and plotting unchanged. Capture
+  # ordinary/balanced WRS, complete LD models and final model results, excluding
+  # receipts whose input fingerprints can change after a rerun.
+  result_paths <- unlist(lapply(c("03_ld", "04_wrs", "05_models"), function(stage) {
+    paths <- list.files(file.path(config$output_dir, stage), pattern = "\\.rds$", full.names = TRUE)
+    paths[!grepl("(receipt|peak_response|peak_covariance)\\.rds$", paths)]
+  }), use.names = FALSE)
+  original_results <- lapply(result_paths, readRDS)
+  wrs_rds <- list.files(file.path(config$output_dir, "04_wrs"),
+                        pattern = "\\.rds$", full.names = TRUE)
+  ordinary_wrs <- wrs_rds[!grepl("balanced|receipt", basename(wrs_rds))]
+  optional_paths <- c(
+    sub("\\.rds$", ".tsv", ordinary_wrs),
+    file.path(config$output_dir, "03_ld",
+              paste0("SYNTHETIC", c(".peak_response.rds", ".peak_covariance.rds")))
+  )
+  stopifnot(all(file.exists(optional_paths)))
+  balanced_paths <- list.files(file.path(config$output_dir, "04_wrs"),
+                               pattern = "balanced.*\\.tsv$", full.names = TRUE)
+  balanced_before <- tools::md5sum(balanced_paths)
+  # Cleanup must not remove exports for another trait or an unprocessed grouping.
+  untouched_paths <- c(
+    file.path(config$output_dir, "03_ld", "OTHER.peak_covariance.rds"),
+    file.path(config$output_dir, "04_wrs", "SYNTHETIC.snp.unprocessed.tsv")
+  )
+  for (path in untouched_paths) writeLines("keep", path)
+
+  config$ld$save_peak_checkpoints <- FALSE
+  config$wrs$write_tsv <- FALSE
+  # A configuration-only change must not invalidate completed statistical work.
+  run_model_stage(config)
+  # Failed reruns must not clean old optional exports or leave a valid receipt.
+  for (stage in c("ld", "wrs")) {
+    stage_function <- get(paste0("run_", stage, "_stage"), asNamespace("EPIC2"))
+    override <- if (stage == "ld") "build_peak_ld_model_impl" else "run_wrs_matrix"
+    environment(stage_function) <- list2env(
+      setNames(list(function(...) stop("Simulated export rerun failure")), override),
+      parent = asNamespace("EPIC2")
+    )
+    failure <- tryCatch({ stage_function(config); NA_character_ }, error = conditionMessage)
+    stopifnot(identical(failure, "Simulated export rerun failure"),
+              all(file.exists(optional_paths)),
+              !file.exists(file.path(config$output_dir,
+                if (stage == "ld") "03_ld" else "04_wrs",
+                paste0("SYNTHETIC.", stage, "_receipt.rds"))))
+  }
+  run_EPIC2(config, stages = c("ld", "wrs", "model", "plot"))
+  stopifnot(!any(file.exists(optional_paths)),
+            all(file.exists(untouched_paths)),
+            identical(tools::md5sum(balanced_paths), balanced_before))
+  for (i in seq_along(result_paths)) {
+    stopifnot(isTRUE(all.equal(readRDS(result_paths[[i]]), original_results[[i]])))
+  }
+  new_manifest <- utils::read.delim(file.path(config$output_dir, "figures", "figure_manifest.tsv"))
+  stopifnot(identical(new_manifest$status, figure_manifest$status))
+  recorded <- readRDS(file.path(config$output_dir, "config.used.rds"))
+  stopifnot(identical(recorded$ld$save_peak_checkpoints, FALSE),
+            identical(recorded$wrs$write_tsv, FALSE))
+  unlink(untouched_paths)
+
+  # Direct stage callers with old config objects still export, including after
+  # the same output directory was previously run with exports disabled.
+  legacy <- config
+  legacy$ld$save_peak_checkpoints <- NULL
+  legacy$wrs$write_tsv <- NULL
+  run_ld_stage(legacy)
+  run_wrs_stage(legacy)
+  stopifnot(all(file.exists(optional_paths)))
+
   # A later sequential trait run must preserve the earlier trait's results.
   original <- readRDS(file.path(config$output_dir, "05_models", "tissue.cauchy_results.rds"))
   config$gwas$traits$SECOND <- config$gwas$traits$SYNTHETIC

@@ -82,6 +82,8 @@ accessibility:
   chunks: 20
 
 ld:
+  # Optional diagnostic intermediates; the complete peak model is always saved.
+  save_peak_checkpoints: true
   window_bp: 5000000
   ridge: 0.01
   eigen_tolerance: 1.0e-8
@@ -95,6 +97,9 @@ ld:
   max_dense_block_size: 5000
 
 wrs:
+  # Matching exports of the complete RDS tables; disable to reduce disk usage.
+  # Balanced WRS summaries and stability TSVs are controlled by balanced.enabled.
+  write_tsv: true
   truncation_quantiles: [0.02, 0.98]
   balanced:
     enabled: false

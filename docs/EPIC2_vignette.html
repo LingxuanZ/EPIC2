@@ -2008,6 +2008,7 @@ tutorial skips ATAC QC and does not repeat GWAS LD pruning or
 ambiguous-variant removal; GWAS/reference checks still run. See the <a href="https://github.com/LingxuanZ/EPIC2/blob/main/inst/extdata/config.example.yml">full
 workflow configuration</a> for the complete settings. For details on
 each configuration parameter, see <a href="https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md">CONFIGURATION.md</a>.</p>
+<p>This tutorial sets <code>ld.save_peak_checkpoints: false</code> and <code>wrs.write_tsv: false</code> to reduce disk usage. Both options default to <code>true</code> when omitted. The complete LD model and WRS RDS tables are still saved, and Models continues to save both RDS and TSV results. These options do not change numerical results or figures. After a successful stage rerun with an option disabled, matching older optional files for the processed traits and WRS groupings are removed. Changing the YAML without rerunning a stage does not change existing files.</p>
 <pre class="yaml"><code>project:
   name: EPIC2 TC all-SNPs vignette
   output_dir: output
@@ -2049,6 +2050,7 @@ gwas:
 accessibility:
   chunks: 20
 ld:
+  save_peak_checkpoints: false
   window_bp: 5000000
   ridge: 0.01
   eigen_tolerance: 1.0e-08
@@ -2056,6 +2058,7 @@ ld:
   max_snps_for_chr_ld: 15000
   max_dense_block_size: 6000
 wrs:
+  write_tsv: false
   truncation_quantiles:
   - 0.02
   - 0.98
@@ -2958,15 +2961,10 @@ peak_inverse &lt;- peak_ld$inverse_sqrt</code></pre>
 <h4>Outputs in <code>output/03_ld/</code></h4>
 <ul>
 <li><code>TC.snp_sigma.rds</code>: SNP covariance matrix.</li>
-<li><code>TC.snp_inverse_sqrt.rds</code> and
-<code>TC.snp_blocks.rds</code>: SNP transformation and
-connected-component membership.</li>
-<li><code>TC.peak_ld_model.rds</code>: completed peak LD model;
-<code>TC.peak_covariance.rds</code> and
-<code>TC.peak_response.rds</code> are its saved intermediate
-outputs.</li>
-<li><code>TC.ld_runtime.tsv</code>: completion status and LD
-settings.</li>
+<li><code>TC.snp_inverse_sqrt.rds</code> and <code>TC.snp_blocks.rds</code>: SNP transformation and connected-component membership.</li>
+<li><code>TC.peak_ld_model.rds</code>: completed peak LD model, including the response, covariance and inverse square root.</li>
+<li>Optional <code>TC.peak_covariance.rds</code> and <code>TC.peak_response.rds</code>: diagnostic intermediates saved only when <code>ld.save_peak_checkpoints: true</code>. They are disabled in this tutorial and are not automatically reused to resume a run.</li>
+<li><code>TC.ld_runtime.tsv</code>: completion status and LD settings.</li>
 </ul>
 <pre class="r"><code># Read
 ld_status &lt;- read.delim(&quot;output/03_ld/TC.ld_runtime.tsv&quot;)
@@ -3088,14 +3086,15 @@ peak_wrs &lt;- EPIC2::make_one_sided_wrs(
 <div id="outputs-in-output04_wrs" class="section level4">
 <h4>Outputs in <code>output/04_wrs/</code></h4>
 <ul>
-<li><code>TC.snp.tissue_cell_type.rds</code> and matching
-<code>.tsv</code>: 1,401,360 SNP–cell-group comparisons across 24
-groups.</li>
-<li><code>TC.peak.tissue_cell_type.rds</code> and matching
-<code>.tsv</code>: 1,385,112 peak–cell-group comparisons across 24
-groups.</li>
+<li><code>TC.snp.tissue_cell_type.rds</code>: 1,401,360 SNP–cell-group comparisons across 24 groups.</li>
+<li><code>TC.peak.tissue_cell_type.rds</code>: 1,385,112 peak–cell-group comparisons across 24 groups.</li>
 </ul>
 <p>Each row represents one feature–cell-group comparison.</p>
+<p>Matching TSV exports are saved only when <code>wrs.write_tsv: true</code>; this tutorial disables them. Models and plotting read the RDS tables. To export one table later without rerunning WRS:</p>
+<pre class="r"><code>path &lt;- &quot;output/04_wrs/TC.snp.tissue_cell_type.rds&quot;
+write.table(readRDS(path), sub(&quot;\\.rds$&quot;, &quot;.tsv&quot;, path),
+            sep = &quot;\t&quot;, quote = FALSE, row.names = FALSE)</code></pre>
+<p>Balanced WRS summaries and stability TSVs, when enabled separately, are not controlled by <code>wrs.write_tsv</code>.</p>
 <p><code>pval_one_sided_enriched</code> is
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>p</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>+</mi><mo stretchy="false" form="postfix">)</mo></mrow></msup><annotation encoding="application/x-tex">p^{(+)}</annotation></semantics></math>;
 <code>z_one_sided_enriched_trunc</code> is the capped WRS score used for
@@ -4084,12 +4083,9 @@ combined &lt;- EPIC2::combine_component_tests(
 <div id="outputs-in-output05_models" class="section level4">
 <h4>Outputs in <code>output/05_models/</code></h4>
 <ul>
-<li><code>tissue_cell_type.component_results.tsv</code>: 96 rows,
-covering four components for each of 24 groups.</li>
-<li><code>tissue_cell_type.cauchy_results.tsv</code>: 24 combined
-association results.</li>
-<li>Matching <code>.rds</code> files are also saved. Copies of the
-result tables are provided in <code>results/</code>.</li>
+<li><code>tissue_cell_type.component_results.tsv</code>: 96 rows, covering four components for each of 24 groups.</li>
+<li><code>tissue_cell_type.cauchy_results.tsv</code>: 24 combined association results.</li>
+<li>Matching <code>.rds</code> files are also saved. Read result tables directly from <code>output/05_models/</code>.</li>
 </ul>
 <pre class="r"><code># Read
 results &lt;- read.delim(&quot;output/05_models/tissue_cell_type.cauchy_results.tsv&quot;)
@@ -5095,9 +5091,7 @@ assembly, seed and worker settings; written by
 </tbody>
 </table>
 </div>
-<p>The tutorial’s separate <code>results/</code> and
-<code>figures/</code> folders contain copies of result tables and
-figures.</p>
+<p>Result tables remain in <code>output/05_models/</code>; no separate <code>results/</code> copy is created. The tutorial’s <code>figures/</code> folder contains copies used to publish the figure gallery; analysis figures remain in <code>output/figures/</code>.</p>
 </div>
 <div id="session-information" class="section level1">
 <h1>Session information</h1>

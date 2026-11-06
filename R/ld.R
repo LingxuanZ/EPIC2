@@ -434,12 +434,19 @@ validate_ld_completion <- function(config, trait) {
 
 #' Build local SNP- and peak-level LD models
 #'
+#' Set `config$ld$save_peak_checkpoints` to `FALSE` to omit the diagnostic
+#' `.peak_response.rds` and `.peak_covariance.rds` files; the default is `TRUE`.
+#' After a successful trait run, older copies of these two files are removed
+#' when disabled. The complete peak model and public return values are unchanged.
+#' Checkpoints aid diagnosis after a failure and are not automatically reused.
+#'
 #' @param config Parsed EPIC2 configuration.
 #' @param traits Optional trait subset.
 #' @return Named list of generated files.
 #' @export
 run_ld_stage <- function(config, traits = names(config$gwas$traits)) {
   config <- normalize_common_genome_config(config)
+  config <- normalize_output_settings(config)
   lock <- acquire_stage_lock(config, "ld")
   on.exit(unlink(lock, recursive = TRUE), add = TRUE)
   output_dir <- stage_output_dir(config, "03_ld")
@@ -473,6 +480,7 @@ run_ld_stage <- function(config, traits = names(config$gwas$traits)) {
       correlation_block_size = as.character(config$ld$correlation_block_size),
       max_snps_for_chr_ld = as.character(config$ld$max_snps_for_chr_ld %||% 15000L),
       max_dense_block_size = as.character(config$ld$max_dense_block_size %||% 5000L),
+      save_peak_checkpoints = as.character(config$ld$save_peak_checkpoints),
       configured_workers = as.character(config$parameters$workers),
       Sys.getenv(thread_variables, unset = "not set")
     )
@@ -530,11 +538,14 @@ run_ld_stage <- function(config, traits = names(config$gwas$traits)) {
       ridge = config$ld$ridge,
       eigen_tolerance = config$ld$eigen_tolerance,
       max_snps_for_chr_ld = config$ld$max_snps_for_chr_ld %||% 15000L,
-      checkpoint_prefix = prefix,
+      checkpoint_prefix = if (config$ld$save_peak_checkpoints) prefix else NULL,
       max_dense_block_size = config$ld$max_dense_block_size %||% 5000L
     )
 
     save_rds_atomic(peak_model, paths$peak_model)
+    if (!config$ld$save_peak_checkpoints) {
+      remove_optional_outputs(paste0(prefix, c(".peak_response.rds", ".peak_covariance.rds")))
+    }
     write_stage_receipt(receipt_path, input_hashes, unlist(paths, use.names = FALSE),
                         ld_stage_settings(config, trait))
     # An interrupted rerun may leave older files alongside new checkpoints.

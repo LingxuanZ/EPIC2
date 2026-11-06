@@ -363,6 +363,8 @@ The stage-based workflow requires a YAML file (usually `.yml` or `.yaml`) that d
 
 The scATAC-seq and GWAS inputs have undergone upstream QC, so this tutorial skips ATAC QC and does not repeat GWAS LD pruning or ambiguous-variant removal; GWAS/reference checks still run. See the [full workflow configuration](https://github.com/LingxuanZ/EPIC2/blob/main/inst/extdata/config.example.yml) for the complete settings. For details on each configuration parameter, see [CONFIGURATION.md](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md).
 
+This tutorial sets `ld.save_peak_checkpoints: false` and `wrs.write_tsv: false` to reduce disk usage. Both options default to `true` when omitted. The complete LD model and WRS RDS tables are still saved, and Models continues to save both RDS and TSV results. These options do not change numerical results or figures. After a successful stage rerun with an option disabled, matching older optional files for the processed traits and WRS groupings are removed. Changing the YAML without rerunning a stage does not change existing files.
+
 ``` yaml
 project:
   name: EPIC2 TC all-SNPs vignette
@@ -405,6 +407,7 @@ gwas:
 accessibility:
   chunks: 20
 ld:
+  save_peak_checkpoints: false
   window_bp: 5000000
   ridge: 0.01
   eigen_tolerance: 1.0e-08
@@ -412,6 +415,7 @@ ld:
   max_snps_for_chr_ld: 15000
   max_dense_block_size: 6000
 wrs:
+  write_tsv: false
   truncation_quantiles:
   - 0.02
   - 0.98
@@ -1132,7 +1136,8 @@ peak_inverse <- peak_ld$inverse_sqrt
 
 - `TC.snp_sigma.rds`: SNP covariance matrix.
 - `TC.snp_inverse_sqrt.rds` and `TC.snp_blocks.rds`: SNP transformation and connected-component membership.
-- `TC.peak_ld_model.rds`: completed peak LD model; `TC.peak_covariance.rds` and `TC.peak_response.rds` are its saved intermediate outputs.
+- `TC.peak_ld_model.rds`: completed peak LD model, including the response, covariance and inverse square root.
+- Optional `TC.peak_covariance.rds` and `TC.peak_response.rds`: diagnostic intermediates saved only when `ld.save_peak_checkpoints: true`. They are disabled in this tutorial and are not automatically reused to resume a run.
 - `TC.ld_runtime.tsv`: completion status and LD settings.
 
 ``` r
@@ -1251,10 +1256,20 @@ peak_wrs <- EPIC2::make_one_sided_wrs(
 
 #### Outputs in `output/04_wrs/`
 
-- `TC.snp.tissue_cell_type.rds` and matching `.tsv`: 1,401,360 SNP–cell-group comparisons across 24 groups.
-- `TC.peak.tissue_cell_type.rds` and matching `.tsv`: 1,385,112 peak–cell-group comparisons across 24 groups.
+- `TC.snp.tissue_cell_type.rds`: 1,401,360 SNP–cell-group comparisons across 24 groups.
+- `TC.peak.tissue_cell_type.rds`: 1,385,112 peak–cell-group comparisons across 24 groups.
 
 Each row represents one feature–cell-group comparison.
+
+Matching TSV exports are saved only when `wrs.write_tsv: true`; this tutorial disables them. Models and plotting read the RDS tables. To export one table later without rerunning WRS:
+
+``` r
+path <- "output/04_wrs/TC.snp.tissue_cell_type.rds"
+write.table(readRDS(path), sub("\\.rds$", ".tsv", path),
+            sep = "\t", quote = FALSE, row.names = FALSE)
+```
+
+Balanced WRS summaries and stability TSVs, when enabled separately, are not controlled by `wrs.write_tsv`.
 
 `pval_one_sided_enriched` is $`p^{(+)}`$; `z_one_sided_enriched_trunc` is the capped WRS score used for model fitting.
 
@@ -2146,7 +2161,7 @@ combined <- EPIC2::combine_component_tests(
 
 - `tissue_cell_type.component_results.tsv`: 96 rows, covering four components for each of 24 groups.
 - `tissue_cell_type.cauchy_results.tsv`: 24 combined association results.
-- Matching `.rds` files are also saved. Copies of the result tables are provided in `results/`.
+- Matching `.rds` files are also saved. Read result tables directly from `output/05_models/`.
 
 ``` r
 # Read
@@ -2827,7 +2842,7 @@ In the filenames below, `<grouping>` is `tissue_cell_type` for this tutorial.
 
 </div>
 
-The tutorial’s separate `results/` and `figures/` folders contain copies of result tables and figures.
+Result tables remain in `output/05_models/`; no separate `results/` copy is created. The tutorial’s `figures/` folder contains copies used to publish the figure gallery; analysis figures remain in `output/figures/`.
 
 # Session information
 

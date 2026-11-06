@@ -205,12 +205,18 @@ wrs_stage_settings <- function(config) {
 
 #' Run SNP- and peak-level Wilcoxon analyses
 #'
+#' Complete WRS tables are always saved as RDS. Set `config$wrs$write_tsv`
+#' to `FALSE` to omit matching TSV exports; the default is `TRUE`.
+#' After a successful trait run, matching older TSV exports are removed when
+#' disabled. Balanced WRS summaries and stability TSVs are unaffected.
+#'
 #' @param config Parsed EPIC2 configuration.
 #' @param traits Optional trait subset.
 #' @return Named list of generated files.
 #' @export
 run_wrs_stage <- function(config, traits = names(config$gwas$traits)) {
   config <- normalize_common_genome_config(config)
+  config <- normalize_output_settings(config)
   lock <- acquire_stage_lock(config, "wrs")
   on.exit(unlink(lock, recursive = TRUE), add = TRUE)
   output_dir <- stage_output_dir(config, "04_wrs")
@@ -244,7 +250,7 @@ run_wrs_stage <- function(config, traits = names(config$gwas$traits)) {
         path <- file.path(output_dir, paste(trait, resolution, grouping, "rds", sep = "."))
         save_rds_atomic(result, path)
         trait_outputs <- c(trait_outputs, path)
-        write_table(result, sub("rds$", "tsv", path))
+        if (config$wrs$write_tsv) write_table(result, sub("rds$", "tsv", path))
         outputs[[paste(trait, resolution, grouping, sep = ".")]] <- path
 
         balanced <- config$wrs$balanced
@@ -281,6 +287,9 @@ run_wrs_stage <- function(config, traits = names(config$gwas$traits)) {
           }
         }
       }
+    }
+    if (!config$wrs$write_tsv) {
+      remove_optional_outputs(sub("\\.rds$", ".tsv", trait_outputs))
     }
     write_stage_receipt(receipt_path, input_hashes, trait_outputs, wrs_stage_settings(config))
     message("WRS stage complete for ", trait)

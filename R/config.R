@@ -79,6 +79,7 @@ EPIC2_defaults <- function() {
     ),
     accessibility = list(chunks = 20L),
     ld = list(
+      save_peak_checkpoints = TRUE,
       window_bp = 5000000L,
       ridge = 0.01,
       eigen_tolerance = 1e-8,
@@ -87,6 +88,7 @@ EPIC2_defaults <- function() {
       max_dense_block_size = 5000L
     ),
     wrs = list(
+      write_tsv = TRUE,
       truncation_quantiles = c(0.02, 0.98),
       balanced = list(
         enabled = FALSE,
@@ -124,6 +126,22 @@ is_scalar_number <- function(x, lower = -Inf, upper = Inf, integer = FALSE) {
 
 is_scalar_logical <- function(x) {
   is.logical(x) && length(x) == 1L && !is.na(x)
+}
+
+# Fill only the new output options for older in-memory configurations, including
+# callers of individual stages. These options do not change statistical results.
+normalize_output_settings <- function(config) {
+  options <- list(ld = "save_peak_checkpoints", wrs = "write_tsv")
+  for (section in names(options)) {
+    name <- options[[section]]
+    value <- config[[section]][[name]]
+    if (is.null(value)) value <- TRUE
+    if (!is_scalar_logical(value)) {
+      stop(section, ".", name, " must be true or false.", call. = FALSE)
+    }
+    config[[section]][[name]] <- value
+  }
+  config
 }
 
 is_scalar_choice <- function(x, choices) {
@@ -325,6 +343,7 @@ read_EPIC2_config <- function(path, check_files = FALSE) {
 #' @export
 validate_EPIC2_config <- function(config, check_files = FALSE) {
   config <- normalize_common_genome_config(config)
+  config <- normalize_output_settings(config)
   errors <- character()
   unknown_atac <- setdiff(names(config$atac), c(names(EPIC2_defaults()$atac), "input", "object_name"))
   if (length(unknown_atac)) {

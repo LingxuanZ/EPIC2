@@ -39,6 +39,7 @@ gwas:
 accessibility:
   chunks: 20
 ld:
+  save_peak_checkpoints: false
   window_bp: 5000000
   ridge: 0.01
   eigen_tolerance: 1.0e-08
@@ -46,6 +47,7 @@ ld:
   max_snps_for_chr_ld: 15000
   max_dense_block_size: 6000
 wrs:
+  write_tsv: false
   truncation_quantiles:
   - 0.02
   - 0.98

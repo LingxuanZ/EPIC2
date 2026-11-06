@@ -182,12 +182,14 @@ Other GWAS and reference QC filters still apply.
 | Key | Default | Purpose |
 | --- | --- | --- |
 | `accessibility.chunks` | `20` | Chunks used for SNP FeatureMatrix calculation. |
+| `ld.save_peak_checkpoints` | `true` | Save diagnostic `<trait>.peak_response.rds` and `<trait>.peak_covariance.rds` files in addition to the complete peak LD model. |
 | `ld.window_bp` | `5000000` | Same-chromosome local covariance distance. |
 | `ld.ridge` | `0.01` | Ridge added before inverse square roots. |
 | `ld.eigen_tolerance` | `1e-8` | Eigenvalue floor before ridge regularization. |
 | `ld.correlation_block_size` | `256` | Focal variants per vectorized BLAS correlation block; performance-only setting. |
 | `ld.max_snps_for_chr_ld` | `15000` | Maximum variants for optional chromosome LD caching; also capped by `ld.max_dense_block_size`. Above the smaller limit, calculate peak-pair LD on demand. |
 | `ld.max_dense_block_size` | `5000` | Reject a larger dense inverse-square-root block before allocation; applies to SNP/peak covariance components and within-peak SNP inverses. Positive integer, or `.inf` to deliberately disable the guard. |
+| `wrs.write_tsv` | `true` | Export complete ordinary WRS tables as TSV as well as RDS. Does not control balanced WRS summaries or stability TSVs. |
 | `wrs.truncation_quantiles` | `[0.02, 0.98]` | Quantiles of finite raw enrichment-oriented Z-scores; then cap all scores, including infinities. |
 | `wrs.balanced.enabled` | `false` | Run repeated equal-size one-versus-rest sampling. |
 | `wrs.balanced.cells_per_side` | `[500, 1000]` | Sample sizes to run separately; each uses this many target cells and this many background cells. |
@@ -197,6 +199,31 @@ Other GWAS and reference QC filters still apply.
 | `wrs.balanced.top_n` | `100` | Top-ranked features compared between repeat pairs. |
 | `model.groupings` | `[tissue_cell_type]` | Metadata columns analyzed independently by WRS and the association models. Tissue is optional. |
 | `model.require_all_components` | `false` | Combine available valid P-values; set true to require all four components. |
+
+For smaller output directories, set `ld.save_peak_checkpoints: false` and
+`wrs.write_tsv: false` in the existing LD and WRS configuration blocks. Omitted
+options retain the previous behavior (`true`), including older in-memory
+configurations passed directly to stage functions. These switches affect file
+exports only: ordinary WRS RDS files, the complete peak LD model, Models RDS/TSV
+tables and plotting inputs remain available. Switching exports does not change
+the statistical settings checked by stage completion records; the existing
+package-version and input/output checksum checks still apply.
+
+Changing YAML alone does not remove or create files. After a successful LD or
+WRS trait rerun with an option disabled, the stage removes its corresponding
+older optional files (only the traits and, for WRS, groupings being processed).
+If the rerun fails, older files may remain and must not be interpreted as current
+results; the stage has no valid completion record. LD checkpoints are diagnostic
+intermediates, not automatic resume caches. Disabling them also omits those
+intermediates when a run fails.
+
+To inspect a saved WRS table without rerunning WRS, export the RDS on demand:
+
+```r
+path <- "output/04_wrs/TC.snp.tissue_cell_type.rds"
+write.table(readRDS(path), sub("\\.rds$", ".tsv", path),
+            sep = "\t", quote = FALSE, row.names = FALSE)
+```
 
 Balanced WRS is optional. For `[500, 1000]`, one analysis samples 500 target
 and 500 background cells per repeat; another samples 1,000 from each. Groups

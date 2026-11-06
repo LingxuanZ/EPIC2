@@ -75,6 +75,24 @@ run_common_build_config_tests <- function(package_dir) {
         "conversion options optional; duplicate action retained")
   expect_error(env$validate_EPIC2_config(defaults), "genome.build")
 
+  check(isTRUE(defaults$ld$save_peak_checkpoints) && isTRUE(defaults$wrs$write_tsv),
+        "optional exports preserve previous defaults")
+  old_config <- config_for()
+  old_config$ld$save_peak_checkpoints <- NULL
+  old_config$wrs$write_tsv <- NULL
+  normalized <- env$validate_EPIC2_config(old_config)
+  check(isTRUE(normalized$ld$save_peak_checkpoints) && isTRUE(normalized$wrs$write_tsv),
+        "old in-memory configurations retain exports")
+  for (path in list(c("ld", "save_peak_checkpoints"), c("wrs", "write_tsv"))) {
+    for (invalid in list("false", 0, NA, logical(), c(TRUE, FALSE))) {
+      expect_error(env$validate_EPIC2_config(set_path(config_for(), path, invalid)),
+                   paste0(paste(path, collapse = "."), " must be true or false"))
+    }
+    normalized <- env$validate_EPIC2_config(set_path(config_for(), path, FALSE))
+    check(identical(normalized[[path[[1L]]]][[path[[2L]]]], FALSE),
+          paste("disabled export retained:", paste(path, collapse = ".")))
+  }
+
   for (declared in c("hg19", "GRCh37", "hg38", "GRCh38")) {
     config <- config_for(declared)
     before <- serialize(config, NULL)
@@ -174,6 +192,8 @@ run_common_build_config_tests <- function(package_dir) {
   check(identical(parsed$output_dir, file.path(dirname(normalizePath(yaml_file)), "results")),
         "relative output resolution unchanged")
   check(!dir.exists(parsed$output_dir), "validation does not create an output directory")
+  check(isTRUE(parsed$ld$save_peak_checkpoints) && isTRUE(parsed$wrs$write_tsv),
+        "YAML without new keys retains exports")
   direct <- env$deep_merge(env$EPIC2_defaults(), user_config)
   normalized <- env$validate_EPIC2_config(direct)
   check(identical(normalized$genome, parsed$genome) && identical(normalized$atac, parsed$atac) &&

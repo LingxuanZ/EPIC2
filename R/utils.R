@@ -85,6 +85,16 @@ load_analysis_input <- function(path, object_name = NULL, label = "Input") {
   )
 }
 
+# Called only after the replacement stage outputs have been saved. Restrict
+# cleanup to exact optional paths owned by the current trait and grouping.
+remove_optional_outputs <- function(paths) {
+  existing <- paths[file.exists(paths)]
+  if (length(existing) && !all(file.remove(existing))) {
+    stop("Unable to remove stale optional outputs; stage is not complete.", call. = FALSE)
+  }
+  invisible(existing)
+}
+
 save_rds_atomic <- function(object, path, compress = TRUE) {
   ensure_dir(dirname(path))
   tmp <- tempfile(pattern = paste0(basename(path), "."), tmpdir = dirname(path))

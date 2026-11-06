@@ -343,6 +343,16 @@ if (!all(vapply(peak_dependencies, requireNamespace, logical(1), quietly = TRUE)
       file.exists(paste0(prefix, ".peak_response.rds")),
       file.exists(paste0(prefix, ".peak_covariance.rds"))
     )
+    unlink(list.files(checkpoint_dir, full.names = TRUE))
+    failure <- tryCatch({
+      peak_function(
+        peak_gwas, peak_genotype, peak_matrix, peak_overlap,
+        window_bp = 500, checkpoint_prefix = NULL
+      )
+      NA_character_
+    }, error = conditionMessage)
+    stopifnot(identical(failure, "Simulated peak inverse failure"),
+              length(list.files(checkpoint_dir)) == 0L)
   })
   message("LD reference regression: peak equations, cache/fallback and early checkpoints passed.")
 }

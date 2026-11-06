@@ -10,3 +10,4 @@
 ^.*\.Rcheck$
 ^EPIC2_.*\.tar\.gz$
 ^results$
+^docs$
