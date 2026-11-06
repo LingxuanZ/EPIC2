@@ -26,9 +26,18 @@ Missing reference genotypes that pass filtering are mean-imputed before LD calcu
 
 SNP accessibility counts fragments covering each one-based SNP position; retained SNP rows have nonzero coverage and overlap retained peaks. Peak accessibility uses the existing count matrix restricted to GWAS-overlapping peaks, independently of SNP-position coverage.
 
-Count predictors sum library-size-adjusted feature counts within each group. Their baseline is the unweighted mean of the group-specific feature totals.
+Count predictors average library-size-adjusted feature counts over cells within each group. For SNP counts, let $x_{ij}$ denote the adjusted count in cell $i$ at SNP $j$. With $n_k$ retained cells in group $k$ and $N=\sum_{k=1}^{K}n_k$, the model uses
 
-WRS compares each group with the remaining cells. A two-sided P-value is converted to an enrichment-oriented one-sided value: `P / 2` when AUC ≥ 0.5, and `1 - P / 2` otherwise. Its score is `qnorm(P_one_sided, lower.tail = FALSE)`. The 2nd and 98th percentiles are calculated from finite raw scores across feature–group pairs; all scores, including infinities, are then capped at those cutoffs. Both count and WRS models use the count-based baseline: the unweighted mean of the group-specific adjusted count totals.
+$$
+A_{kj}=\frac{1}{n_k}\sum_{i\in\mathcal{C}_k}x_{ij},
+\qquad
+A_j=\frac{1}{N}\sum_{i=1}^{N}x_{ij}
+   =\sum_{k=1}^{K}\frac{n_k}{N}A_{kj}.
+$$
+
+The same definitions apply to peak counts $x_{ip}$, giving $A_{kp}$ and $A_p$. The baseline is a pooled-cell mean. Cells with missing group labels or nonfinite/nonpositive library-size factors are excluded. Cells with zero counts at a feature remain in the denominators.
+
+WRS compares each group with the remaining cells. A two-sided P-value is converted to an enrichment-oriented one-sided value: `P / 2` when AUC ≥ 0.5, and `1 - P / 2` otherwise. Its score is `qnorm(P_one_sided, lower.tail = FALSE)`. The 2nd and 98th percentiles are calculated from finite raw scores across feature–group pairs; all scores, including infinities, are then capped at those cutoffs. Both count and WRS models use the pooled-cell count baseline. WRS scores are not divided by group cell counts.
 
 Optional balanced WRS repeats use equal numbers of target and background cells at each configured sample size. These runs provide stability diagnostics; the association models use the ordinary WRS scores.
 

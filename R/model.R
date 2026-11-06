@@ -191,6 +191,9 @@ add_component_adjustment <- function(table) {
 
 #' LD-adjusted models and Cauchy combination
 #'
+#' Count predictors are library-size-adjusted within-group cell means.
+#' Both count and WRS models use the pooled-cell mean as their baseline.
+#'
 #' @param config Parsed EPIC2 configuration.
 #' @param traits Optional trait subset.
 #' @return Named list of output tables by grouping.
@@ -214,13 +217,18 @@ run_model_stage <- function(config, traits = names(config$gwas$traits)) {
 
   for (grouping in config$model$groupings) {
     if (!grouping %in% colnames(metadata)) stop("ATAC metadata column not found: ", grouping, call. = FALSE)
+    model_settings <- list(
+      grouping = grouping, assay = config$atac$assay,
+      accessibility = "group_cell_mean", baseline = "pooled_cell_mean"
+    )
     component_tables <- list()
     remaining <- setdiff(names(config$gwas$traits), traits)
     old_path <- file.path(output_dir, paste0(grouping, ".component_results.rds"))
     if (file.exists(old_path)) {
       previous_traits <- intersect(unique(readRDS(old_path)$trait), remaining)
-      missing_records <- previous_traits[!file.exists(file.path(output_dir,
-        paste(previous_traits, grouping, "components.rds", sep = ".")))]
+      missing_records <- previous_traits[!vapply(previous_traits, function(trait) {
+        file.exists(file.path(output_dir, paste(trait, grouping, "components.rds", sep = ".")))
+      }, logical(1))]
       if (length(missing_records)) stop("Existing results lack per-trait completion records: ",
                                         paste(missing_records, collapse = ", "),
                                         ". Rerun all traits in a new output directory.", call. = FALSE)
@@ -231,7 +239,7 @@ run_model_stage <- function(config, traits = names(config$gwas$traits)) {
       validate_ld_completion(config, trait)
       validate_stage_receipt(file.path(config$output_dir, "04_wrs", paste0(trait, ".wrs_receipt.rds")),
                              wrs_stage_settings(config))
-      validate_stage_receipt(paste0(path, ".receipt.rds"), list(grouping = grouping, assay = config$atac$assay))
+      validate_stage_receipt(paste0(path, ".receipt.rds"), model_settings)
       component_tables[[trait]] <- readRDS(path)
     }
     for (trait in traits) {
@@ -287,7 +295,7 @@ run_model_stage <- function(config, traits = names(config$gwas$traits)) {
       dependencies <- c(file.path(config$output_dir, "03_ld", paste0(trait, ".ld_receipt.rds")),
                          file.path(config$output_dir, "04_wrs", paste0(trait, ".wrs_receipt.rds")))
       write_stage_receipt(paste0(path, ".receipt.rds"), file_fingerprints(dependencies), path,
-                          list(grouping = grouping, assay = config$atac$assay))
+                          model_settings)
       message("Association models complete for ", trait, " / ", grouping)
     }
 

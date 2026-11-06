@@ -3201,12 +3201,13 @@ index features (SNPs or peaks) and
 index cells;
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>c</mi><mo>′</mo></msup><annotation encoding="application/x-tex">c&#39;</annotation></semantics></math>
 runs over cells in the median below:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>c</mi></msub><mo>=</mo><mfrac><msub><mi>L</mi><mi>c</mi></msub><mrow><msub><mrow><mi mathvariant="normal">median</mi><mo>⁡</mo></mrow><msup><mi>c</mi><mo>′</mo></msup></msub><msub><mi>L</mi><msup><mi>c</mi><mo>′</mo></msup></msub></mrow></mfrac><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>A</mi><mrow><mi>k</mi><mi>f</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>c</mi><mo>∈</mo><msub><mi mathvariant="script">𝒞</mi><mi>k</mi></msub></mrow></munder><mfrac><msub><mi>C</mi><mrow><mi>f</mi><mi>c</mi></mrow></msub><msub><mi>s</mi><mi>c</mi></msub></mfrac><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>A</mi><mi>f</mi></msub><mo>=</mo><mfrac><mn>1</mn><mi>K</mi></mfrac><munderover><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>1</mn></mrow><mi>K</mi></munderover><msub><mi>A</mi><mrow><mi>k</mi><mi>f</mi></mrow></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>c</mi></msub><mo>=</mo><mfrac><msub><mi>L</mi><mi>c</mi></msub><mrow><msub><mrow><mi mathvariant="normal">median</mi><mo>&#8289;</mo></mrow><msup><mi>c</mi><mo>′</mo></msup></msub><msub><mi>L</mi><msup><mi>c</mi><mo>′</mo></msup></msub></mrow></mfrac><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>A</mi><mrow><mi>k</mi><mi>f</mi></mrow></msub><mo>=</mo><mfrac><mn>1</mn><msub><mi>n</mi><mi>k</mi></msub></mfrac><munder><mo>∑</mo><mrow><mi>c</mi><mo>∈</mo><msub><mi mathvariant="script">𝒞</mi><mi>k</mi></msub></mrow></munder><mfrac><msub><mi>C</mi><mrow><mi>f</mi><mi>c</mi></mrow></msub><msub><mi>s</mi><mi>c</mi></msub></mfrac><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>A</mi><mi>f</mi></msub><mo>=</mo><mfrac><mn>1</mn><mi>N</mi></mfrac><munderover><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>1</mn></mrow><mi>K</mi></munderover><munder><mo>∑</mo><mrow><mi>c</mi><mo>∈</mo><msub><mi mathvariant="script">𝒞</mi><mi>k</mi></msub></mrow></munder><mfrac><msub><mi>C</mi><mrow><mi>f</mi><mi>c</mi></mrow></msub><msub><mi>s</mi><mi>c</mi></msub></mfrac><mo>=</mo><munderover><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>1</mn></mrow><mi>K</mi></munderover><mfrac><msub><mi>n</mi><mi>k</mi></msub><mi>N</mi></mfrac><msub><mi>A</mi><mrow><mi>k</mi><mi>f</mi></mrow></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
 s_c=\frac{L_c}{\operatorname{median}_{c&#39;}L_{c&#39;}},
 \qquad
-A_{kf}=\sum_{c\in\mathcal{C}_k}\frac{C_{fc}}{s_c},
+A_{kf}=\frac{1}{n_k}\sum_{c\in\mathcal{C}_k}\frac{C_{fc}}{s_c},
 \qquad
-A_f=\frac{1}{K}\sum_{k=1}^{K}A_{kf}.
+A_f=\frac{1}{N}\sum_{k=1}^{K}\sum_{c\in\mathcal{C}_k}\frac{C_{fc}}{s_c}
+   =\sum_{k=1}^{K}\frac{n_k}{N}A_{kf}.
 </annotation></semantics></math></p>
 <p><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>C</mi><mrow><mi>f</mi><mi>c</mi></mrow></msub><annotation encoding="application/x-tex">C_{fc}</annotation></semantics></math>
 is the count for feature
@@ -3218,14 +3219,22 @@ is that cell’s total count across retained autosomal peaks;
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>s</mi><mi>c</mi></msub><annotation encoding="application/x-tex">s_c</annotation></semantics></math>
 is its library-size factor.
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi mathvariant="script">𝒞</mi><mi>k</mi></msub><annotation encoding="application/x-tex">\mathcal{C}_k</annotation></semantics></math>
-contains cells in group
+contains the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>n</mi><mi>k</mi></msub><annotation encoding="application/x-tex">n_k</annotation></semantics></math>
+retained cells in group
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>,
-and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>K</mi><annotation encoding="application/x-tex">K</annotation></semantics></math>
-is the number of groups. Thus, accessibility is <strong>summed within
-groups</strong> after library-size adjustment, then averaged across
-groups for the baseline. <strong>WRS models retain this count-based
-baseline.</strong></p>
+is the number of groups, and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>=</mo><msubsup><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>1</mn></mrow><mi>K</mi></msubsup><msub><mi>n</mi><mi>k</mi></msub></mrow><annotation encoding="application/x-tex">N=\sum_{k=1}^{K}n_k</annotation></semantics></math>.
+Accessibility is <strong>averaged within groups</strong> after
+library-size adjustment. The baseline is the <strong>pooled-cell
+mean</strong>, which weights each group mean by
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>n</mi><mi>k</mi></msub><mi>/</mi><mi>N</mi></mrow><annotation encoding="application/x-tex">n_k/N</annotation></semantics></math>.
+Cells with missing group labels or nonfinite/nonpositive scaling factors
+are excluded. Zero feature counts remain in the denominators.
+<strong>WRS models retain this count-based baseline, without dividing
+WRS scores by group cell counts.</strong></p>
+
 <p><strong>Enrichment test.</strong> Each component is fitted separately
 for each cell group
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>:</p>
@@ -4000,9 +4009,13 @@ library_size[library_size &lt;= 0] &lt;- NA_real_
 # Multiplicative library-size adjustment
 cell_scale &lt;- median(library_size, na.rm = TRUE) / library_size
 
-# Group totals and cross-group baseline
-snp_A &lt;- EPIC2::build_group_accessibility(snp_counts, groups, cell_scale)
-peak_A &lt;- EPIC2::build_group_accessibility(peak_counts, groups, cell_scale)
+# Group cell means and pooled-cell baseline
+snp_A &lt;- EPIC2::build_group_accessibility(
+  snp_counts, groups, cell_scale
+)
+peak_A &lt;- EPIC2::build_group_accessibility(
+  peak_counts, groups, cell_scale
+)
 snp_Z &lt;- lapply(
   split(snp_wrs, snp_wrs$group),
   function(x) setNames(as.numeric(x$z_one_sided_enriched_trunc), x$feature)

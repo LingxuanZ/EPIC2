@@ -13,6 +13,9 @@ run_model_stage(config, traits = names(config$gwas$traits))
 }
 \details{
 Requires aligned accessibility, LD, and WRS outputs. Fits SNP-count, SNP-WRS, peak-count, and peak-WRS models, applies within-trait corrections, and combines the four component P-values with ACAT for each configured grouping.
+Count predictors are library-size-adjusted within-group cell means. Both count
+and WRS models use the pooled-cell mean as their baseline. WRS predictors are
+read from the completed WRS stage without cell-number rescaling.
 }
 \value{
 Named list of output tables by grouping.

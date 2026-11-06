@@ -234,7 +234,10 @@ align_genotype_to_snp_matrix <- function(gwas, genotype, snp_matrix, columns) {
 #' @param feature_matrix Sparse feature-by-cell matrix.
 #' @param groups Named group vector aligned to matrix columns.
 #' @param cell_scale Optional named per-cell scaling vector. Defaults to one.
-#' @return A list with group-specific feature vectors and their unweighted mean baseline.
+#' @return A list with within-group cell-mean feature vectors and a pooled-cell
+#'   mean baseline vector.
+#' @details Cells with missing groups or nonfinite/nonpositive scaling factors
+#'   are excluded. Zero feature counts remain in the cell-mean denominators.
 #' @export
 build_group_accessibility <- function(feature_matrix, groups, cell_scale = NULL) {
   require_namespaces("Matrix", "group accessibility aggregation")
@@ -250,12 +253,12 @@ build_group_accessibility <- function(feature_matrix, groups, cell_scale = NULL)
   group_levels <- sort(unique(groups))
   scaled <- matrix %*% Matrix::Diagonal(x = scale[keep])
   by_group <- lapply(group_levels, function(group) {
-    value <- Matrix::rowSums(scaled[, groups == group, drop = FALSE])
+    value <- Matrix::rowMeans(scaled[, groups == group, drop = FALSE])
     names(value) <- rownames(matrix)
     value
   })
   names(by_group) <- group_levels
-  baseline <- rowMeans(do.call(cbind, by_group), na.rm = TRUE)
+  baseline <- Matrix::rowMeans(scaled)
   names(baseline) <- rownames(matrix)
   list(by_group = by_group, baseline = baseline)
 }

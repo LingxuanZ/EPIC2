@@ -273,7 +273,7 @@ ld_sigma_wide <- compute_snp_ld_covariance(
 )
 stopifnot(max(abs(as.matrix(ld_sigma_single) - as.matrix(ld_sigma_wide))) < 1e-12)
 
-# Sparse group aggregation is equivalent to direct scaled row sums.
+# Sparse group accessibility uses cell means after library-size adjustment.
 feature_matrix <- Matrix::Matrix(
   matrix(c(1, 0, 2, 1, 0, 3, 0, 1), nrow = 2,
          dimnames = list(c("f1", "f2"), paste0("c", 1:4))),
@@ -282,11 +282,11 @@ feature_matrix <- Matrix::Matrix(
 feature_groups <- setNames(c("A", "A", "B", "B"), colnames(feature_matrix))
 feature_scale <- setNames(c(1, 2, 0.5, 1.5), colnames(feature_matrix))
 aggregated <- build_group_accessibility(feature_matrix, feature_groups, feature_scale)
-manual_a <- Matrix::rowSums(
+manual_a <- Matrix::rowMeans(
   feature_matrix[, feature_groups == "A", drop = FALSE] %*%
     Matrix::Diagonal(x = feature_scale[feature_groups == "A"])
 )
-manual_b <- Matrix::rowSums(
+manual_b <- Matrix::rowMeans(
   feature_matrix[, feature_groups == "B", drop = FALSE] %*%
     Matrix::Diagonal(x = feature_scale[feature_groups == "B"])
 )
@@ -295,6 +295,82 @@ stopifnot(
   max(abs(aggregated$by_group$B - manual_b)) < 1e-12,
   max(abs(aggregated$baseline - rowMeans(cbind(manual_a, manual_b)))) < 1e-12
 )
+
+local({
+  # Unequal group sizes distinguish pooled-cell and equal-group baselines.
+  cells <- paste0("cell", 1:13)
+  groups <- setNames(c(rep("A", 2), rep("B", 3), rep("C", 4), NA, "D", "E", "F"), cells)
+  scale <- setNames(c(seq(0.5, 1.5, length.out = 9), 1, 0, Inf, NA), cells)
+  sizes <- c(A = 2, B = 3, C = 4)
+  set.seed(143)
+  components <- list(sum = list(), mean = list())
+  for (resolution in c("snp", "peak")) {
+    counts <- Matrix::Matrix(matrix(rpois(40 * length(cells), 2), 40,
+      dimnames = list(paste0(resolution, 1:40), cells)), sparse = TRUE)
+    # A cell with zero counts at every selected feature still contributes to n_k.
+    counts[, 1] <- 0
+    # Reverse named metadata to verify alignment precedes denominator counting.
+    means <- build_group_accessibility(counts, rev(groups), rev(scale))
+    scaled <- sweep(as.matrix(counts[, 1:9]), 2, scale[1:9], "*")
+    # Reconstruct group totals independently to check rescaling invariance.
+    group_totals <- lapply(names(sizes), function(group) {
+      rowSums(scaled[, groups[1:9] == group, drop = FALSE])
+    })
+    names(group_totals) <- names(sizes)
+    totals <- list(by_group = group_totals, baseline = rowMeans(do.call(cbind, group_totals)))
+    expected <- lapply(names(sizes), function(group) {
+      rowMeans(scaled[, groups[1:9] == group, drop = FALSE])
+    })
+    names(expected) <- names(sizes)
+    stopifnot(
+      isTRUE(all.equal(means$by_group, expected, tolerance = 1e-12)),
+      isTRUE(all.equal(means$baseline, rowMeans(scaled), tolerance = 1e-12)),
+      max(abs(means$baseline - rowMeans(do.call(cbind, expected)))) > 1e-3,
+      isTRUE(all.equal(means$baseline, totals$baseline * 3 / 9)),
+      identical(names(means$baseline), rownames(counts))
+    )
+    ids <- rownames(counts)
+    sigma <- outer(seq_along(ids), seq_along(ids), function(i, j) 0.3^abs(i - j))
+    dimnames(sigma) <- list(ids, ids)
+    W <- compute_inverse_sqrt(sigma, ridge = 0.01)
+    response <- setNames(2 + 0.5 * means$by_group$A + rnorm(length(ids)), ids)
+    wrs <- lapply(names(sizes), function(group) setNames(rnorm(length(ids)), ids))
+    names(wrs) <- names(sizes)
+    for (component in c("accessibility", "wrs")) {
+      key <- paste(resolution, component, sep = "_")
+      old_x <- if (component == "accessibility") totals$by_group else wrs
+      new_x <- if (component == "accessibility") means$by_group else wrs
+      old <- fit_whitened_groups(response, old_x, totals$baseline, W, "TEST")
+      new <- fit_whitened_groups(response, new_x, means$baseline, W, "TEST")
+      multiplier <- if (component == "accessibility") unname(sizes[new$group]) else 1
+      stopifnot(
+        all(old$status == "ok"), all(new$status == "ok"),
+        isTRUE(all.equal(new$beta, old$beta * multiplier, tolerance = 1e-10)),
+        isTRUE(all.equal(new$se, old$se * multiplier, tolerance = 1e-10)),
+        max(abs(new$t - old$t)) < 1e-10,
+        max(abs(log10(new$p) - log10(old$p))) < 1e-10,
+        isTRUE(all.equal(new$p, pt(new$t, new$df, lower.tail = FALSE))),
+        identical(new$n, old$n), identical(new$df, old$df)
+      )
+      components$sum[[key]] <- old
+      components$mean[[key]] <- new
+    }
+  }
+  old <- do.call(combine_component_tests, components$sum)
+  new <- do.call(combine_component_tests, components$mean)
+  new <- new[match(old$group, new$group), ]
+  stopifnot(
+    max(abs(log10(new$p_cauchy) - log10(old$p_cauchy))) < 1e-10,
+    max(abs(log10(new$p_cauchy_bh_within_trait) - log10(old$p_cauchy_bh_within_trait))) < 1e-10
+  )
+  # A single feature and a single retained group keep their names and dimensions.
+  single <- Matrix::Matrix(matrix(c(0, 4), 1,
+    dimnames = list("f", c("a", "b"))), sparse = TRUE)
+  result <- build_group_accessibility(single, c("G", "G"))
+  stopifnot(identical(result$by_group$G, c(f = 2)), identical(result$baseline, c(f = 2)))
+  stopifnot(identical(names(formals(build_group_accessibility)),
+    c("feature_matrix", "groups", "cell_scale")))
+})
 
 # Compare against GLS solved directly on the original scale, independently of
 # the whitening implementation, with the same regularized working covariance.

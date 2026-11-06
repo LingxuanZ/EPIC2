@@ -1310,12 +1310,13 @@ $`Z_j`$ is the GWAS Z-score for SNP $`j`$; $`\mathbf{Z}_p`$ contains the $`n_p`$
 ``` math
 s_c=\frac{L_c}{\operatorname{median}_{c'}L_{c'}},
 \qquad
-A_{kf}=\sum_{c\in\mathcal{C}_k}\frac{C_{fc}}{s_c},
+A_{kf}=\frac{1}{n_k}\sum_{c\in\mathcal{C}_k}\frac{C_{fc}}{s_c},
 \qquad
-A_f=\frac{1}{K}\sum_{k=1}^{K}A_{kf}.
+A_f=\frac{1}{N}\sum_{k=1}^{K}\sum_{c\in\mathcal{C}_k}\frac{C_{fc}}{s_c}
+   =\sum_{k=1}^{K}\frac{n_k}{N}A_{kf}.
 ```
 
-$`C_{fc}`$ is the count for feature $`f`$ in cell $`c`$; $`L_c`$ is that cell’s total count across retained autosomal peaks; $`s_c`$ is its library-size factor. $`\mathcal{C}_k`$ contains cells in group $`k`$, and $`K`$ is the number of groups. Thus, accessibility is **summed within groups** after library-size adjustment, then averaged across groups for the baseline. **WRS models retain this count-based baseline.**
+$`C_{fc}`$ is the count for feature $`f`$ in cell $`c`$; $`L_c`$ is that cell’s total count across retained autosomal peaks; $`s_c`$ is its library-size factor. $`\mathcal{C}_k`$ contains the $`n_k`$ retained cells in group $`k`$, $`K`$ is the number of groups, and $`N=\sum_{k=1}^{K}n_k`$. Accessibility is **averaged within groups** after library-size adjustment. The baseline is the **pooled-cell mean**, which weights each group mean by $`n_k/N`$. Cells with missing group labels or nonfinite/nonpositive scaling factors are excluded. Zero feature counts remain in the denominators. **WRS models retain this count-based baseline, without dividing WRS scores by group cell counts.**
 
 **Enrichment test.** Each component is fitted separately for each cell group $`k`$:
 
@@ -2068,9 +2069,13 @@ library_size[library_size <= 0] <- NA_real_
 # Multiplicative library-size adjustment
 cell_scale <- median(library_size, na.rm = TRUE) / library_size
 
-# Group totals and cross-group baseline
-snp_A <- EPIC2::build_group_accessibility(snp_counts, groups, cell_scale)
-peak_A <- EPIC2::build_group_accessibility(peak_counts, groups, cell_scale)
+# Group cell means and pooled-cell baseline
+snp_A <- EPIC2::build_group_accessibility(
+  snp_counts, groups, cell_scale
+)
+peak_A <- EPIC2::build_group_accessibility(
+  peak_counts, groups, cell_scale
+)
 snp_Z <- lapply(
   split(snp_wrs, snp_wrs$group),
   function(x) setNames(as.numeric(x$z_one_sided_enriched_trunc), x$feature)
