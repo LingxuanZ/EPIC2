@@ -54,7 +54,6 @@ knitr::opts_chunk$set(
   error = FALSE
 )
 dir.create("scripts", showWarnings = FALSE)
-dir.create("figures", showWarnings = FALSE)
 ```
 
 EPIC2 integrates scATAC-seq accessibility with GWAS summary statistics to test
@@ -279,13 +278,15 @@ be saved in `output/` under that directory.
 
 The scATAC-seq and GWAS inputs have undergone upstream QC, so this tutorial skips ATAC QC and does not repeat GWAS LD pruning or ambiguous-variant removal; GWAS/reference checks still run. See the [full workflow configuration](https://github.com/LingxuanZ/EPIC2/blob/main/inst/extdata/config.example.yml) for the complete settings. For details on each configuration parameter, see [CONFIGURATION.md](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md).
 
-This tutorial sets `ld.save_peak_checkpoints: false` and `wrs.write_tsv: false`
-to reduce disk usage. Both options default to `true` when omitted. The complete
-LD model and WRS RDS tables are still saved, and Models continues to save both
-RDS and TSV results. These options do not change numerical results or figures.
-After a successful stage rerun with an option disabled, matching older optional
-files for the processed traits and WRS groupings are removed. Changing the YAML
-without rerunning a stage does not change existing files.
+Optional file exports are controlled by `ld.save_peak_checkpoints` and
+`wrs.write_tsv`, both of which default to `true`. The supplied configuration
+omits these options and therefore retains both exports. To reduce disk usage,
+add `save_peak_checkpoints: false` under `ld` and `write_tsv: false` under `wrs`.
+The complete peak LD model and WRS RDS tables are always saved; Models continues
+to save both RDS and TSV results. After a successful LD or WRS stage rerun with
+an option disabled, matching older optional files for the processed traits and
+WRS groupings are removed. Editing the configuration alone does not change
+existing files.
 
 ```{r show-configuration, echo=FALSE, results='asis'}
 cat(
@@ -448,12 +449,8 @@ or the stage-by-stage route. Both use the same EPIC2 stage functions and setting
 
 Use separate output directories for independent or concurrent analyses. See [Methods](https://github.com/LingxuanZ/EPIC2/blob/main/METHODS.md#saved-results-and-reproducibility) for saved-result checks and recovery, and the [configuration reference](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md) for parallelism and LD memory settings.
 
-With `recompute: true` (the default), knitting executes the preparation
-and stage-by-stage calls, then reads their saved outputs to produce the
-tables and figures. Core-function and optional examples are displayed with
-`eval=FALSE` and are not executed. The single-command example is an
-alternative, so it is not also run during knitting. Set `recompute: false`
-only to render from a complete set of existing outputs.
+The completed outputs are included in `output/`. The single-command
+example is an alternative and is not executed automatically.
 
 ## Prepare the shared inputs
 
@@ -979,8 +976,7 @@ data.frame(
 
 Construct SNP covariance and peak LD models, including inverse-square-root
 transformations. This is the most time-consuming stage in this example;
-the completed LD files are supplied so they can be inspected without
-recomputing them. [LD script](scripts/03_ld.R).
+the completed LD files are supplied for inspection. [LD script](scripts/03_ld.R).
 
 LD-based working matrices account for dependence between GWAS statistics:
 
@@ -1021,7 +1017,7 @@ EPIC2::run_ld_stage(config, traits = "TC")
 
 `split_sparse_components()` is the internal EPIC2 helper used by this stage;
 it groups SNPs using nonzero off-diagonal covariance entries. The code below
-recomputes LD. The model example in 2.6 reads the saved LD objects instead.
+constructs the LD objects. The model example in 2.6 reads the saved LD objects instead.
 
 ```{r core-ld, eval=FALSE}
 # Read
@@ -1099,8 +1095,8 @@ peak_inverse <- peak_ld$inverse_sqrt
 - `TC.peak_ld_model.rds`: completed peak LD model, including the response,
   covariance and inverse square root.
 - Optional `TC.peak_covariance.rds` and `TC.peak_response.rds`: diagnostic
-  intermediates saved only when `ld.save_peak_checkpoints: true`. They are
-  disabled in this tutorial and are not automatically reused to resume a run.
+  intermediates saved when `ld.save_peak_checkpoints: true` (the default).
+  These files are not automatically reused to resume a run.
 - `TC.ld_runtime.tsv`: completion status and LD settings.
 
 ```{r check-ld}
@@ -1217,9 +1213,9 @@ peak_wrs <- EPIC2::make_one_sided_wrs(
 
 Each row represents one feature–cell-group comparison.
 
-Matching TSV exports are saved only when `wrs.write_tsv: true`; this tutorial
-disables them. Models and plotting read the RDS tables. To export one table
-later without rerunning WRS:
+Matching TSV exports are saved when `wrs.write_tsv: true` (the default).
+Models and plotting read the RDS tables. If TSV exports are disabled, a table
+can be exported later without rerunning WRS:
 
 ```{r export-wrs-tsv, eval=FALSE}
 path <- "output/04_wrs/TC.snp.tissue_cell_type.rds"
@@ -1277,13 +1273,12 @@ $Z_j$ is the GWAS Z-score for SNP $j$; $\mathbf{Z}_p$ contains the $n_p$ retaine
 $$
 s_c=\frac{L_c}{\operatorname{median}_{c'}L_{c'}},
 \qquad
-A_{kf}=\frac{1}{n_k}\sum_{c\in\mathcal{C}_k}\frac{C_{fc}}{s_c},
+A_{kf}=\frac{1}{N_k}\sum_{c\in\mathcal{C}_k}\frac{C_{fc}}{s_c},
 \qquad
-A_f=\frac{1}{N}\sum_{k=1}^{K}\sum_{c\in\mathcal{C}_k}\frac{C_{fc}}{s_c}
-   =\sum_{k=1}^{K}\frac{n_k}{N}A_{kf}.
+A_f=\frac{1}{N}\sum_{c=1}^{N}\frac{C_{fc}}{s_c}.
 $$
 
-$C_{fc}$ is the count for feature $f$ in cell $c$; $L_c$ is that cell's total count across retained autosomal peaks; $s_c$ is its library-size factor. $\mathcal{C}_k$ contains the $n_k$ retained cells in group $k$, $K$ is the number of groups, and $N=\sum_{k=1}^{K}n_k$. Accessibility is **averaged within groups** after library-size adjustment. The baseline is the **pooled-cell mean**, which weights each group mean by $n_k/N$. Cells with missing group labels or nonfinite/nonpositive scaling factors are excluded. Zero feature counts remain in the denominators. **WRS models retain this count-based baseline, without dividing WRS scores by group cell counts.**
+$C_{fc}$ is the count for feature $f$ in cell $c$; $L_c$ is that cell's total count across retained autosomal peaks; $s_c$ is its library-size factor. $\mathcal{C}_k$ denotes the set of cells in group $k$, $N_k=|\mathcal{C}_k|$ is its cell count, and $N$ is the total number of retained cells. Library-size-adjusted accessibility is **averaged within each group**. The baseline is the **mean across all retained cells**. Cells with missing group labels or nonfinite/nonpositive scaling factors are excluded; cells with zero counts at a feature remain in the denominators. **Both count and WRS models use this count-based baseline; WRS scores are not divided by group cell counts.**
 
 **Enrichment test.** Each component is fitted separately for each cell group $k$:
 
@@ -1334,8 +1329,20 @@ pass the [shared checks](#shared-requirements-for-partial-runs).
 
 <div id="epic2-model-stage-results">
 
-```{r stage-model, eval=params$recompute}
+```{r stage-model, eval=params$recompute, results='hide'}
 EPIC2::run_model_stage(config, traits = "TC")
+```
+
+```{r show-model-results, echo=FALSE}
+model_results <- lapply(config$model$groupings, function(grouping) {
+  prefix <- file.path(config$output_dir, "05_models", grouping)
+  list(
+    components = readRDS(paste0(prefix, ".component_results.rds")),
+    combined = readRDS(paste0(prefix, ".cauchy_results.rds"))
+  )
+})
+names(model_results) <- config$model$groupings
+model_results
 ```
 
 </div>
@@ -1381,13 +1388,9 @@ library_size[library_size <= 0] <- NA_real_
 # Multiplicative library-size adjustment
 cell_scale <- median(library_size, na.rm = TRUE) / library_size
 
-# Group cell means and pooled-cell baseline
-snp_A <- EPIC2::build_group_accessibility(
-  snp_counts, groups, cell_scale
-)
-peak_A <- EPIC2::build_group_accessibility(
-  peak_counts, groups, cell_scale
-)
+# Group cell means and baseline across all retained cells
+snp_A <- EPIC2::build_group_accessibility(snp_counts, groups, cell_scale)
+peak_A <- EPIC2::build_group_accessibility(peak_counts, groups, cell_scale)
 snp_Z <- lapply(
   split(snp_wrs, snp_wrs$group),
   function(x) setNames(as.numeric(x$z_one_sided_enriched_trunc), x$feature)
@@ -1459,7 +1462,6 @@ combined <- EPIC2::combine_component_tests(
 - `tissue_cell_type.component_results.tsv`: 96 rows, covering four components for each of 24 groups.
 - `tissue_cell_type.cauchy_results.tsv`: 24 combined association results.
 - Matching `.rds` files are also saved.
-  Read result tables directly from `output/05_models/`.
 
 ```{r read-results, results='hide'}
 # Read
@@ -2073,30 +2075,12 @@ The table below maps the stage functions to the core calls shown above.
 
 </details>
 
-```{r export-figures, include=FALSE, eval=params$recompute}
-figure_root <- file.path(config$output_dir, "figures")
+```{r record-figure-session, include=FALSE, eval=params$recompute}
 generated <- figure_manifest[
   figure_manifest$status == "generated",
   ,
   drop = FALSE
 ]
-for (i in seq_len(nrow(generated))) {
-  paths <- strsplit(generated$files[[i]], ";", fixed = TRUE)[[1L]]
-  relative <- substring(paths, nchar(figure_root) + 2L)
-  targets <- file.path("figures", relative)
-  for (j in seq_along(paths)) {
-    dir.create(dirname(targets[[j]]), recursive = TRUE, showWarnings = FALSE)
-    stopifnot(file.copy(paths[[j]], targets[[j]], overwrite = TRUE))
-  }
-  generated$files[[i]] <- paste(targets, collapse = ";")
-}
-write.table(
-  generated,
-  "figures/figure_manifest.tsv",
-  sep = "\t",
-  quote = TRUE,
-  row.names = FALSE
-)
 writeLines(capture.output(sessionInfo()), "scripts/sessionInfo.txt")
 stopifnot(nrow(generated) == 27L, !any(figure_manifest$status == "error"))
 ```
@@ -2104,7 +2088,7 @@ stopifnot(nrow(generated) == 27L, !any(figure_manifest$status == "error"))
 # Selected figures
 
 The completed TC analysis generated **`r sum(figure_manifest$status == "generated")` figures**, saved as **`r sum(figure_manifest$status == "generated")` PNG/PDF
-pairs (`r 2L * sum(figure_manifest$status == "generated")` files in total)**. Browse the complete collection in the [GitHub figures folder](https://github.com/LingxuanZ/EPIC2/tree/main/docs/figures). The table summarizes the complete figure set.
+pairs (`r 2L * sum(figure_manifest$status == "generated")` files in total)**. Browse the complete collection in the [figure folder](output/figures/). The table summarizes the complete figure set.
 
 | Figure category | Count | Overview |
 |:-----------------------|--------:|:------------------------------------------------------------------|
@@ -2116,7 +2100,7 @@ pairs (`r 2L * sum(figure_manifest$status == "generated")` files in total)**. Br
 | Association results | 5 | ACAT associations, nominal and adjusted component-test P-values, and component effect statistics for cell-type groups. |
 
 **4 selected figures are shown below**, with a PDF link for each figure.
-Displayed images use files from `figures/`. All generated PNG/PDF files are saved in `output/figures/`.
+Displayed images and PDF links use files from `output/figures/`.
 
 Association P-value color scales span −log10(P) = 0–5.
 
@@ -2128,34 +2112,34 @@ Association P-value color scales span −log10(P) = 0–5.
 <div class="epic2-cell-annotation-scroll" style="max-width: 100%; overflow-x: auto; margin: 12px 0;">
 <div class="epic2-cell-annotation-layout" style="display: grid; grid-template-columns: minmax(0, 50fr) minmax(0, 50fr); gap: 24px; align-items: center; width: 100%; max-width: 1100px; min-width: 800px;">
 <div class="epic2-cell-umap-viewport" style="position: relative; overflow: hidden; aspect-ratio: 1170 / 1340;">
-<img src="figures/UMAP_tissue_cell_type.cellQC.peakQC.png" alt="Cell annotations UMAP" style="position: absolute; left: -36.75213675%; top: 0.00000000%; width: 169.23076923%; max-width: none; height: auto; display: block;" />
+<img data-external="1" src="output/figures/UMAP_tissue_cell_type.cellQC.peakQC.png" alt="Cell annotations UMAP" style="position: absolute; left: -36.75213675%; top: 0.00000000%; width: 169.23076923%; max-width: none; height: auto; display: block;" />
 </div>
 <div class="epic2-cell-legend-viewport" style="position: relative; overflow: hidden; aspect-ratio: 1080 / 610;">
-<img src="figures/UMAP_tissue_cell_type.cellQC.peakQC.png" alt="Cell-type legend" style="position: absolute; left: -42.59259259%; top: -221.31147541%; width: 183.33333333%; max-width: none; height: auto; display: block;" />
+<img data-external="1" src="output/figures/UMAP_tissue_cell_type.cellQC.peakQC.png" alt="Cell-type legend" style="position: absolute; left: -42.59259259%; top: -221.31147541%; width: 183.33333333%; max-width: none; height: auto; display: block;" />
 </div>
 </div>
 </div>
 
-UMAP of all supplied cells, colored by tissue–cell-type group. [PDF](figures/UMAP_tissue_cell_type.cellQC.peakQC.pdf)
+UMAP of all supplied cells, colored by tissue–cell-type group. [PDF](output/figures/UMAP_tissue_cell_type.cellQC.peakQC.pdf)
 
 ## WRS
 
 ### Top SNP features
 
-![Top SNP features](figures/all_traits.top3_per_group_topSNP_wilcoxon_DotPlot.png)  
-Accessibility of WRS-ranked SNP features for TC, selecting up to three features per cell group. [PDF](figures/all_traits.top3_per_group_topSNP_wilcoxon_DotPlot.pdf)
+![Top SNP features](output/figures/all_traits.top3_per_group_topSNP_wilcoxon_DotPlot.png){data-external="1"}  
+Accessibility of WRS-ranked SNP features for TC, selecting up to three features per cell group. [PDF](output/figures/all_traits.top3_per_group_topSNP_wilcoxon_DotPlot.pdf)
 
 ### Top peak features
 
-![Top peak features](figures/all_traits.top3_per_group_topPeak_wilcoxon_DotPlot.png)  
-Accessibility of WRS-ranked peak features for TC, selecting up to three features per cell group. [PDF](figures/all_traits.top3_per_group_topPeak_wilcoxon_DotPlot.pdf)
+![Top peak features](output/figures/all_traits.top3_per_group_topPeak_wilcoxon_DotPlot.png){data-external="1"}  
+Accessibility of WRS-ranked peak features for TC, selecting up to three features per cell group. [PDF](output/figures/all_traits.top3_per_group_topPeak_wilcoxon_DotPlot.pdf)
 
 ## Association results
 
 ### BH-adjusted component and ACAT tests by cell group
 
-![BH-adjusted component and ACAT tests by cell group](figures/05_models/cauchy_tissue_cell_type_component_heatmap_bh.png)  
-BH-adjusted P-values for the four components and ACAT; stars indicate displayed P < 0.05. [PDF](figures/05_models/cauchy_tissue_cell_type_component_heatmap_bh.pdf)
+![BH-adjusted component and ACAT tests by cell group](output/figures/05_models/cauchy_tissue_cell_type_component_heatmap_bh.png){data-external="1"}  
+BH-adjusted P-values for the four components and ACAT; stars indicate displayed P < 0.05. [PDF](output/figures/05_models/cauchy_tissue_cell_type_component_heatmap_bh.pdf)
 
 Because this tutorial uses a sampled subset of real scATAC-seq data, with up to 200 cells per tissue–cell-type group, the BH-adjusted results shown here may differ slightly from the manuscript results obtained using the complete dataset. The main enrichment signals remain consistent.
 
@@ -2196,10 +2180,6 @@ In the filenames below, `<grouping>` is `tissue_cell_type` for this tutorial.
 | [`run_manifest.txt`](#shared-requirements-for-partial-runs) | Software environment, selected stages and traits, assembly, seed and worker settings; written by `run_EPIC2()`. |
 
 </div>
-
-Result tables remain in `output/05_models/`; no separate `results/` copy is
-created. The tutorial's `figures/` folder contains copies used to publish the
-figure gallery; analysis figures remain in `output/figures/`.
 
 # Session information
 

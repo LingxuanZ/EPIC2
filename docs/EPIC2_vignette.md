@@ -363,7 +363,7 @@ The stage-based workflow requires a YAML file (usually `.yml` or `.yaml`) that d
 
 The scATAC-seq and GWAS inputs have undergone upstream QC, so this tutorial skips ATAC QC and does not repeat GWAS LD pruning or ambiguous-variant removal; GWAS/reference checks still run. See the [full workflow configuration](https://github.com/LingxuanZ/EPIC2/blob/main/inst/extdata/config.example.yml) for the complete settings. For details on each configuration parameter, see [CONFIGURATION.md](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md).
 
-This tutorial sets `ld.save_peak_checkpoints: false` and `wrs.write_tsv: false` to reduce disk usage. Both options default to `true` when omitted. The complete LD model and WRS RDS tables are still saved, and Models continues to save both RDS and TSV results. These options do not change numerical results or figures. After a successful stage rerun with an option disabled, matching older optional files for the processed traits and WRS groupings are removed. Changing the YAML without rerunning a stage does not change existing files.
+Optional file exports are controlled by `ld.save_peak_checkpoints` and `wrs.write_tsv`, both of which default to `true`. The supplied configuration omits these options and therefore retains both exports. To reduce disk usage, add `save_peak_checkpoints: false` under `ld` and `write_tsv: false` under `wrs`. The complete peak LD model and WRS RDS tables are always saved; Models continues to save both RDS and TSV results. After a successful LD or WRS stage rerun with an option disabled, matching older optional files for the processed traits and WRS groupings are removed. Editing the configuration alone does not change existing files.
 
 ``` yaml
 project:
@@ -407,7 +407,6 @@ gwas:
 accessibility:
   chunks: 20
 ld:
-  save_peak_checkpoints: false
   window_bp: 5000000
   ridge: 0.01
   eigen_tolerance: 1.0e-08
@@ -415,7 +414,6 @@ ld:
   max_snps_for_chr_ld: 15000
   max_dense_block_size: 6000
 wrs:
-  write_tsv: false
   truncation_quantiles:
   - 0.02
   - 0.98
@@ -554,7 +552,7 @@ Run the preparation step first, then choose either the single-command route or t
 
 Use separate output directories for independent or concurrent analyses. See [Methods](https://github.com/LingxuanZ/EPIC2/blob/main/METHODS.md#saved-results-and-reproducibility) for saved-result checks and recovery, and the [configuration reference](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md) for parallelism and LD memory settings.
 
-With `recompute: true` (the default), knitting executes the preparation and stage-by-stage calls, then reads their saved outputs to produce the tables and figures. Core-function and optional examples are displayed with `eval=FALSE` and are not executed. The single-command example is an alternative, so it is not also run during knitting. Set `recompute: false` only to render from a complete set of existing outputs.
+The completed outputs are included in `output/`. The single-command example is an alternative and is not executed automatically.
 
 ## Prepare the shared inputs
 
@@ -844,10 +842,10 @@ EPIC2::run_gwas_stage(config, gwas_name = "TC")
 
     ## $TC
     ## $TC$gwas
-    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_gwas/TC.gwas.rds"
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_gwas/TC.gwas.rds"
     ## 
     ## $TC$genotype
-    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_gwas/TC.genotype.rds"
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_gwas/TC.genotype.rds"
 
 **Core functions (without YAML)**
 
@@ -930,19 +928,19 @@ EPIC2::run_accessibility_stage(config, traits = "TC")
 
     ## $TC
     ## $TC$snp
-    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_accessibility/TC.snp_by_cell.rds"
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.snp_by_cell.rds"
     ## 
     ## $TC$peak
-    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_accessibility/TC.peak_by_cell.rds"
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.peak_by_cell.rds"
     ## 
     ## $TC$overlap
-    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_accessibility/TC.snp_peak_overlap.tsv"
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.snp_peak_overlap.tsv"
     ## 
     ## $TC$genotype
-    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_accessibility/TC.snp_genotype.rds"
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.snp_genotype.rds"
     ## 
     ## $TC$genome_qc
-    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/02_accessibility/TC.genome_qc.tsv"
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/02_accessibility/TC.genome_qc.tsv"
 
 **Core functions (without YAML)**
 
@@ -1013,7 +1011,7 @@ data.frame(
 
 ### 2.4 Local LD and inverse square roots
 
-Construct SNP covariance and peak LD models, including inverse-square-root transformations. This is the most time-consuming stage in this example; the completed LD files are supplied so they can be inspected without recomputing them. [LD script](scripts/03_ld.R).
+Construct SNP covariance and peak LD models, including inverse-square-root transformations. This is the most time-consuming stage in this example; the completed LD files are supplied for inspection. [LD script](scripts/03_ld.R).
 
 LD-based working matrices account for dependence between GWAS statistics:
 
@@ -1048,20 +1046,20 @@ EPIC2::run_ld_stage(config, traits = "TC")
 
     ## $TC
     ## $TC$snp_sigma
-    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/03_ld/TC.snp_sigma.rds"
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/03_ld/TC.snp_sigma.rds"
     ## 
     ## $TC$snp_inverse
-    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/03_ld/TC.snp_inverse_sqrt.rds"
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/03_ld/TC.snp_inverse_sqrt.rds"
     ## 
     ## $TC$snp_blocks
-    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/03_ld/TC.snp_blocks.rds"
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/03_ld/TC.snp_blocks.rds"
     ## 
     ## $TC$peak_model
-    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/03_ld/TC.peak_ld_model.rds"
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/03_ld/TC.peak_ld_model.rds"
 
 **Core functions (without YAML)**
 
-`split_sparse_components()` is the internal EPIC2 helper used by this stage; it groups SNPs using nonzero off-diagonal covariance entries. The code below recomputes LD. The model example in 2.6 reads the saved LD objects instead.
+`split_sparse_components()` is the internal EPIC2 helper used by this stage; it groups SNPs using nonzero off-diagonal covariance entries. The code below constructs the LD objects. The model example in 2.6 reads the saved LD objects instead.
 
 ``` r
 # Read
@@ -1137,7 +1135,7 @@ peak_inverse <- peak_ld$inverse_sqrt
 - `TC.snp_sigma.rds`: SNP covariance matrix.
 - `TC.snp_inverse_sqrt.rds` and `TC.snp_blocks.rds`: SNP transformation and connected-component membership.
 - `TC.peak_ld_model.rds`: completed peak LD model, including the response, covariance and inverse square root.
-- Optional `TC.peak_covariance.rds` and `TC.peak_response.rds`: diagnostic intermediates saved only when `ld.save_peak_checkpoints: true`. They are disabled in this tutorial and are not automatically reused to resume a run.
+- Optional `TC.peak_covariance.rds` and `TC.peak_response.rds`: diagnostic intermediates saved when `ld.save_peak_checkpoints: true` (the default). These files are not automatically reused to resume a run.
 - `TC.ld_runtime.tsv`: completion status and LD settings.
 
 ``` r
@@ -1204,10 +1202,10 @@ EPIC2::run_wrs_stage(config, traits = "TC")
 ```
 
     ## $TC.snp.tissue_cell_type
-    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/04_wrs/TC.snp.tissue_cell_type.rds"
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/04_wrs/TC.snp.tissue_cell_type.rds"
     ## 
     ## $TC.peak.tissue_cell_type
-    ## [1] "/private/tmp/EPIC2-main-knit.5b3mjtw3/output/04_wrs/TC.peak.tissue_cell_type.rds"
+    ## [1] "/Users/zhulx/Desktop/Lab/Fetal Tissue/Vignette_final/output/04_wrs/TC.peak.tissue_cell_type.rds"
 
 **Core functions (without YAML)**
 
@@ -1261,7 +1259,7 @@ peak_wrs <- EPIC2::make_one_sided_wrs(
 
 Each row represents one feature–cell-group comparison.
 
-Matching TSV exports are saved only when `wrs.write_tsv: true`; this tutorial disables them. Models and plotting read the RDS tables. To export one table later without rerunning WRS:
+Matching TSV exports are saved when `wrs.write_tsv: true` (the default). Models and plotting read the RDS tables. If TSV exports are disabled, a table can be exported later without rerunning WRS:
 
 ``` r
 path <- "output/04_wrs/TC.snp.tissue_cell_type.rds"
@@ -1325,13 +1323,12 @@ $`Z_j`$ is the GWAS Z-score for SNP $`j`$; $`\mathbf{Z}_p`$ contains the $`n_p`$
 ``` math
 s_c=\frac{L_c}{\operatorname{median}_{c'}L_{c'}},
 \qquad
-A_{kf}=\frac{1}{n_k}\sum_{c\in\mathcal{C}_k}\frac{C_{fc}}{s_c},
+A_{kf}=\frac{1}{N_k}\sum_{c\in\mathcal{C}_k}\frac{C_{fc}}{s_c},
 \qquad
-A_f=\frac{1}{N}\sum_{k=1}^{K}\sum_{c\in\mathcal{C}_k}\frac{C_{fc}}{s_c}
-   =\sum_{k=1}^{K}\frac{n_k}{N}A_{kf}.
+A_f=\frac{1}{N}\sum_{c=1}^{N}\frac{C_{fc}}{s_c}.
 ```
 
-$`C_{fc}`$ is the count for feature $`f`$ in cell $`c`$; $`L_c`$ is that cell’s total count across retained autosomal peaks; $`s_c`$ is its library-size factor. $`\mathcal{C}_k`$ contains the $`n_k`$ retained cells in group $`k`$, $`K`$ is the number of groups, and $`N=\sum_{k=1}^{K}n_k`$. Accessibility is **averaged within groups** after library-size adjustment. The baseline is the **pooled-cell mean**, which weights each group mean by $`n_k/N`$. Cells with missing group labels or nonfinite/nonpositive scaling factors are excluded. Zero feature counts remain in the denominators. **WRS models retain this count-based baseline, without dividing WRS scores by group cell counts.**
+$`C_{fc}`$ is the count for feature $`f`$ in cell $`c`$; $`L_c`$ is that cell’s total count across retained autosomal peaks; $`s_c`$ is its library-size factor. $`\mathcal{C}_k`$ denotes the set of cells in group $`k`$, $`N_k=|\mathcal{C}_k|`$ is its cell count, and $`N`$ is the total number of retained cells. Library-size-adjusted accessibility is **averaged within each group**. The baseline is the **mean across all retained cells**. Cells with missing group labels or nonfinite/nonpositive scaling factors are excluded; cells with zero counts at a feature remain in the denominators. **Both count and WRS models use this count-based baseline; WRS scores are not divided by group cell counts.**
 
 **Enrichment test.** Each component is fitted separately for each cell group $`k`$:
 
@@ -1576,297 +1573,491 @@ EPIC2::run_model_stage(config, traits = "TC")
     ## snp_wrs.TC.snp_wrs.22                                     liver_Vascular endothelial cells
     ## snp_wrs.TC.snp_wrs.23                       lung_Bronchiolar and alveolar epithelial cells
     ## snp_wrs.TC.snp_wrs.24                                                   lung_Stromal cells
-    ##                                             term          beta         se           t
-    ## peak_accessibility.TC.peak_accessibility.1  A_kp  0.0227149569 0.01370699  1.65718076
-    ## peak_accessibility.TC.peak_accessibility.2  A_kp -0.0250721110 0.01106605 -2.26567814
-    ## peak_accessibility.TC.peak_accessibility.3  A_kp  0.0015684713 0.01796723  0.08729621
-    ## peak_accessibility.TC.peak_accessibility.4  A_kp -0.0004747492 0.01161568 -0.04087142
-    ## peak_accessibility.TC.peak_accessibility.5  A_kp -0.0212178446 0.01459796 -1.45348018
-    ## peak_accessibility.TC.peak_accessibility.6  A_kp -0.0282967744 0.01384155 -2.04433580
-    ## peak_accessibility.TC.peak_accessibility.7  A_kp -0.0212260438 0.01225804 -1.73160123
-    ## peak_accessibility.TC.peak_accessibility.8  A_kp  0.0315790269 0.01322910  2.38708806
-    ## peak_accessibility.TC.peak_accessibility.9  A_kp -0.0321619326 0.01549676 -2.07539702
-    ## peak_accessibility.TC.peak_accessibility.10 A_kp  0.0163234087 0.01263885  1.29152629
-    ## peak_accessibility.TC.peak_accessibility.11 A_kp -0.0066039533 0.01491121 -0.44288512
-    ## peak_accessibility.TC.peak_accessibility.12 A_kp -0.0047999728 0.01618777 -0.29651855
-    ## peak_accessibility.TC.peak_accessibility.13 A_kp  0.0020282002 0.01629320  0.12448143
-    ## peak_accessibility.TC.peak_accessibility.14 A_kp -0.0100667432 0.01369652 -0.73498574
-    ## peak_accessibility.TC.peak_accessibility.15 A_kp -0.0043755657 0.01403097 -0.31185047
-    ## peak_accessibility.TC.peak_accessibility.16 A_kp  0.0454337225 0.01392641  3.26241532
-    ## peak_accessibility.TC.peak_accessibility.17 A_kp  0.0225975709 0.01692703  1.33499904
-    ## peak_accessibility.TC.peak_accessibility.18 A_kp -0.0111900651 0.01145209 -0.97712026
-    ## peak_accessibility.TC.peak_accessibility.19 A_kp  0.0496502996 0.01293386  3.83878569
-    ## peak_accessibility.TC.peak_accessibility.20 A_kp -0.0196830406 0.01318113 -1.49327364
-    ## peak_accessibility.TC.peak_accessibility.21 A_kp  0.0142721473 0.01360225  1.04924870
-    ## peak_accessibility.TC.peak_accessibility.22 A_kp -0.0104957339 0.01227757 -0.85487062
-    ## peak_accessibility.TC.peak_accessibility.23 A_kp  0.0019371308 0.01400937  0.13827396
-    ## peak_accessibility.TC.peak_accessibility.24 A_kp  0.0020999402 0.01450399  0.14478365
-    ## peak_wrs.TC.peak_wrs.1                      Z_kp  0.0257076288 0.01716103  1.49802391
-    ## peak_wrs.TC.peak_wrs.2                      Z_kp -0.0283940400 0.01731694 -1.63966860
-    ## peak_wrs.TC.peak_wrs.3                      Z_kp  0.0028289519 0.01602779  0.17650291
-    ## peak_wrs.TC.peak_wrs.4                      Z_kp  0.0011308442 0.01878216  0.06020841
-    ## peak_wrs.TC.peak_wrs.5                      Z_kp -0.0410444081 0.01689845 -2.42888569
-    ## peak_wrs.TC.peak_wrs.6                      Z_kp -0.0321861843 0.01762503 -1.82616377
-    ## peak_wrs.TC.peak_wrs.7                      Z_kp -0.0333618611 0.02093727 -1.59341988
-    ## peak_wrs.TC.peak_wrs.8                      Z_kp  0.0039697600 0.01624402  0.24438288
-    ## peak_wrs.TC.peak_wrs.9                      Z_kp -0.0330495099 0.01588627 -2.08038139
-    ## peak_wrs.TC.peak_wrs.10                     Z_kp  0.0072129699 0.01615504  0.44648430
-    ## peak_wrs.TC.peak_wrs.11                     Z_kp -0.0048513313 0.01703899 -0.28471939
-    ## peak_wrs.TC.peak_wrs.12                     Z_kp -0.0141906395 0.01664287 -0.85265598
-    ## peak_wrs.TC.peak_wrs.13                     Z_kp  0.0150473459 0.01660452  0.90621964
-    ## peak_wrs.TC.peak_wrs.14                     Z_kp -0.0126587776 0.01914599 -0.66117116
-    ## peak_wrs.TC.peak_wrs.15                     Z_kp  0.0119661411 0.01887334  0.63402357
-    ## peak_wrs.TC.peak_wrs.16                     Z_kp  0.0699136405 0.01763624  3.96420332
-    ## peak_wrs.TC.peak_wrs.17                     Z_kp  0.0266113786 0.01682536  1.58162290
-    ## peak_wrs.TC.peak_wrs.18                     Z_kp -0.0114194494 0.01773724 -0.64381200
-    ## peak_wrs.TC.peak_wrs.19                     Z_kp  0.0249068434 0.01581905  1.57448452
-    ## peak_wrs.TC.peak_wrs.20                     Z_kp -0.0288149779 0.01707396 -1.68765602
-    ## peak_wrs.TC.peak_wrs.21                     Z_kp  0.0123844772 0.01619296  0.76480634
-    ## peak_wrs.TC.peak_wrs.22                     Z_kp -0.0028582227 0.01841888 -0.15517899
-    ## peak_wrs.TC.peak_wrs.23                     Z_kp  0.0088332606 0.01646123  0.53661000
-    ## peak_wrs.TC.peak_wrs.24                     Z_kp -0.0112695356 0.01766281 -0.63803750
-    ## snp_accessibility.TC.snp_accessibility.1    A_kj  0.1148288640 0.04918240  2.33475542
-    ## snp_accessibility.TC.snp_accessibility.2    A_kj -0.0456784538 0.04202885 -1.08683576
-    ## snp_accessibility.TC.snp_accessibility.3    A_kj -0.0187902401 0.05790111 -0.32452299
-    ## snp_accessibility.TC.snp_accessibility.4    A_kj -0.0028743469 0.04513829 -0.06367868
-    ## snp_accessibility.TC.snp_accessibility.5    A_kj -0.0722087019 0.04973976 -1.45173000
-    ## snp_accessibility.TC.snp_accessibility.6    A_kj -0.0454857533 0.04611122 -0.98643578
-    ## snp_accessibility.TC.snp_accessibility.7    A_kj -0.0413533723 0.03986909 -1.03722884
-    ## snp_accessibility.TC.snp_accessibility.8    A_kj  0.0874362110 0.04831901  1.80956148
-    ## snp_accessibility.TC.snp_accessibility.9    A_kj -0.0011031038 0.04935182 -0.02235183
-    ## snp_accessibility.TC.snp_accessibility.10   A_kj  0.0551752107 0.04899393  1.12616426
-    ## snp_accessibility.TC.snp_accessibility.11   A_kj  0.0132936134 0.04831675  0.27513469
-    ## snp_accessibility.TC.snp_accessibility.12   A_kj -0.0345979921 0.05142991 -0.67272118
-    ## snp_accessibility.TC.snp_accessibility.13   A_kj -0.0832019126 0.05001852 -1.66342212
-    ## snp_accessibility.TC.snp_accessibility.14   A_kj -0.0431758501 0.04411938 -0.97861418
-    ## snp_accessibility.TC.snp_accessibility.15   A_kj  0.0467281297 0.04704831  0.99319458
-    ## snp_accessibility.TC.snp_accessibility.16   A_kj  0.0729751650 0.05063491  1.44120252
-    ## snp_accessibility.TC.snp_accessibility.17   A_kj  0.1208758859 0.05291066  2.28452817
-    ## snp_accessibility.TC.snp_accessibility.18   A_kj -0.0418188169 0.04443876 -0.94104368
-    ## snp_accessibility.TC.snp_accessibility.19   A_kj  0.0441406760 0.04916989  0.89771761
-    ## snp_accessibility.TC.snp_accessibility.20   A_kj -0.0016154308 0.04737384 -0.03409964
-    ## snp_accessibility.TC.snp_accessibility.21   A_kj -0.0081970365 0.05063634 -0.16188050
-    ## snp_accessibility.TC.snp_accessibility.22   A_kj  0.0076755012 0.04554896  0.16851100
-    ## snp_accessibility.TC.snp_accessibility.23   A_kj -0.0126431539 0.04860715 -0.26010893
-    ## snp_accessibility.TC.snp_accessibility.24   A_kj -0.0441796769 0.04770027 -0.92619348
-    ## snp_wrs.TC.snp_wrs.1                        Z_kj  0.0260091060 0.02238666  1.16181262
-    ## snp_wrs.TC.snp_wrs.2                        Z_kj -0.0142322782 0.02264050 -0.62862037
-    ## snp_wrs.TC.snp_wrs.3                        Z_kj  0.0068795624 0.02049624  0.33564992
-    ## snp_wrs.TC.snp_wrs.4                        Z_kj  0.0068770754 0.02388927  0.28787301
-    ## snp_wrs.TC.snp_wrs.5                        Z_kj -0.0314183663 0.02102725 -1.49417416
-    ## snp_wrs.TC.snp_wrs.6                        Z_kj -0.0181859723 0.02237218 -0.81288332
-    ## snp_wrs.TC.snp_wrs.7                        Z_kj -0.0378414942 0.02649888 -1.42804130
-    ## snp_wrs.TC.snp_wrs.8                        Z_kj  0.0260637778 0.02074227  1.25655364
-    ## snp_wrs.TC.snp_wrs.9                        Z_kj  0.0068244454 0.02012900  0.33903554
-    ## snp_wrs.TC.snp_wrs.10                       Z_kj  0.0250733831 0.02135302  1.17423107
-    ## snp_wrs.TC.snp_wrs.11                       Z_kj -0.0048524458 0.02196437 -0.22092355
-    ## snp_wrs.TC.snp_wrs.12                       Z_kj -0.0043692955 0.02110920 -0.20698540
-    ## snp_wrs.TC.snp_wrs.13                       Z_kj -0.0438209021 0.02111331 -2.07551068
-    ## snp_wrs.TC.snp_wrs.14                       Z_kj -0.0206801941 0.02417724 -0.85535783
-    ## snp_wrs.TC.snp_wrs.15                       Z_kj  0.0215245048 0.02422915  0.88837230
-    ## snp_wrs.TC.snp_wrs.16                       Z_kj  0.0037915069 0.02238874  0.16934886
-    ## snp_wrs.TC.snp_wrs.17                       Z_kj  0.0353713047 0.02086274  1.69542938
-    ## snp_wrs.TC.snp_wrs.18                       Z_kj -0.0114309716 0.02220200 -0.51486231
-    ## snp_wrs.TC.snp_wrs.19                       Z_kj  0.0196078655 0.02013144  0.97399215
-    ## snp_wrs.TC.snp_wrs.20                       Z_kj -0.0176358834 0.02190904 -0.80495913
-    ## snp_wrs.TC.snp_wrs.21                       Z_kj -0.0079581391 0.02051881 -0.38784595
-    ## snp_wrs.TC.snp_wrs.22                       Z_kj  0.0217311425 0.02369296  0.91719828
-    ## snp_wrs.TC.snp_wrs.23                       Z_kj -0.0108624276 0.02051086 -0.52959395
-    ## snp_wrs.TC.snp_wrs.24                       Z_kj -0.0034214486 0.02230014 -0.15342723
-    ##                                              p_two_sided            p     n    df status
-    ## peak_accessibility.TC.peak_accessibility.1  9.748837e-02 4.874419e-02 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.2  2.347479e-02 9.882626e-01 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.3  9.304364e-01 4.652182e-01 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.4  9.673985e-01 5.163007e-01 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.5  1.460959e-01 9.269520e-01 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.6  4.092491e-02 9.795375e-01 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.7  8.334993e-02 9.583250e-01 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.8  1.698562e-02 8.492811e-03 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.9  3.795417e-02 9.810229e-01 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.10 1.965264e-01 9.826321e-02 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.11 6.578505e-01 6.710748e-01 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.12 7.668352e-01 6.165824e-01 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.13 9.009345e-01 4.504673e-01 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.14 4.623512e-01 7.688244e-01 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.15 7.551553e-01 6.224224e-01 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.16 1.105313e-03 5.526566e-04 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.17 1.818819e-01 9.094096e-02 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.18 3.285137e-01 8.357431e-01 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.19 1.237761e-04 6.188805e-05 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.20 1.353710e-01 9.323145e-01 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.21 2.940681e-01 1.470340e-01 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.22 3.926263e-01 8.036868e-01 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.23 8.900244e-01 4.450122e-01 57713 57710     ok
-    ## peak_accessibility.TC.peak_accessibility.24 8.848822e-01 4.424411e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.1                      1.341325e-01 6.706625e-02 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.2                      1.010795e-01 9.494602e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.3                      8.598995e-01 4.299497e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.4                      9.519899e-01 4.759949e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.5                      1.514834e-02 9.924258e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.6                      6.783076e-02 9.660846e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.7                      1.110715e-01 9.444642e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.8                      8.069352e-01 4.034676e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.9                      3.749497e-02 9.812525e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.10                     6.552491e-01 3.276246e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.11                     7.758602e-01 6.120699e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.12                     3.938536e-01 8.030732e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.13                     3.648234e-01 1.824117e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.14                     5.085052e-01 7.457474e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.15                     5.260680e-01 2.630340e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.16                     7.373011e-05 3.686505e-05 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.17                     1.137412e-01 5.687058e-02 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.18                     5.196999e-01 7.401500e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.19                     1.153810e-01 5.769048e-02 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.20                     9.148268e-02 9.542587e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.21                     4.443900e-01 2.221950e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.22                     8.766808e-01 5.616596e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.23                     5.915391e-01 2.957696e-01 57713 57710     ok
-    ## peak_wrs.TC.peak_wrs.24                     5.234518e-01 7.382741e-01 57713 57710     ok
-    ## snp_accessibility.TC.snp_accessibility.1    1.955957e-02 9.779786e-03 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.2    2.771139e-01 8.614431e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.3    7.455433e-01 6.272284e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.4    9.492263e-01 5.253869e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.5    1.465821e-01 9.267090e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.6    3.239234e-01 8.380383e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.7    2.996335e-01 8.501832e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.8    7.036896e-02 3.518448e-02 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.9    9.821674e-01 5.089163e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.10   2.601006e-01 1.300503e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.11   7.832137e-01 3.916069e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.12   5.011274e-01 7.494363e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.13   9.623333e-02 9.518833e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.14   3.277747e-01 8.361126e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.15   3.206193e-01 1.603096e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.16   1.495328e-01 7.476642e-02 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.17   2.234408e-02 1.117204e-02 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.18   3.466864e-01 8.266568e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.19   3.693398e-01 1.846699e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.20   9.727978e-01 5.136011e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.21   8.714005e-01 5.642997e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.22   8.661819e-01 4.330909e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.23   7.947807e-01 6.026097e-01 58390 58387     ok
-    ## snp_accessibility.TC.snp_accessibility.24   3.543493e-01 8.228254e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.1                        2.453163e-01 1.226582e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.2                        5.296001e-01 7.352000e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.3                        7.371361e-01 3.685680e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.4                        7.734450e-01 3.867225e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.5                        1.351355e-01 9.324322e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.6                        4.162883e-01 7.918559e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.7                        1.532853e-01 9.233573e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.8                        2.089203e-01 1.044602e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.9                        7.345842e-01 3.672921e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.10                       2.403073e-01 1.201536e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.11                       8.251527e-01 5.874236e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.12                       8.360220e-01 5.819890e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.13                       3.794360e-02 9.810282e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.14                       3.923566e-01 8.038217e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.15                       3.743442e-01 1.871721e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.16                       8.655228e-01 4.327614e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.17                       8.999933e-02 4.499966e-02 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.18                       6.066512e-01 6.966744e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.19                       3.300645e-01 1.650322e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.20                       4.208465e-01 7.895767e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.21                       6.981315e-01 6.509343e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.22                       3.590425e-01 1.795213e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.23                       5.963955e-01 7.018022e-01 58390 58387     ok
-    ## snp_wrs.TC.snp_wrs.24                       8.780619e-01 5.609690e-01 58390 58387     ok
-    ##                                                      component p_bh_within_trait
-    ## peak_accessibility.TC.peak_accessibility.1  peak_accessibility      0.2924651104
-    ## peak_accessibility.TC.peak_accessibility.2  peak_accessibility      0.9882626074
-    ## peak_accessibility.TC.peak_accessibility.3  peak_accessibility      0.9882626074
-    ## peak_accessibility.TC.peak_accessibility.4  peak_accessibility      0.9882626074
-    ## peak_accessibility.TC.peak_accessibility.5  peak_accessibility      0.9882626074
-    ## peak_accessibility.TC.peak_accessibility.6  peak_accessibility      0.9882626074
-    ## peak_accessibility.TC.peak_accessibility.7  peak_accessibility      0.9882626074
-    ## peak_accessibility.TC.peak_accessibility.8  peak_accessibility      0.0679424907
-    ## peak_accessibility.TC.peak_accessibility.9  peak_accessibility      0.9882626074
-    ## peak_accessibility.TC.peak_accessibility.10 peak_accessibility      0.3930528383
-    ## peak_accessibility.TC.peak_accessibility.11 peak_accessibility      0.9882626074
-    ## peak_accessibility.TC.peak_accessibility.12 peak_accessibility      0.9882626074
-    ## peak_accessibility.TC.peak_accessibility.13 peak_accessibility      0.9882626074
-    ## peak_accessibility.TC.peak_accessibility.14 peak_accessibility      0.9882626074
-    ## peak_accessibility.TC.peak_accessibility.15 peak_accessibility      0.9882626074
-    ## peak_accessibility.TC.peak_accessibility.16 peak_accessibility      0.0066318789
-    ## peak_accessibility.TC.peak_accessibility.17 peak_accessibility      0.3930528383
-    ## peak_accessibility.TC.peak_accessibility.18 peak_accessibility      0.9882626074
-    ## peak_accessibility.TC.peak_accessibility.19 peak_accessibility      0.0014853132
-    ## peak_accessibility.TC.peak_accessibility.20 peak_accessibility      0.9882626074
-    ## peak_accessibility.TC.peak_accessibility.21 peak_accessibility      0.5041166828
-    ## peak_accessibility.TC.peak_accessibility.22 peak_accessibility      0.9882626074
-    ## peak_accessibility.TC.peak_accessibility.23 peak_accessibility      0.9882626074
-    ## peak_accessibility.TC.peak_accessibility.24 peak_accessibility      0.9882626074
-    ## peak_wrs.TC.peak_wrs.1                                peak_wrs      0.4023975269
-    ## peak_wrs.TC.peak_wrs.2                                peak_wrs      0.9924258304
-    ## peak_wrs.TC.peak_wrs.3                                peak_wrs      0.9380721594
-    ## peak_wrs.TC.peak_wrs.4                                peak_wrs      0.9519898524
-    ## peak_wrs.TC.peak_wrs.5                                peak_wrs      0.9924258304
-    ## peak_wrs.TC.peak_wrs.6                                peak_wrs      0.9924258304
-    ## peak_wrs.TC.peak_wrs.7                                peak_wrs      0.9924258304
-    ## peak_wrs.TC.peak_wrs.8                                peak_wrs      0.9380721594
-    ## peak_wrs.TC.peak_wrs.9                                peak_wrs      0.9924258304
-    ## peak_wrs.TC.peak_wrs.10                               peak_wrs      0.8736654982
-    ## peak_wrs.TC.peak_wrs.11                               peak_wrs      0.9924258304
-    ## peak_wrs.TC.peak_wrs.12                               peak_wrs      0.9924258304
-    ## peak_wrs.TC.peak_wrs.13                               peak_wrs      0.8736654982
-    ## peak_wrs.TC.peak_wrs.14                               peak_wrs      0.9924258304
-    ## peak_wrs.TC.peak_wrs.15                               peak_wrs      0.8736654982
-    ## peak_wrs.TC.peak_wrs.16                               peak_wrs      0.0008847613
-    ## peak_wrs.TC.peak_wrs.17                               peak_wrs      0.4023975269
-    ## peak_wrs.TC.peak_wrs.18                               peak_wrs      0.9924258304
-    ## peak_wrs.TC.peak_wrs.19                               peak_wrs      0.4023975269
-    ## peak_wrs.TC.peak_wrs.20                               peak_wrs      0.9924258304
-    ## peak_wrs.TC.peak_wrs.21                               peak_wrs      0.8736654982
-    ## peak_wrs.TC.peak_wrs.22                               peak_wrs      0.9924258304
-    ## peak_wrs.TC.peak_wrs.23                               peak_wrs      0.8736654982
-    ## peak_wrs.TC.peak_wrs.24                               peak_wrs      0.9924258304
-    ## snp_accessibility.TC.snp_accessibility.1     snp_accessibility      0.1340644814
-    ## snp_accessibility.TC.snp_accessibility.2     snp_accessibility      0.9397560610
-    ## snp_accessibility.TC.snp_accessibility.3     snp_accessibility      0.9397560610
-    ## snp_accessibility.TC.snp_accessibility.4     snp_accessibility      0.9397560610
-    ## snp_accessibility.TC.snp_accessibility.5     snp_accessibility      0.9518833326
-    ## snp_accessibility.TC.snp_accessibility.6     snp_accessibility      0.9397560610
-    ## snp_accessibility.TC.snp_accessibility.7     snp_accessibility      0.9397560610
-    ## snp_accessibility.TC.snp_accessibility.8     snp_accessibility      0.2814758335
-    ## snp_accessibility.TC.snp_accessibility.9     snp_accessibility      0.9397560610
-    ## snp_accessibility.TC.snp_accessibility.10    snp_accessibility      0.6242415098
-    ## snp_accessibility.TC.snp_accessibility.11    snp_accessibility      0.9397560610
-    ## snp_accessibility.TC.snp_accessibility.12    snp_accessibility      0.9397560610
-    ## snp_accessibility.TC.snp_accessibility.13    snp_accessibility      0.9518833326
-    ## snp_accessibility.TC.snp_accessibility.14    snp_accessibility      0.9397560610
-    ## snp_accessibility.TC.snp_accessibility.15    snp_accessibility      0.6331539758
-    ## snp_accessibility.TC.snp_accessibility.16    snp_accessibility      0.4485985201
-    ## snp_accessibility.TC.snp_accessibility.17    snp_accessibility      0.1340644814
-    ## snp_accessibility.TC.snp_accessibility.18    snp_accessibility      0.9397560610
-    ## snp_accessibility.TC.snp_accessibility.19    snp_accessibility      0.6331539758
-    ## snp_accessibility.TC.snp_accessibility.20    snp_accessibility      0.9397560610
-    ## snp_accessibility.TC.snp_accessibility.21    snp_accessibility      0.9397560610
-    ## snp_accessibility.TC.snp_accessibility.22    snp_accessibility      0.9397560610
-    ## snp_accessibility.TC.snp_accessibility.23    snp_accessibility      0.9397560610
-    ## snp_accessibility.TC.snp_accessibility.24    snp_accessibility      0.9397560610
-    ## snp_wrs.TC.snp_wrs.1                                   snp_wrs      0.6417328799
-    ## snp_wrs.TC.snp_wrs.2                                   snp_wrs      0.9186533766
-    ## snp_wrs.TC.snp_wrs.3                                   snp_wrs      0.9186533766
-    ## snp_wrs.TC.snp_wrs.4                                   snp_wrs      0.9186533766
-    ## snp_wrs.TC.snp_wrs.5                                   snp_wrs      0.9729727784
-    ## snp_wrs.TC.snp_wrs.6                                   snp_wrs      0.9186533766
-    ## snp_wrs.TC.snp_wrs.7                                   snp_wrs      0.9729727784
-    ## snp_wrs.TC.snp_wrs.8                                   snp_wrs      0.6417328799
-    ## snp_wrs.TC.snp_wrs.9                                   snp_wrs      0.9186533766
-    ## snp_wrs.TC.snp_wrs.10                                  snp_wrs      0.6417328799
-    ## snp_wrs.TC.snp_wrs.11                                  snp_wrs      0.9186533766
-    ## snp_wrs.TC.snp_wrs.12                                  snp_wrs      0.9186533766
-    ## snp_wrs.TC.snp_wrs.13                                  snp_wrs      0.9810282016
-    ## snp_wrs.TC.snp_wrs.14                                  snp_wrs      0.9186533766
-    ## snp_wrs.TC.snp_wrs.15                                  snp_wrs      0.6417328799
-    ## snp_wrs.TC.snp_wrs.16                                  snp_wrs      0.9186533766
-    ## snp_wrs.TC.snp_wrs.17                                  snp_wrs      0.6417328799
-    ## snp_wrs.TC.snp_wrs.18                                  snp_wrs      0.9186533766
-    ## snp_wrs.TC.snp_wrs.19                                  snp_wrs      0.6417328799
-    ## snp_wrs.TC.snp_wrs.20                                  snp_wrs      0.9186533766
-    ## snp_wrs.TC.snp_wrs.21                                  snp_wrs      0.9186533766
-    ## snp_wrs.TC.snp_wrs.22                                  snp_wrs      0.6417328799
-    ## snp_wrs.TC.snp_wrs.23                                  snp_wrs      0.9186533766
-    ## snp_wrs.TC.snp_wrs.24                                  snp_wrs      0.9186533766
+    ##                                             term          beta          se
+    ## peak_accessibility.TC.peak_accessibility.1  A_kp   4.542991384  2.74139761
+    ## peak_accessibility.TC.peak_accessibility.2  A_kp  -5.014422209  2.21321030
+    ## peak_accessibility.TC.peak_accessibility.3  A_kp   0.294872605  3.37783983
+    ## peak_accessibility.TC.peak_accessibility.4  A_kp  -0.094949839  2.32313517
+    ## peak_accessibility.TC.peak_accessibility.5  A_kp  -4.243568915  2.91959187
+    ## peak_accessibility.TC.peak_accessibility.6  A_kp  -5.659354871  2.76830982
+    ## peak_accessibility.TC.peak_accessibility.7  A_kp  -4.245208767  2.45160878
+    ## peak_accessibility.TC.peak_accessibility.8  A_kp   6.315805383  2.64582002
+    ## peak_accessibility.TC.peak_accessibility.9  A_kp  -6.432386523  3.09935230
+    ## peak_accessibility.TC.peak_accessibility.10 A_kp   3.264681749  2.52777027
+    ## peak_accessibility.TC.peak_accessibility.11 A_kp  -1.320790662  2.98224213
+    ## peak_accessibility.TC.peak_accessibility.12 A_kp  -0.959994554  3.23755308
+    ## peak_accessibility.TC.peak_accessibility.13 A_kp   0.405640042  3.25863902
+    ## peak_accessibility.TC.peak_accessibility.14 A_kp  -2.013348649  2.73930302
+    ## peak_accessibility.TC.peak_accessibility.15 A_kp  -0.875113138  2.80619470
+    ## peak_accessibility.TC.peak_accessibility.16 A_kp   9.086744500  2.78528134
+    ## peak_accessibility.TC.peak_accessibility.17 A_kp   4.519514180  3.38540631
+    ## peak_accessibility.TC.peak_accessibility.18 A_kp  -2.238013013  2.29041715
+    ## peak_accessibility.TC.peak_accessibility.19 A_kp   9.930059924  2.58677111
+    ## peak_accessibility.TC.peak_accessibility.20 A_kp  -3.936608123  2.63622689
+    ## peak_accessibility.TC.peak_accessibility.21 A_kp   2.854429452  2.72045079
+    ## peak_accessibility.TC.peak_accessibility.22 A_kp  -2.099146778  2.45551401
+    ## peak_accessibility.TC.peak_accessibility.23 A_kp   0.387426157  2.80187352
+    ## peak_accessibility.TC.peak_accessibility.24 A_kp   0.419988032  2.90079737
+    ## peak_wrs.TC.peak_wrs.1                      Z_kp   0.025707629  0.01716103
+    ## peak_wrs.TC.peak_wrs.2                      Z_kp  -0.028394040  0.01731694
+    ## peak_wrs.TC.peak_wrs.3                      Z_kp   0.002828952  0.01602779
+    ## peak_wrs.TC.peak_wrs.4                      Z_kp   0.001130844  0.01878216
+    ## peak_wrs.TC.peak_wrs.5                      Z_kp  -0.041044408  0.01689845
+    ## peak_wrs.TC.peak_wrs.6                      Z_kp  -0.032186184  0.01762503
+    ## peak_wrs.TC.peak_wrs.7                      Z_kp  -0.033361861  0.02093727
+    ## peak_wrs.TC.peak_wrs.8                      Z_kp   0.003969760  0.01624402
+    ## peak_wrs.TC.peak_wrs.9                      Z_kp  -0.033049510  0.01588627
+    ## peak_wrs.TC.peak_wrs.10                     Z_kp   0.007212970  0.01615504
+    ## peak_wrs.TC.peak_wrs.11                     Z_kp  -0.004851331  0.01703899
+    ## peak_wrs.TC.peak_wrs.12                     Z_kp  -0.014190639  0.01664287
+    ## peak_wrs.TC.peak_wrs.13                     Z_kp   0.015047346  0.01660452
+    ## peak_wrs.TC.peak_wrs.14                     Z_kp  -0.012658778  0.01914599
+    ## peak_wrs.TC.peak_wrs.15                     Z_kp   0.011966141  0.01887334
+    ## peak_wrs.TC.peak_wrs.16                     Z_kp   0.069913640  0.01763624
+    ## peak_wrs.TC.peak_wrs.17                     Z_kp   0.026611379  0.01682536
+    ## peak_wrs.TC.peak_wrs.18                     Z_kp  -0.011419449  0.01773724
+    ## peak_wrs.TC.peak_wrs.19                     Z_kp   0.024906843  0.01581905
+    ## peak_wrs.TC.peak_wrs.20                     Z_kp  -0.028814978  0.01707396
+    ## peak_wrs.TC.peak_wrs.21                     Z_kp   0.012384477  0.01619296
+    ## peak_wrs.TC.peak_wrs.22                     Z_kp  -0.002858223  0.01841888
+    ## peak_wrs.TC.peak_wrs.23                     Z_kp   0.008833261  0.01646123
+    ## peak_wrs.TC.peak_wrs.24                     Z_kp  -0.011269536  0.01766281
+    ## snp_accessibility.TC.snp_accessibility.1    A_kj  22.965772808  9.83647906
+    ## snp_accessibility.TC.snp_accessibility.2    A_kj  -9.135690754  8.40576939
+    ## snp_accessibility.TC.snp_accessibility.3    A_kj  -3.532565132 10.88540781
+    ## snp_accessibility.TC.snp_accessibility.4    A_kj  -0.574869373  9.02765845
+    ## snp_accessibility.TC.snp_accessibility.5    A_kj -14.441740375  9.94795200
+    ## snp_accessibility.TC.snp_accessibility.6    A_kj  -9.097150665  9.22224318
+    ## snp_accessibility.TC.snp_accessibility.7    A_kj  -8.270674453  7.97381844
+    ## snp_accessibility.TC.snp_accessibility.8    A_kj  17.487242193  9.66380109
+    ## snp_accessibility.TC.snp_accessibility.9    A_kj  -0.220620761  9.87036483
+    ## snp_accessibility.TC.snp_accessibility.10   A_kj  11.035042132  9.79878564
+    ## snp_accessibility.TC.snp_accessibility.11   A_kj   2.658722674  9.66334963
+    ## snp_accessibility.TC.snp_accessibility.12   A_kj  -6.919598421 10.28598269
+    ## snp_accessibility.TC.snp_accessibility.13   A_kj -16.640382511 10.00370399
+    ## snp_accessibility.TC.snp_accessibility.14   A_kj  -8.635170020  8.82387582
+    ## snp_accessibility.TC.snp_accessibility.15   A_kj   9.345625945  9.40966266
+    ## snp_accessibility.TC.snp_accessibility.16   A_kj  14.595032995 10.12698272
+    ## snp_accessibility.TC.snp_accessibility.17   A_kj  24.175177177 10.58213137
+    ## snp_accessibility.TC.snp_accessibility.18   A_kj  -8.363763374  8.88775260
+    ## snp_accessibility.TC.snp_accessibility.19   A_kj   8.828135203  9.83397795
+    ## snp_accessibility.TC.snp_accessibility.20   A_kj  -0.323086151  9.47476731
+    ## snp_accessibility.TC.snp_accessibility.21   A_kj  -1.639407307 10.12726866
+    ## snp_accessibility.TC.snp_accessibility.22   A_kj   1.535100232  9.10979241
+    ## snp_accessibility.TC.snp_accessibility.23   A_kj  -2.528630770  9.72143003
+    ## snp_accessibility.TC.snp_accessibility.24   A_kj  -8.835935385  9.54005356
+    ## snp_wrs.TC.snp_wrs.1                        Z_kj   0.026009106  0.02238666
+    ## snp_wrs.TC.snp_wrs.2                        Z_kj  -0.014232278  0.02264050
+    ## snp_wrs.TC.snp_wrs.3                        Z_kj   0.006879562  0.02049624
+    ## snp_wrs.TC.snp_wrs.4                        Z_kj   0.006877075  0.02388927
+    ## snp_wrs.TC.snp_wrs.5                        Z_kj  -0.031418366  0.02102725
+    ## snp_wrs.TC.snp_wrs.6                        Z_kj  -0.018185972  0.02237218
+    ## snp_wrs.TC.snp_wrs.7                        Z_kj  -0.037841494  0.02649888
+    ## snp_wrs.TC.snp_wrs.8                        Z_kj   0.026063778  0.02074227
+    ## snp_wrs.TC.snp_wrs.9                        Z_kj   0.006824445  0.02012900
+    ## snp_wrs.TC.snp_wrs.10                       Z_kj   0.025073383  0.02135302
+    ## snp_wrs.TC.snp_wrs.11                       Z_kj  -0.004852446  0.02196437
+    ## snp_wrs.TC.snp_wrs.12                       Z_kj  -0.004369295  0.02110920
+    ## snp_wrs.TC.snp_wrs.13                       Z_kj  -0.043820902  0.02111331
+    ## snp_wrs.TC.snp_wrs.14                       Z_kj  -0.020680194  0.02417724
+    ## snp_wrs.TC.snp_wrs.15                       Z_kj   0.021524505  0.02422915
+    ## snp_wrs.TC.snp_wrs.16                       Z_kj   0.003791507  0.02238874
+    ## snp_wrs.TC.snp_wrs.17                       Z_kj   0.035371305  0.02086274
+    ## snp_wrs.TC.snp_wrs.18                       Z_kj  -0.011430972  0.02220200
+    ## snp_wrs.TC.snp_wrs.19                       Z_kj   0.019607865  0.02013144
+    ## snp_wrs.TC.snp_wrs.20                       Z_kj  -0.017635883  0.02190904
+    ## snp_wrs.TC.snp_wrs.21                       Z_kj  -0.007958139  0.02051881
+    ## snp_wrs.TC.snp_wrs.22                       Z_kj   0.021731143  0.02369296
+    ## snp_wrs.TC.snp_wrs.23                       Z_kj  -0.010862428  0.02051086
+    ## snp_wrs.TC.snp_wrs.24                       Z_kj  -0.003421449  0.02230014
+    ##                                                       t  p_two_sided
+    ## peak_accessibility.TC.peak_accessibility.1   1.65718076 9.748837e-02
+    ## peak_accessibility.TC.peak_accessibility.2  -2.26567814 2.347479e-02
+    ## peak_accessibility.TC.peak_accessibility.3   0.08729621 9.304364e-01
+    ## peak_accessibility.TC.peak_accessibility.4  -0.04087142 9.673985e-01
+    ## peak_accessibility.TC.peak_accessibility.5  -1.45348018 1.460959e-01
+    ## peak_accessibility.TC.peak_accessibility.6  -2.04433580 4.092491e-02
+    ## peak_accessibility.TC.peak_accessibility.7  -1.73160123 8.334993e-02
+    ## peak_accessibility.TC.peak_accessibility.8   2.38708806 1.698562e-02
+    ## peak_accessibility.TC.peak_accessibility.9  -2.07539702 3.795417e-02
+    ## peak_accessibility.TC.peak_accessibility.10  1.29152629 1.965264e-01
+    ## peak_accessibility.TC.peak_accessibility.11 -0.44288512 6.578505e-01
+    ## peak_accessibility.TC.peak_accessibility.12 -0.29651855 7.668352e-01
+    ## peak_accessibility.TC.peak_accessibility.13  0.12448143 9.009345e-01
+    ## peak_accessibility.TC.peak_accessibility.14 -0.73498574 4.623512e-01
+    ## peak_accessibility.TC.peak_accessibility.15 -0.31185047 7.551553e-01
+    ## peak_accessibility.TC.peak_accessibility.16  3.26241532 1.105313e-03
+    ## peak_accessibility.TC.peak_accessibility.17  1.33499904 1.818819e-01
+    ## peak_accessibility.TC.peak_accessibility.18 -0.97712026 3.285137e-01
+    ## peak_accessibility.TC.peak_accessibility.19  3.83878569 1.237761e-04
+    ## peak_accessibility.TC.peak_accessibility.20 -1.49327364 1.353710e-01
+    ## peak_accessibility.TC.peak_accessibility.21  1.04924870 2.940681e-01
+    ## peak_accessibility.TC.peak_accessibility.22 -0.85487062 3.926263e-01
+    ## peak_accessibility.TC.peak_accessibility.23  0.13827396 8.900244e-01
+    ## peak_accessibility.TC.peak_accessibility.24  0.14478365 8.848822e-01
+    ## peak_wrs.TC.peak_wrs.1                       1.49802391 1.341325e-01
+    ## peak_wrs.TC.peak_wrs.2                      -1.63966860 1.010795e-01
+    ## peak_wrs.TC.peak_wrs.3                       0.17650291 8.598995e-01
+    ## peak_wrs.TC.peak_wrs.4                       0.06020841 9.519899e-01
+    ## peak_wrs.TC.peak_wrs.5                      -2.42888569 1.514834e-02
+    ## peak_wrs.TC.peak_wrs.6                      -1.82616377 6.783076e-02
+    ## peak_wrs.TC.peak_wrs.7                      -1.59341988 1.110715e-01
+    ## peak_wrs.TC.peak_wrs.8                       0.24438288 8.069352e-01
+    ## peak_wrs.TC.peak_wrs.9                      -2.08038139 3.749497e-02
+    ## peak_wrs.TC.peak_wrs.10                      0.44648430 6.552491e-01
+    ## peak_wrs.TC.peak_wrs.11                     -0.28471939 7.758602e-01
+    ## peak_wrs.TC.peak_wrs.12                     -0.85265598 3.938536e-01
+    ## peak_wrs.TC.peak_wrs.13                      0.90621964 3.648234e-01
+    ## peak_wrs.TC.peak_wrs.14                     -0.66117116 5.085052e-01
+    ## peak_wrs.TC.peak_wrs.15                      0.63402357 5.260680e-01
+    ## peak_wrs.TC.peak_wrs.16                      3.96420332 7.373011e-05
+    ## peak_wrs.TC.peak_wrs.17                      1.58162290 1.137412e-01
+    ## peak_wrs.TC.peak_wrs.18                     -0.64381200 5.196999e-01
+    ## peak_wrs.TC.peak_wrs.19                      1.57448452 1.153810e-01
+    ## peak_wrs.TC.peak_wrs.20                     -1.68765602 9.148268e-02
+    ## peak_wrs.TC.peak_wrs.21                      0.76480634 4.443900e-01
+    ## peak_wrs.TC.peak_wrs.22                     -0.15517899 8.766808e-01
+    ## peak_wrs.TC.peak_wrs.23                      0.53661000 5.915391e-01
+    ## peak_wrs.TC.peak_wrs.24                     -0.63803750 5.234518e-01
+    ## snp_accessibility.TC.snp_accessibility.1     2.33475542 1.955957e-02
+    ## snp_accessibility.TC.snp_accessibility.2    -1.08683576 2.771139e-01
+    ## snp_accessibility.TC.snp_accessibility.3    -0.32452299 7.455433e-01
+    ## snp_accessibility.TC.snp_accessibility.4    -0.06367868 9.492263e-01
+    ## snp_accessibility.TC.snp_accessibility.5    -1.45173000 1.465821e-01
+    ## snp_accessibility.TC.snp_accessibility.6    -0.98643578 3.239234e-01
+    ## snp_accessibility.TC.snp_accessibility.7    -1.03722884 2.996335e-01
+    ## snp_accessibility.TC.snp_accessibility.8     1.80956148 7.036896e-02
+    ## snp_accessibility.TC.snp_accessibility.9    -0.02235183 9.821674e-01
+    ## snp_accessibility.TC.snp_accessibility.10    1.12616426 2.601006e-01
+    ## snp_accessibility.TC.snp_accessibility.11    0.27513469 7.832137e-01
+    ## snp_accessibility.TC.snp_accessibility.12   -0.67272118 5.011274e-01
+    ## snp_accessibility.TC.snp_accessibility.13   -1.66342212 9.623333e-02
+    ## snp_accessibility.TC.snp_accessibility.14   -0.97861418 3.277747e-01
+    ## snp_accessibility.TC.snp_accessibility.15    0.99319458 3.206193e-01
+    ## snp_accessibility.TC.snp_accessibility.16    1.44120252 1.495328e-01
+    ## snp_accessibility.TC.snp_accessibility.17    2.28452817 2.234408e-02
+    ## snp_accessibility.TC.snp_accessibility.18   -0.94104368 3.466864e-01
+    ## snp_accessibility.TC.snp_accessibility.19    0.89771761 3.693398e-01
+    ## snp_accessibility.TC.snp_accessibility.20   -0.03409964 9.727978e-01
+    ## snp_accessibility.TC.snp_accessibility.21   -0.16188050 8.714005e-01
+    ## snp_accessibility.TC.snp_accessibility.22    0.16851100 8.661819e-01
+    ## snp_accessibility.TC.snp_accessibility.23   -0.26010893 7.947807e-01
+    ## snp_accessibility.TC.snp_accessibility.24   -0.92619348 3.543493e-01
+    ## snp_wrs.TC.snp_wrs.1                         1.16181262 2.453163e-01
+    ## snp_wrs.TC.snp_wrs.2                        -0.62862037 5.296001e-01
+    ## snp_wrs.TC.snp_wrs.3                         0.33564992 7.371361e-01
+    ## snp_wrs.TC.snp_wrs.4                         0.28787301 7.734450e-01
+    ## snp_wrs.TC.snp_wrs.5                        -1.49417416 1.351355e-01
+    ## snp_wrs.TC.snp_wrs.6                        -0.81288332 4.162883e-01
+    ## snp_wrs.TC.snp_wrs.7                        -1.42804130 1.532853e-01
+    ## snp_wrs.TC.snp_wrs.8                         1.25655364 2.089203e-01
+    ## snp_wrs.TC.snp_wrs.9                         0.33903554 7.345842e-01
+    ## snp_wrs.TC.snp_wrs.10                        1.17423107 2.403073e-01
+    ## snp_wrs.TC.snp_wrs.11                       -0.22092355 8.251527e-01
+    ## snp_wrs.TC.snp_wrs.12                       -0.20698540 8.360220e-01
+    ## snp_wrs.TC.snp_wrs.13                       -2.07551068 3.794360e-02
+    ## snp_wrs.TC.snp_wrs.14                       -0.85535783 3.923566e-01
+    ## snp_wrs.TC.snp_wrs.15                        0.88837230 3.743442e-01
+    ## snp_wrs.TC.snp_wrs.16                        0.16934886 8.655228e-01
+    ## snp_wrs.TC.snp_wrs.17                        1.69542938 8.999933e-02
+    ## snp_wrs.TC.snp_wrs.18                       -0.51486231 6.066512e-01
+    ## snp_wrs.TC.snp_wrs.19                        0.97399215 3.300645e-01
+    ## snp_wrs.TC.snp_wrs.20                       -0.80495913 4.208465e-01
+    ## snp_wrs.TC.snp_wrs.21                       -0.38784595 6.981315e-01
+    ## snp_wrs.TC.snp_wrs.22                        0.91719828 3.590425e-01
+    ## snp_wrs.TC.snp_wrs.23                       -0.52959395 5.963955e-01
+    ## snp_wrs.TC.snp_wrs.24                       -0.15342723 8.780619e-01
+    ##                                                        p     n    df status
+    ## peak_accessibility.TC.peak_accessibility.1  4.874419e-02 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.2  9.882626e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.3  4.652182e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.4  5.163007e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.5  9.269520e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.6  9.795375e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.7  9.583250e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.8  8.492811e-03 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.9  9.810229e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.10 9.826321e-02 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.11 6.710748e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.12 6.165824e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.13 4.504673e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.14 7.688244e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.15 6.224224e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.16 5.526566e-04 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.17 9.094096e-02 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.18 8.357431e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.19 6.188805e-05 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.20 9.323145e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.21 1.470340e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.22 8.036868e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.23 4.450122e-01 57713 57710     ok
+    ## peak_accessibility.TC.peak_accessibility.24 4.424411e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.1                      6.706625e-02 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.2                      9.494602e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.3                      4.299497e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.4                      4.759949e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.5                      9.924258e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.6                      9.660846e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.7                      9.444642e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.8                      4.034676e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.9                      9.812525e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.10                     3.276246e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.11                     6.120699e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.12                     8.030732e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.13                     1.824117e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.14                     7.457474e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.15                     2.630340e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.16                     3.686505e-05 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.17                     5.687058e-02 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.18                     7.401500e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.19                     5.769048e-02 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.20                     9.542587e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.21                     2.221950e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.22                     5.616596e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.23                     2.957696e-01 57713 57710     ok
+    ## peak_wrs.TC.peak_wrs.24                     7.382741e-01 57713 57710     ok
+    ## snp_accessibility.TC.snp_accessibility.1    9.779786e-03 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.2    8.614431e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.3    6.272284e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.4    5.253869e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.5    9.267090e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.6    8.380383e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.7    8.501832e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.8    3.518448e-02 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.9    5.089163e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.10   1.300503e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.11   3.916069e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.12   7.494363e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.13   9.518833e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.14   8.361126e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.15   1.603096e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.16   7.476642e-02 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.17   1.117204e-02 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.18   8.266568e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.19   1.846699e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.20   5.136011e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.21   5.642997e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.22   4.330909e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.23   6.026097e-01 58390 58387     ok
+    ## snp_accessibility.TC.snp_accessibility.24   8.228254e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.1                        1.226582e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.2                        7.352000e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.3                        3.685680e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.4                        3.867225e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.5                        9.324322e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.6                        7.918559e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.7                        9.233573e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.8                        1.044602e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.9                        3.672921e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.10                       1.201536e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.11                       5.874236e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.12                       5.819890e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.13                       9.810282e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.14                       8.038217e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.15                       1.871721e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.16                       4.327614e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.17                       4.499966e-02 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.18                       6.966744e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.19                       1.650322e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.20                       7.895767e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.21                       6.509343e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.22                       1.795213e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.23                       7.018022e-01 58390 58387     ok
+    ## snp_wrs.TC.snp_wrs.24                       5.609690e-01 58390 58387     ok
+    ##                                                      component
+    ## peak_accessibility.TC.peak_accessibility.1  peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.2  peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.3  peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.4  peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.5  peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.6  peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.7  peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.8  peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.9  peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.10 peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.11 peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.12 peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.13 peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.14 peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.15 peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.16 peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.17 peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.18 peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.19 peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.20 peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.21 peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.22 peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.23 peak_accessibility
+    ## peak_accessibility.TC.peak_accessibility.24 peak_accessibility
+    ## peak_wrs.TC.peak_wrs.1                                peak_wrs
+    ## peak_wrs.TC.peak_wrs.2                                peak_wrs
+    ## peak_wrs.TC.peak_wrs.3                                peak_wrs
+    ## peak_wrs.TC.peak_wrs.4                                peak_wrs
+    ## peak_wrs.TC.peak_wrs.5                                peak_wrs
+    ## peak_wrs.TC.peak_wrs.6                                peak_wrs
+    ## peak_wrs.TC.peak_wrs.7                                peak_wrs
+    ## peak_wrs.TC.peak_wrs.8                                peak_wrs
+    ## peak_wrs.TC.peak_wrs.9                                peak_wrs
+    ## peak_wrs.TC.peak_wrs.10                               peak_wrs
+    ## peak_wrs.TC.peak_wrs.11                               peak_wrs
+    ## peak_wrs.TC.peak_wrs.12                               peak_wrs
+    ## peak_wrs.TC.peak_wrs.13                               peak_wrs
+    ## peak_wrs.TC.peak_wrs.14                               peak_wrs
+    ## peak_wrs.TC.peak_wrs.15                               peak_wrs
+    ## peak_wrs.TC.peak_wrs.16                               peak_wrs
+    ## peak_wrs.TC.peak_wrs.17                               peak_wrs
+    ## peak_wrs.TC.peak_wrs.18                               peak_wrs
+    ## peak_wrs.TC.peak_wrs.19                               peak_wrs
+    ## peak_wrs.TC.peak_wrs.20                               peak_wrs
+    ## peak_wrs.TC.peak_wrs.21                               peak_wrs
+    ## peak_wrs.TC.peak_wrs.22                               peak_wrs
+    ## peak_wrs.TC.peak_wrs.23                               peak_wrs
+    ## peak_wrs.TC.peak_wrs.24                               peak_wrs
+    ## snp_accessibility.TC.snp_accessibility.1     snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.2     snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.3     snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.4     snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.5     snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.6     snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.7     snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.8     snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.9     snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.10    snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.11    snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.12    snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.13    snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.14    snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.15    snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.16    snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.17    snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.18    snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.19    snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.20    snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.21    snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.22    snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.23    snp_accessibility
+    ## snp_accessibility.TC.snp_accessibility.24    snp_accessibility
+    ## snp_wrs.TC.snp_wrs.1                                   snp_wrs
+    ## snp_wrs.TC.snp_wrs.2                                   snp_wrs
+    ## snp_wrs.TC.snp_wrs.3                                   snp_wrs
+    ## snp_wrs.TC.snp_wrs.4                                   snp_wrs
+    ## snp_wrs.TC.snp_wrs.5                                   snp_wrs
+    ## snp_wrs.TC.snp_wrs.6                                   snp_wrs
+    ## snp_wrs.TC.snp_wrs.7                                   snp_wrs
+    ## snp_wrs.TC.snp_wrs.8                                   snp_wrs
+    ## snp_wrs.TC.snp_wrs.9                                   snp_wrs
+    ## snp_wrs.TC.snp_wrs.10                                  snp_wrs
+    ## snp_wrs.TC.snp_wrs.11                                  snp_wrs
+    ## snp_wrs.TC.snp_wrs.12                                  snp_wrs
+    ## snp_wrs.TC.snp_wrs.13                                  snp_wrs
+    ## snp_wrs.TC.snp_wrs.14                                  snp_wrs
+    ## snp_wrs.TC.snp_wrs.15                                  snp_wrs
+    ## snp_wrs.TC.snp_wrs.16                                  snp_wrs
+    ## snp_wrs.TC.snp_wrs.17                                  snp_wrs
+    ## snp_wrs.TC.snp_wrs.18                                  snp_wrs
+    ## snp_wrs.TC.snp_wrs.19                                  snp_wrs
+    ## snp_wrs.TC.snp_wrs.20                                  snp_wrs
+    ## snp_wrs.TC.snp_wrs.21                                  snp_wrs
+    ## snp_wrs.TC.snp_wrs.22                                  snp_wrs
+    ## snp_wrs.TC.snp_wrs.23                                  snp_wrs
+    ## snp_wrs.TC.snp_wrs.24                                  snp_wrs
+    ##                                             p_bh_within_trait
+    ## peak_accessibility.TC.peak_accessibility.1       0.2924651104
+    ## peak_accessibility.TC.peak_accessibility.2       0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.3       0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.4       0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.5       0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.6       0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.7       0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.8       0.0679424907
+    ## peak_accessibility.TC.peak_accessibility.9       0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.10      0.3930528383
+    ## peak_accessibility.TC.peak_accessibility.11      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.12      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.13      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.14      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.15      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.16      0.0066318789
+    ## peak_accessibility.TC.peak_accessibility.17      0.3930528383
+    ## peak_accessibility.TC.peak_accessibility.18      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.19      0.0014853132
+    ## peak_accessibility.TC.peak_accessibility.20      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.21      0.5041166828
+    ## peak_accessibility.TC.peak_accessibility.22      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.23      0.9882626074
+    ## peak_accessibility.TC.peak_accessibility.24      0.9882626074
+    ## peak_wrs.TC.peak_wrs.1                           0.4023975269
+    ## peak_wrs.TC.peak_wrs.2                           0.9924258304
+    ## peak_wrs.TC.peak_wrs.3                           0.9380721594
+    ## peak_wrs.TC.peak_wrs.4                           0.9519898524
+    ## peak_wrs.TC.peak_wrs.5                           0.9924258304
+    ## peak_wrs.TC.peak_wrs.6                           0.9924258304
+    ## peak_wrs.TC.peak_wrs.7                           0.9924258304
+    ## peak_wrs.TC.peak_wrs.8                           0.9380721594
+    ## peak_wrs.TC.peak_wrs.9                           0.9924258304
+    ## peak_wrs.TC.peak_wrs.10                          0.8736654982
+    ## peak_wrs.TC.peak_wrs.11                          0.9924258304
+    ## peak_wrs.TC.peak_wrs.12                          0.9924258304
+    ## peak_wrs.TC.peak_wrs.13                          0.8736654982
+    ## peak_wrs.TC.peak_wrs.14                          0.9924258304
+    ## peak_wrs.TC.peak_wrs.15                          0.8736654982
+    ## peak_wrs.TC.peak_wrs.16                          0.0008847613
+    ## peak_wrs.TC.peak_wrs.17                          0.4023975269
+    ## peak_wrs.TC.peak_wrs.18                          0.9924258304
+    ## peak_wrs.TC.peak_wrs.19                          0.4023975269
+    ## peak_wrs.TC.peak_wrs.20                          0.9924258304
+    ## peak_wrs.TC.peak_wrs.21                          0.8736654982
+    ## peak_wrs.TC.peak_wrs.22                          0.9924258304
+    ## peak_wrs.TC.peak_wrs.23                          0.8736654982
+    ## peak_wrs.TC.peak_wrs.24                          0.9924258304
+    ## snp_accessibility.TC.snp_accessibility.1         0.1340644814
+    ## snp_accessibility.TC.snp_accessibility.2         0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.3         0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.4         0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.5         0.9518833326
+    ## snp_accessibility.TC.snp_accessibility.6         0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.7         0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.8         0.2814758335
+    ## snp_accessibility.TC.snp_accessibility.9         0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.10        0.6242415098
+    ## snp_accessibility.TC.snp_accessibility.11        0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.12        0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.13        0.9518833326
+    ## snp_accessibility.TC.snp_accessibility.14        0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.15        0.6331539758
+    ## snp_accessibility.TC.snp_accessibility.16        0.4485985201
+    ## snp_accessibility.TC.snp_accessibility.17        0.1340644814
+    ## snp_accessibility.TC.snp_accessibility.18        0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.19        0.6331539758
+    ## snp_accessibility.TC.snp_accessibility.20        0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.21        0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.22        0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.23        0.9397560610
+    ## snp_accessibility.TC.snp_accessibility.24        0.9397560610
+    ## snp_wrs.TC.snp_wrs.1                             0.6417328799
+    ## snp_wrs.TC.snp_wrs.2                             0.9186533766
+    ## snp_wrs.TC.snp_wrs.3                             0.9186533766
+    ## snp_wrs.TC.snp_wrs.4                             0.9186533766
+    ## snp_wrs.TC.snp_wrs.5                             0.9729727784
+    ## snp_wrs.TC.snp_wrs.6                             0.9186533766
+    ## snp_wrs.TC.snp_wrs.7                             0.9729727784
+    ## snp_wrs.TC.snp_wrs.8                             0.6417328799
+    ## snp_wrs.TC.snp_wrs.9                             0.9186533766
+    ## snp_wrs.TC.snp_wrs.10                            0.6417328799
+    ## snp_wrs.TC.snp_wrs.11                            0.9186533766
+    ## snp_wrs.TC.snp_wrs.12                            0.9186533766
+    ## snp_wrs.TC.snp_wrs.13                            0.9810282016
+    ## snp_wrs.TC.snp_wrs.14                            0.9186533766
+    ## snp_wrs.TC.snp_wrs.15                            0.6417328799
+    ## snp_wrs.TC.snp_wrs.16                            0.9186533766
+    ## snp_wrs.TC.snp_wrs.17                            0.6417328799
+    ## snp_wrs.TC.snp_wrs.18                            0.9186533766
+    ## snp_wrs.TC.snp_wrs.19                            0.6417328799
+    ## snp_wrs.TC.snp_wrs.20                            0.9186533766
+    ## snp_wrs.TC.snp_wrs.21                            0.9186533766
+    ## snp_wrs.TC.snp_wrs.22                            0.6417328799
+    ## snp_wrs.TC.snp_wrs.23                            0.9186533766
+    ## snp_wrs.TC.snp_wrs.24                            0.9186533766
     ##                                             p_bonf_within_trait
     ## peak_accessibility.TC.peak_accessibility.1         1.0000000000
     ## peak_accessibility.TC.peak_accessibility.2         1.0000000000
@@ -1966,81 +2157,81 @@ EPIC2::run_model_stage(config, traits = "TC")
     ## snp_wrs.TC.snp_wrs.24                              1.0000000000
     ## 
     ## $tissue_cell_type$combined
-    ##    trait                                          group p_snp_accessibility  p_snp_wrs
-    ## 16    TC                      kidney_Ureteric bud cells         0.074766420 0.43276142
-    ## 19    TC                             liver_Hepatoblasts         0.184669910 0.16503224
-    ## 8     TC                           heart_Cardiomyocytes         0.035184479 0.10446017
-    ## 1     TC                   adrenal_Adrenocortical cells         0.009779786 0.12265817
-    ## 17    TC              kidney_Vascular endothelial cells         0.011172040 0.04499966
-    ## 10    TC          intestine_Intestinal epithelial cells         0.130050315 0.12015364
-    ## 15    TC                       kidney_Metanephric cells         0.160309628 0.18717209
-    ## 21    TC                            liver_Myeloid cells         0.564299740 0.65093427
-    ## 3     TC                          adrenal_Stromal cells         0.627228360 0.36856804
-    ## 4     TC                            cerebrum_Astrocytes         0.525386850 0.38672248
-    ## 22    TC               liver_Vascular endothelial cells         0.433090937 0.17952127
-    ## 23    TC lung_Bronchiolar and alveolar epithelial cells         0.602609667 0.70180225
-    ## 11    TC                       intestine_Lymphoid cells         0.391606868 0.58742363
-    ## 24    TC                             lung_Stromal cells         0.822825365 0.56096905
-    ## 12    TC                  intestine_Smooth muscle cells         0.749436324 0.58198901
-    ## 18    TC                            liver_Erythroblasts         0.826656815 0.69667440
-    ## 14    TC                         kidney_Mesangial cells         0.836112648 0.80382170
-    ## 20    TC                           liver_Lymphoid cells         0.513601094 0.78957673
-    ## 7     TC                    cerebrum_Inhibitory neurons         0.850183242 0.92335734
-    ## 13    TC                        intestine_Stromal cells         0.951883333 0.98102820
-    ## 6     TC                    cerebrum_Excitatory neurons         0.838038300 0.79185586
-    ## 9     TC                          intestine_ENS neurons         0.508916311 0.36729209
-    ## 2     TC                       adrenal_Chromaffin cells         0.861443056 0.73519996
-    ## 5     TC           cerebrum_Astrocytes/Oligodendrocytes         0.926708967 0.93243225
-    ##    p_peak_accessibility   p_peak_wrs n_tests_combined     p_cauchy p_cauchy_bh_within_trait
-    ## 16         5.526566e-04 3.686505e-05                4 0.0001381731              0.002965589
-    ## 19         6.188805e-05 5.769048e-02                4 0.0002471324              0.002965589
-    ## 8          8.492811e-03 4.034676e-01                4 0.0255475567              0.137128838
-    ## 1          4.874419e-02 6.706625e-02                4 0.0275158104              0.137128838
-    ## 17         9.094096e-02 5.687058e-02                4 0.0285685079              0.137128838
-    ## 10         9.826321e-02 3.276246e-01                4 0.1390125957              0.556050383
-    ## 15         6.224224e-01 2.630340e-01                4 0.2568565411              0.880650998
-    ## 21         1.470340e-01 2.221950e-01                4 0.3231900515              0.969570155
-    ## 3          4.652182e-01 4.299497e-01                4 0.4722936317              0.976976240
-    ## 4          5.163007e-01 4.759949e-01                4 0.4748997225              0.976976240
-    ## 22         8.036868e-01 5.616596e-01                4 0.4850718245              0.976976240
-    ## 23         4.450122e-01 2.957696e-01                4 0.5117483440              0.976976240
-    ## 11         6.710748e-01 6.120699e-01                4 0.5697486589              0.976976240
-    ## 24         4.424411e-01 7.382741e-01                4 0.6804890815              0.976976240
-    ## 12         6.165824e-01 8.030732e-01                4 0.7072712204              0.976976240
-    ## 18         8.357431e-01 7.401500e-01                4 0.7872096380              0.976976240
-    ## 14         7.688244e-01 7.457474e-01                4 0.7935926973              0.976976240
-    ## 20         9.323145e-01 9.542587e-01                4 0.9040891705              0.976976240
-    ## 7          9.583250e-01 9.444642e-01                4 0.9349682546              0.976976240
-    ## 13         4.504673e-01 1.824117e-01                4 0.9417576415              0.976976240
-    ## 6          9.795375e-01 9.660846e-01                4 0.9548037812              0.976976240
-    ## 9          9.810229e-01 9.812525e-01                4 0.9619444267              0.976976240
-    ## 2          9.882626e-01 9.494602e-01                4 0.9651736255              0.976976240
-    ## 5          9.269520e-01 9.924258e-01                4 0.9769762403              0.976976240
-    ##    p_cauchy_bonf_within_trait
-    ## 16                0.003316153
-    ## 19                0.005931178
-    ## 8                 0.613141360
-    ## 1                 0.660379450
-    ## 17                0.685644190
-    ## 10                1.000000000
-    ## 15                1.000000000
-    ## 21                1.000000000
-    ## 3                 1.000000000
-    ## 4                 1.000000000
-    ## 22                1.000000000
-    ## 23                1.000000000
-    ## 11                1.000000000
-    ## 24                1.000000000
-    ## 12                1.000000000
-    ## 18                1.000000000
-    ## 14                1.000000000
-    ## 20                1.000000000
-    ## 7                 1.000000000
-    ## 13                1.000000000
-    ## 6                 1.000000000
-    ## 9                 1.000000000
-    ## 2                 1.000000000
-    ## 5                 1.000000000
+    ##    trait                                          group p_snp_accessibility
+    ## 16    TC                      kidney_Ureteric bud cells         0.074766420
+    ## 19    TC                             liver_Hepatoblasts         0.184669910
+    ## 8     TC                           heart_Cardiomyocytes         0.035184479
+    ## 1     TC                   adrenal_Adrenocortical cells         0.009779786
+    ## 17    TC              kidney_Vascular endothelial cells         0.011172040
+    ## 10    TC          intestine_Intestinal epithelial cells         0.130050315
+    ## 15    TC                       kidney_Metanephric cells         0.160309628
+    ## 21    TC                            liver_Myeloid cells         0.564299740
+    ## 3     TC                          adrenal_Stromal cells         0.627228360
+    ## 4     TC                            cerebrum_Astrocytes         0.525386850
+    ## 22    TC               liver_Vascular endothelial cells         0.433090937
+    ## 23    TC lung_Bronchiolar and alveolar epithelial cells         0.602609667
+    ## 11    TC                       intestine_Lymphoid cells         0.391606868
+    ## 24    TC                             lung_Stromal cells         0.822825365
+    ## 12    TC                  intestine_Smooth muscle cells         0.749436324
+    ## 18    TC                            liver_Erythroblasts         0.826656815
+    ## 14    TC                         kidney_Mesangial cells         0.836112648
+    ## 20    TC                           liver_Lymphoid cells         0.513601094
+    ## 7     TC                    cerebrum_Inhibitory neurons         0.850183242
+    ## 13    TC                        intestine_Stromal cells         0.951883333
+    ## 6     TC                    cerebrum_Excitatory neurons         0.838038300
+    ## 9     TC                          intestine_ENS neurons         0.508916311
+    ## 2     TC                       adrenal_Chromaffin cells         0.861443056
+    ## 5     TC           cerebrum_Astrocytes/Oligodendrocytes         0.926708967
+    ##     p_snp_wrs p_peak_accessibility   p_peak_wrs n_tests_combined     p_cauchy
+    ## 16 0.43276142         5.526566e-04 3.686505e-05                4 0.0001381731
+    ## 19 0.16503224         6.188805e-05 5.769048e-02                4 0.0002471324
+    ## 8  0.10446017         8.492811e-03 4.034676e-01                4 0.0255475567
+    ## 1  0.12265817         4.874419e-02 6.706625e-02                4 0.0275158104
+    ## 17 0.04499966         9.094096e-02 5.687058e-02                4 0.0285685079
+    ## 10 0.12015364         9.826321e-02 3.276246e-01                4 0.1390125957
+    ## 15 0.18717209         6.224224e-01 2.630340e-01                4 0.2568565411
+    ## 21 0.65093427         1.470340e-01 2.221950e-01                4 0.3231900515
+    ## 3  0.36856804         4.652182e-01 4.299497e-01                4 0.4722936317
+    ## 4  0.38672248         5.163007e-01 4.759949e-01                4 0.4748997225
+    ## 22 0.17952127         8.036868e-01 5.616596e-01                4 0.4850718245
+    ## 23 0.70180225         4.450122e-01 2.957696e-01                4 0.5117483440
+    ## 11 0.58742363         6.710748e-01 6.120699e-01                4 0.5697486589
+    ## 24 0.56096905         4.424411e-01 7.382741e-01                4 0.6804890815
+    ## 12 0.58198901         6.165824e-01 8.030732e-01                4 0.7072712204
+    ## 18 0.69667440         8.357431e-01 7.401500e-01                4 0.7872096380
+    ## 14 0.80382170         7.688244e-01 7.457474e-01                4 0.7935926973
+    ## 20 0.78957673         9.323145e-01 9.542587e-01                4 0.9040891705
+    ## 7  0.92335734         9.583250e-01 9.444642e-01                4 0.9349682546
+    ## 13 0.98102820         4.504673e-01 1.824117e-01                4 0.9417576415
+    ## 6  0.79185586         9.795375e-01 9.660846e-01                4 0.9548037812
+    ## 9  0.36729209         9.810229e-01 9.812525e-01                4 0.9619444267
+    ## 2  0.73519996         9.882626e-01 9.494602e-01                4 0.9651736255
+    ## 5  0.93243225         9.269520e-01 9.924258e-01                4 0.9769762403
+    ##    p_cauchy_bh_within_trait p_cauchy_bonf_within_trait
+    ## 16              0.002965589                0.003316153
+    ## 19              0.002965589                0.005931178
+    ## 8               0.137128838                0.613141360
+    ## 1               0.137128838                0.660379450
+    ## 17              0.137128838                0.685644190
+    ## 10              0.556050383                1.000000000
+    ## 15              0.880650998                1.000000000
+    ## 21              0.969570155                1.000000000
+    ## 3               0.976976240                1.000000000
+    ## 4               0.976976240                1.000000000
+    ## 22              0.976976240                1.000000000
+    ## 23              0.976976240                1.000000000
+    ## 11              0.976976240                1.000000000
+    ## 24              0.976976240                1.000000000
+    ## 12              0.976976240                1.000000000
+    ## 18              0.976976240                1.000000000
+    ## 14              0.976976240                1.000000000
+    ## 20              0.976976240                1.000000000
+    ## 7               0.976976240                1.000000000
+    ## 13              0.976976240                1.000000000
+    ## 6               0.976976240                1.000000000
+    ## 9               0.976976240                1.000000000
+    ## 2               0.976976240                1.000000000
+    ## 5               0.976976240                1.000000000
 
 </div>
 
@@ -2084,13 +2275,9 @@ library_size[library_size <= 0] <- NA_real_
 # Multiplicative library-size adjustment
 cell_scale <- median(library_size, na.rm = TRUE) / library_size
 
-# Group cell means and pooled-cell baseline
-snp_A <- EPIC2::build_group_accessibility(
-  snp_counts, groups, cell_scale
-)
-peak_A <- EPIC2::build_group_accessibility(
-  peak_counts, groups, cell_scale
-)
+# Group cell means and baseline across all retained cells
+snp_A <- EPIC2::build_group_accessibility(snp_counts, groups, cell_scale)
+peak_A <- EPIC2::build_group_accessibility(peak_counts, groups, cell_scale)
 snp_Z <- lapply(
   split(snp_wrs, snp_wrs$group),
   function(x) setNames(as.numeric(x$z_one_sided_enriched_trunc), x$feature)
@@ -2161,7 +2348,7 @@ combined <- EPIC2::combine_component_tests(
 
 - `tissue_cell_type.component_results.tsv`: 96 rows, covering four components for each of 24 groups.
 - `tissue_cell_type.cauchy_results.tsv`: 24 combined association results.
-- Matching `.rds` files are also saved. Read result tables directly from `output/05_models/`.
+- Matching `.rds` files are also saved.
 
 ``` r
 # Read
@@ -2743,7 +2930,7 @@ How the internal stage helpers map to the core calls
 
 # Selected figures
 
-The completed TC analysis generated **27 figures**, saved as **27 PNG/PDF pairs (54 files in total)**. Browse the complete collection in the [GitHub figures folder](https://github.com/LingxuanZ/EPIC2/tree/main/docs/figures). The table summarizes the complete figure set.
+The completed TC analysis generated **27 figures**, saved as **27 PNG/PDF pairs (54 files in total)**. Browse the complete collection in the [figure folder](output/figures/). The table summarizes the complete figure set.
 
 | Figure category | Count | Overview |
 |:---|---:|:---|
@@ -2754,7 +2941,7 @@ The completed TC analysis generated **27 figures**, saved as **27 PNG/PDF pairs 
 | WRS | 7 | SNP/peak P-value and score distributions, cell-group summaries, and top-ranked features. |
 | Association results | 5 | ACAT associations, nominal and adjusted component-test P-values, and component effect statistics for cell-type groups. |
 
-**4 selected figures are shown below**, with a PDF link for each figure. Displayed images use files from `figures/`. All generated PNG/PDF files are saved in `output/figures/`.
+**4 selected figures are shown below**, with a PDF link for each figure. Displayed images and PDF links use files from `output/figures/`.
 
 Association P-value color scales span −log10(P) = 0–5.
 
@@ -2770,13 +2957,13 @@ Association P-value color scales span −log10(P) = 0–5.
 
 <div class="epic2-cell-umap-viewport" style="position: relative; overflow: hidden; aspect-ratio: 1170 / 1340;">
 
-<img src="figures/UMAP_tissue_cell_type.cellQC.peakQC.png" alt="Cell annotations UMAP" style="position: absolute; left: -36.75213675%; top: 0.00000000%; width: 169.23076923%; max-width: none; height: auto; display: block;" />
+<img data-external="1" src="output/figures/UMAP_tissue_cell_type.cellQC.peakQC.png" alt="Cell annotations UMAP" style="position: absolute; left: -36.75213675%; top: 0.00000000%; width: 169.23076923%; max-width: none; height: auto; display: block;" />
 
 </div>
 
 <div class="epic2-cell-legend-viewport" style="position: relative; overflow: hidden; aspect-ratio: 1080 / 610;">
 
-<img src="figures/UMAP_tissue_cell_type.cellQC.peakQC.png" alt="Cell-type legend" style="position: absolute; left: -42.59259259%; top: -221.31147541%; width: 183.33333333%; max-width: none; height: auto; display: block;" />
+<img data-external="1" src="output/figures/UMAP_tissue_cell_type.cellQC.peakQC.png" alt="Cell-type legend" style="position: absolute; left: -42.59259259%; top: -221.31147541%; width: 183.33333333%; max-width: none; height: auto; display: block;" />
 
 </div>
 
@@ -2784,26 +2971,26 @@ Association P-value color scales span −log10(P) = 0–5.
 
 </div>
 
-UMAP of all supplied cells, colored by tissue–cell-type group. [PDF](figures/UMAP_tissue_cell_type.cellQC.peakQC.pdf)
+UMAP of all supplied cells, colored by tissue–cell-type group. [PDF](output/figures/UMAP_tissue_cell_type.cellQC.peakQC.pdf)
 
 ## WRS
 
 ### Top SNP features
 
-![Top SNP features](figures/all_traits.top3_per_group_topSNP_wilcoxon_DotPlot.png)\
-Accessibility of WRS-ranked SNP features for TC, selecting up to three features per cell group. [PDF](figures/all_traits.top3_per_group_topSNP_wilcoxon_DotPlot.pdf)
+<img src="output/figures/all_traits.top3_per_group_topSNP_wilcoxon_DotPlot.png" data-external="1" alt="Top SNP features" />\
+Accessibility of WRS-ranked SNP features for TC, selecting up to three features per cell group. [PDF](output/figures/all_traits.top3_per_group_topSNP_wilcoxon_DotPlot.pdf)
 
 ### Top peak features
 
-![Top peak features](figures/all_traits.top3_per_group_topPeak_wilcoxon_DotPlot.png)\
-Accessibility of WRS-ranked peak features for TC, selecting up to three features per cell group. [PDF](figures/all_traits.top3_per_group_topPeak_wilcoxon_DotPlot.pdf)
+<img src="output/figures/all_traits.top3_per_group_topPeak_wilcoxon_DotPlot.png" data-external="1" alt="Top peak features" />\
+Accessibility of WRS-ranked peak features for TC, selecting up to three features per cell group. [PDF](output/figures/all_traits.top3_per_group_topPeak_wilcoxon_DotPlot.pdf)
 
 ## Association results
 
 ### BH-adjusted component and ACAT tests by cell group
 
-![BH-adjusted component and ACAT tests by cell group](figures/05_models/cauchy_tissue_cell_type_component_heatmap_bh.png)\
-BH-adjusted P-values for the four components and ACAT; stars indicate displayed P \< 0.05. [PDF](figures/05_models/cauchy_tissue_cell_type_component_heatmap_bh.pdf)
+<img src="output/figures/05_models/cauchy_tissue_cell_type_component_heatmap_bh.png" data-external="1" alt="BH-adjusted component and ACAT tests by cell group" />\
+BH-adjusted P-values for the four components and ACAT; stars indicate displayed P \< 0.05. [PDF](output/figures/05_models/cauchy_tissue_cell_type_component_heatmap_bh.pdf)
 
 Because this tutorial uses a sampled subset of real scATAC-seq data, with up to 200 cells per tissue–cell-type group, the BH-adjusted results shown here may differ slightly from the manuscript results obtained using the complete dataset. The main enrichment signals remain consistent.
 
@@ -2842,8 +3029,6 @@ In the filenames below, `<grouping>` is `tissue_cell_type` for this tutorial.
 
 </div>
 
-Result tables remain in `output/05_models/`; no separate `results/` copy is created. The tutorial’s `figures/` folder contains copies used to publish the figure gallery; analysis figures remain in `output/figures/`.
-
 # Session information
 
 ``` r
@@ -2855,7 +3040,7 @@ sessionInfo()
     ## Running under: macOS Tahoe 26.7.2
     ## 
     ## Matrix products: default
-    ## BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+    ## BLAS:   /Library/Frameworks/R.framework/Versions/4.6/Resources/lib/libRblas.0.dylib 
     ## LAPACK: /Library/Frameworks/R.framework/Versions/4.6/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
     ## 
     ## locale:
@@ -2875,7 +3060,7 @@ sessionInfo()
     ##   [1] RColorBrewer_1.1-3       jsonlite_2.0.0           magrittr_2.0.5          
     ##   [4] spatstat.utils_3.2-2     farver_2.1.2             rmarkdown_2.31          
     ##   [7] ragg_1.5.2               vctrs_0.7.3              ROCR_1.0-12             
-    ##  [10] Rsamtools_2.28.0         spatstat.explore_3.8-0   RcppRoll_0.3.2          
+    ##  [10] spatstat.explore_3.8-0   Rsamtools_2.28.0         RcppRoll_0.3.2          
     ##  [13] htmltools_0.5.9          sass_0.4.10              sctransform_0.4.3       
     ##  [16] parallelly_1.47.0        KernSmooth_2.23-26       bslib_0.10.0            
     ##  [19] htmlwidgets_1.6.4        ica_1.0-3                plyr_1.8.9              
