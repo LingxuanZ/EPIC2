@@ -1,0 +1,83 @@
+# Replace /path/to/fetal_tissue with the project_dir used in Stage1_QC_ATAC_GWAS.R.
+# Inputs below use that script's stage1_reproduced output directory.
+# Replace /path/to/epic2_results with your Stage 2-5 output directory.
+# Use absolute paths accessible from the compute nodes.
+project:
+  name: Fetal tissue EPIC2 stages 2 to 5
+  output_dir: /path/to/epic2_results/stages_2_to_5
+parameters:
+  seed: 1000
+  workers: 1
+genome:
+  build: hg19
+  duplicate_action: drop
+atac:
+  input: /path/to/fetal_tissue/stage1_reproduced/atac.qc.withFragments.cellQC.peakQC.rds
+  assay: ATAC
+  group_column: tissue_cell_type
+gwas:
+  columns:
+    rsid: rsid
+    chr: chr
+    pos: pos
+    a1: A1
+    a2: A2
+    maf: MAF
+    p: P
+  genotype_format: dosage
+  genotype_orientation: variants_by_samples
+  genotype_ploidy: 2
+  # Retain the supplied preprocessed set without new frequency/missingness cutoffs.
+  maf_min: 0
+  reference_missing_rate_max: 1
+  ld_prune: false
+  remove_ambiguous: false
+  traits:
+    HDL:
+      summary: /path/to/fetal_tissue/stage1_reproduced/HDL.gwas.pruned.noamb.rds
+      genotype: /path/to/fetal_tissue/stage1_reproduced/HDL.gwas.pruned.noamb.genotype.rda
+      genotype_object: genotype
+    LDL:
+      summary: /path/to/fetal_tissue/stage1_reproduced/LDL.gwas.pruned.noamb.rds
+      genotype: /path/to/fetal_tissue/stage1_reproduced/LDL.gwas.pruned.noamb.genotype.rda
+      genotype_object: genotype
+    TC:
+      summary: /path/to/fetal_tissue/stage1_reproduced/TC.gwas.pruned.noamb.rds
+      genotype: /path/to/fetal_tissue/stage1_reproduced/TC.gwas.pruned.noamb.genotype.rda
+      genotype_object: genotype
+    TG:
+      summary: /path/to/fetal_tissue/stage1_reproduced/TG.gwas.pruned.noamb.rds
+      genotype: /path/to/fetal_tissue/stage1_reproduced/TG.gwas.pruned.noamb.genotype.rda
+      genotype_object: genotype
+    SCZ:
+      summary: /path/to/fetal_tissue/stage1_reproduced/SCZ.gwas.pruned.noamb.rds
+      genotype: /path/to/fetal_tissue/stage1_reproduced/SCZ.gwas.pruned.noamb.genotype.rda
+      genotype_object: genotype
+    SCZ2:
+      summary: /path/to/fetal_tissue/stage1_reproduced/SCZ2.gwas.pruned.noamb.rds
+      genotype: /path/to/fetal_tissue/stage1_reproduced/SCZ2.gwas.pruned.noamb.genotype.rda
+      genotype_object: genotype
+    BIP:
+      summary: /path/to/fetal_tissue/stage1_reproduced/BIP.gwas.pruned.noamb.rds
+      genotype: /path/to/fetal_tissue/stage1_reproduced/BIP.gwas.pruned.noamb.genotype.rda
+      genotype_object: genotype
+    SCZBIP:
+      summary: /path/to/fetal_tissue/stage1_reproduced/SCZBIP.gwas.pruned.noamb.rds
+      genotype: /path/to/fetal_tissue/stage1_reproduced/SCZBIP.gwas.pruned.noamb.genotype.rda
+      genotype_object: genotype
+accessibility:
+  chunks: 20
+ld:
+  window_bp: 5000000
+  ridge: 0.01
+  eigen_tolerance: 1.0e-08
+  correlation_block_size: 256
+  max_snps_for_chr_ld: 15000
+  max_dense_block_size: 15000
+  save_peak_checkpoints: false
+wrs:
+  truncation_quantiles: [0.02, 0.98]
+  write_tsv: false
+model:
+  groupings: [tissue_cell_type, tissue]
+  require_all_components: false

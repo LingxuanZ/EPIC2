@@ -11,3 +11,4 @@
 ^EPIC2_.*\.tar\.gz$
 ^results$
 ^docs$
+^manuscript_reproducibility$
