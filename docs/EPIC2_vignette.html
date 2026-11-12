@@ -2246,7 +2246,7 @@ functions and settings.</p>
 analyses. See <a href="https://github.com/LingxuanZ/EPIC2/blob/main/METHODS.md#saved-results-and-reproducibility">Methods</a>
 for saved-result checks and recovery, and the <a href="https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md">configuration
 reference</a> for parallelism and LD memory settings.</p>
-<p>The completed outputs are included in <code>output/</code>. The
+<p>Running the workflow generates the analysis outputs in <code>output/</code>. The
 single-command example is an alternative and is not executed
 automatically.</p>
 <div id="prepare-the-shared-inputs" class="section level2">
@@ -2349,8 +2349,8 @@ Configuration, completion records and a partial-run example
 </summary>
 <p><strong>Keep completion records and their associated
 files</strong></p>
-<p>The supplied results include <code>*.receipt.rds</code> completion
-records. Downstream stages validate recorded file paths, checksums,
+<p>Completion records (<code>*.receipt.rds</code>) are generated when the
+corresponding stages complete successfully. Downstream stages validate recorded file paths, checksums,
 software versions and relevant settings. These checks may require files
 beyond the direct inputs listed at each stage:</p>
 <ul>
@@ -2804,8 +2804,8 @@ data.frame(
 <h3>2.4 Local LD and inverse square roots</h3>
 <p>Construct SNP covariance and peak LD models, including
 inverse-square-root transformations. This is the most time-consuming
-stage in this example; the completed LD files are supplied for
-inspection. <a href="scripts/03_ld.R">LD script</a>.</p>
+stage in this example; the resulting LD files are saved for
+subsequent inspection. <a href="scripts/03_ld.R">LD script</a>.</p>
 <p>LD-based working matrices account for dependence between GWAS
 statistics:</p>
 <ul>
@@ -2842,21 +2842,17 @@ eigenvalue in component
 The superscript
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="sans-serif">𝖳</mi><annotation encoding="application/x-tex">\mathsf{T}</annotation></semantics></math>
 denotes transpose. The ridge-stabilized inverse square root is</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>W</mi><mi>b</mi></msub><mo>=</mo><msub><mi>U</mi><mi>b</mi></msub><mrow><mi mathvariant="normal">diag</mi><mo>⁡</mo></mrow><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">[</mo><mo stretchy="false" form="prefix">{</mo><mi mathvariant="normal">max</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>d</mi><mrow><mi>b</mi><mi>i</mi></mrow></msub><mo>,</mo><mi>ϵ</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>λ</mi><msup><mo stretchy="false" form="postfix">}</mo><mrow><mi>−</mi><mn>1</mn><mi>/</mi><mn>2</mn></mrow></msup><mo stretchy="true" form="postfix">]</mo></mrow><msubsup><mi>U</mi><mi>b</mi><mi mathvariant="sans-serif">𝖳</mi></msubsup><mi>.</mi></mrow><annotation encoding="application/x-tex">
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>W</mi><mi>b</mi></msub><mo>=</mo><msub><mi>U</mi><mi>b</mi></msub><mrow><mi mathvariant="normal">diag</mi><mo>⁡</mo></mrow><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">[</mo><mo stretchy="false" form="prefix">{</mo><mi mathvariant="normal">max</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>d</mi><mrow><mi>b</mi><mi>i</mi></mrow></msub><mo>,</mo><msup><mn>10</mn><mrow><mi>−</mi><mn>8</mn></mrow></msup><mo stretchy="false" form="postfix">)</mo><mo>+</mo><msup><mn>10</mn><mrow><mi>−</mi><mn>2</mn></mrow></msup><msup><mo stretchy="false" form="postfix">}</mo><mrow><mi>−</mi><mn>1</mn><mi>/</mi><mn>2</mn></mrow></msup><mo stretchy="true" form="postfix">]</mo></mrow><msubsup><mi>U</mi><mi>b</mi><mi mathvariant="sans-serif">𝖳</mi></msubsup><mi>.</mi></mrow><annotation encoding="application/x-tex">
 W_b=U_b\operatorname{diag}\!\left[
-\{\max(d_{bi},\epsilon)+\lambda\}^{-1/2}
+\{\max(d_{bi},10^{-8})+10^{-2}\}^{-1/2}
 \right]U_b^\mathsf{T}.
 </annotation></semantics></math></p>
 <p>Here,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ϵ</mi><annotation encoding="application/x-tex">\epsilon</annotation></semantics></math>
-is the eigenvalue floor (<code>ld.eigen_tolerance</code>,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mn>10</mn><mrow><mi>−</mi><mn>8</mn></mrow></msup><annotation encoding="application/x-tex">10^{-8}</annotation></semantics></math>
-in this tutorial), and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>λ</mi><annotation encoding="application/x-tex">\lambda</annotation></semantics></math>
-is the ridge parameter (<code>ld.ridge</code>,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.01</mn><annotation encoding="application/x-tex">0.01</annotation></semantics></math>).
-These settings stabilize the transformation when eigenvalues are small
-or non-positive.</p>
+is the eigenvalue floor (<code>ld.eigen_tolerance</code>), and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mn>10</mn><mrow><mi>−</mi><mn>2</mn></mrow></msup><annotation encoding="application/x-tex">10^{-2}</annotation></semantics></math>
+is the ridge term (<code>ld.ridge</code>). These settings stabilize the
+transformation when eigenvalues are small or non-positive.</p>
 <p>The ridge-stabilized inverse square root transforms the
 <strong>response and full design matrix (intercept, focal predictor and
 baseline)</strong> before ordinary least-squares fitting.</p>
@@ -2994,7 +2990,7 @@ data.frame(
 <div id="wilcoxon-rank-sum-scores" class="section level3">
 <h3>2.5 Wilcoxon rank-sum scores</h3>
 <p>Calculate SNP and peak WRS statistics for each selected metadata
-grouping, then construct and truncate one-sided enrichment scores. <a href="scripts/04_wrs.R">WRS script</a>.</p>
+grouping, then construct and winsorize one-sided enrichment scores. <a href="scripts/04_wrs.R">WRS script</a>.</p>
 <p>For each feature, WRS compares the focal group with all other
 labelled cells. For example, <code>liver_Hepatoblasts</code> is compared
 with cells pooled from the other 23 groups. <strong>This measures
@@ -3008,27 +3004,41 @@ the remaining labelled cells.</li>
 Accessibility counts tend to be higher in the focal group than in the
 remaining labelled cells.</li>
 </ul>
-<p>For each feature–group comparison (indices omitted), let
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>p</mi><mn>2</mn></msub><annotation encoding="application/x-tex">p_2</annotation></semantics></math>
-denote the two-sided WRS P-value and AUC the area under the receiver
-operating characteristic curve:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>p</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>+</mi><mo stretchy="false" form="postfix">)</mo></mrow></msup><mo>=</mo><mrow><mo stretchy="true" form="prefix">{</mo><mtable><mtr><mtd columnalign="left" style="text-align: left"><msub><mi>p</mi><mn>2</mn></msub><mi>/</mi><mn>2</mn><mo>,</mo></mtd><mtd columnalign="left" style="text-align: left"><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">U</mi><mi mathvariant="normal">C</mi></mrow><mo>≥</mo><mn>0.5</mn><mo>,</mo></mtd></mtr><mtr><mtd columnalign="left" style="text-align: left"><mn>1</mn><mo>−</mo><msub><mi>p</mi><mn>2</mn></msub><mi>/</mi><mn>2</mn><mo>,</mo></mtd><mtd columnalign="left" style="text-align: left"><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">U</mi><mi mathvariant="normal">C</mi></mrow><mo>&lt;</mo><mn>0.5</mn><mo>,</mo></mtd></mtr></mtable></mrow><mspace width="2.0em"></mspace><msup><mi>Z</mi><mrow><mi mathvariant="normal">W</mi><mi mathvariant="normal">R</mi><mi mathvariant="normal">S</mi></mrow></msup><mo>=</mo><msup><mi mathvariant="normal">Φ</mi><mrow><mi>−</mi><mn>1</mn></mrow></msup><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><msup><mi>p</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>+</mi><mo stretchy="false" form="postfix">)</mo></mrow></msup><mo stretchy="true" form="postfix">)</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
-p^{(+)} =
+<p>For SNP
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>
+and cell group
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>,
+let
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>p</mi><mrow><mn>2</mn><mo>,</mo><mi>k</mi><mi>j</mi></mrow></msub><annotation encoding="application/x-tex">p_{2,kj}</annotation></semantics></math>
+denote the two-sided WRS P-value and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">U</mi><mi mathvariant="normal">C</mi></mrow><mrow><mi>k</mi><mi>j</mi></mrow></msub><annotation encoding="application/x-tex">\mathrm{AUC}_{kj}</annotation></semantics></math>
+the area under the receiver operating characteristic curve:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>p</mi><mrow><mi>k</mi><mi>j</mi></mrow><mrow><mo stretchy="false" form="prefix">(</mo><mi>+</mi><mo stretchy="false" form="postfix">)</mo></mrow></msubsup><mo>=</mo><mrow><mo stretchy="true" form="prefix">{</mo><mtable><mtr><mtd columnalign="left" style="text-align: left"><msub><mi>p</mi><mrow><mn>2</mn><mo>,</mo><mi>k</mi><mi>j</mi></mrow></msub><mi>/</mi><mn>2</mn><mo>,</mo></mtd><mtd columnalign="left" style="text-align: left"><msub><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">U</mi><mi mathvariant="normal">C</mi></mrow><mrow><mi>k</mi><mi>j</mi></mrow></msub><mo>≥</mo><mn>0.5</mn><mo>,</mo></mtd></mtr><mtr><mtd columnalign="left" style="text-align: left"><mn>1</mn><mo>−</mo><msub><mi>p</mi><mrow><mn>2</mn><mo>,</mo><mi>k</mi><mi>j</mi></mrow></msub><mi>/</mi><mn>2</mn><mo>,</mo></mtd><mtd columnalign="left" style="text-align: left"><msub><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">U</mi><mi mathvariant="normal">C</mi></mrow><mrow><mi>k</mi><mi>j</mi></mrow></msub><mo>&lt;</mo><mn>0.5</mn><mo>,</mo></mtd></mtr></mtable></mrow><mspace width="2.0em"></mspace><msubsup><mi>Z</mi><mrow><mi>k</mi><mi>j</mi></mrow><mrow><mi mathvariant="normal">W</mi><mi mathvariant="normal">R</mi><mi mathvariant="normal">S</mi></mrow></msubsup><mo>=</mo><msup><mi mathvariant="normal">Φ</mi><mrow><mi>−</mi><mn>1</mn></mrow></msup><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><msubsup><mi>p</mi><mrow><mi>k</mi><mi>j</mi></mrow><mrow><mo stretchy="false" form="prefix">(</mo><mi>+</mi><mo stretchy="false" form="postfix">)</mo></mrow></msubsup><mo stretchy="true" form="postfix">)</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
+p^{(+)}_{kj} =
 \begin{cases}
-p_2/2, &amp; \mathrm{AUC}\geq 0.5,\\
-1-p_2/2, &amp; \mathrm{AUC}&lt;0.5,
+p_{2,kj}/2, &amp; \mathrm{AUC}_{kj}\geq 0.5,\\
+1-p_{2,kj}/2, &amp; \mathrm{AUC}_{kj}&lt;0.5,
 \end{cases}
 \qquad
-Z^{\mathrm{WRS}}=\Phi^{-1}\!\left(1-p^{(+)}\right).
+Z^{\mathrm{WRS}}_{kj}=\Phi^{-1}\!\left(1-p^{(+)}_{kj}\right).
 </annotation></semantics></math></p>
 <p>Here,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>p</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>+</mi><mo stretchy="false" form="postfix">)</mo></mrow></msup><annotation encoding="application/x-tex">p^{(+)}</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>p</mi><mrow><mi>k</mi><mi>j</mi></mrow><mrow><mo stretchy="false" form="prefix">(</mo><mi>+</mi><mo stretchy="false" form="postfix">)</mo></mrow></msubsup><annotation encoding="application/x-tex">p^{(+)}_{kj}</annotation></semantics></math>
 is the one-sided P-value for greater accessibility in the focal group,
 and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Φ</mi><annotation encoding="application/x-tex">\Phi</annotation></semantics></math>
-is the standard normal CDF. Within each trait, resolution and annotation
-grouping, scores are capped at the 2nd/98th percentiles of finite scores
-pooled across feature–group pairs, then used as predictors.</p>
+is the standard normal CDF. At peak resolution, the same procedure is
+applied with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>
+replaced by the peak index
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>.
+Within each trait, resolution and annotation grouping, scores are
+winsorized at the 2nd and 98th percentiles of finite scores pooled
+across feature–group pairs. In the association models,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>Z</mi><mrow><mi>k</mi><mi>j</mi></mrow><mrow><mi mathvariant="normal">W</mi><mi mathvariant="normal">R</mi><mi mathvariant="normal">S</mi></mrow></msubsup><annotation encoding="application/x-tex">Z^{\mathrm{WRS}}_{kj}</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>Z</mi><mrow><mi>k</mi><mi>p</mi></mrow><mrow><mi mathvariant="normal">W</mi><mi mathvariant="normal">R</mi><mi mathvariant="normal">S</mi></mrow></msubsup><annotation encoding="application/x-tex">Z^{\mathrm{WRS}}_{kp}</annotation></semantics></math>
+denote the winsorized SNP- and peak-level scores, respectively.</p>
 <div id="required-inputs-4" class="section level4">
 <h4>Required inputs</h4>
 <ul>
@@ -3109,9 +3119,11 @@ write.table(readRDS(path), sub(&quot;\\.rds$&quot;, &quot;.tsv&quot;, path),
 <p>Balanced WRS summaries and stability TSVs, when enabled separately,
 are not controlled by <code>wrs.write_tsv</code>.</p>
 <p><code>pval_one_sided_enriched</code> is
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>p</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>+</mi><mo stretchy="false" form="postfix">)</mo></mrow></msup><annotation encoding="application/x-tex">p^{(+)}</annotation></semantics></math>;
-<code>z_one_sided_enriched_trunc</code> is the capped WRS score used for
-model fitting.</p>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>p</mi><mrow><mi>k</mi><mi>j</mi></mrow><mrow><mo stretchy="false" form="prefix">(</mo><mi>+</mi><mo stretchy="false" form="postfix">)</mo></mrow></msubsup><annotation encoding="application/x-tex">p^{(+)}_{kj}</annotation></semantics></math>
+for SNPs and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>p</mi><mrow><mi>k</mi><mi>p</mi></mrow><mrow><mo stretchy="false" form="prefix">(</mo><mi>+</mi><mo stretchy="false" form="postfix">)</mo></mrow></msubsup><annotation encoding="application/x-tex">p^{(+)}_{kp}</annotation></semantics></math>
+for peaks; <code>z_one_sided_enriched_trunc</code> is the winsorized WRS
+score used for model fitting.</p>
 <pre class="r"><code># Read
 snp_wrs &lt;- readRDS(&quot;output/04_wrs/TC.snp.tissue_cell_type.rds&quot;)
 
@@ -3207,22 +3219,30 @@ squared Z-scores so either effect direction can contribute.</p>
 </tbody>
 </table>
 <p><strong>Count predictors and baseline.</strong> Let
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>f</mi><annotation encoding="application/x-tex">f</annotation></semantics></math>
-index features (SNPs or peaks) and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi><mo>,</mo><msup><mi>c</mi><mo>′</mo></msup></mrow><annotation encoding="application/x-tex">c,c&#39;</annotation></semantics></math>
 index cells;
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>c</mi><mo>′</mo></msup><annotation encoding="application/x-tex">c&#39;</annotation></semantics></math>
 runs over cells in the median below:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>c</mi></msub><mo>=</mo><mfrac><msub><mi>L</mi><mi>c</mi></msub><mrow><msub><mrow><mi mathvariant="normal">median</mi><mo>⁡</mo></mrow><msup><mi>c</mi><mo>′</mo></msup></msub><msub><mi>L</mi><msup><mi>c</mi><mo>′</mo></msup></msub></mrow></mfrac><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>A</mi><mrow><mi>k</mi><mi>f</mi></mrow></msub><mo>=</mo><mfrac><mn>1</mn><msub><mi>N</mi><mi>k</mi></msub></mfrac><munder><mo>∑</mo><mrow><mi>c</mi><mo>∈</mo><msub><mi mathvariant="script">𝒞</mi><mi>k</mi></msub></mrow></munder><mfrac><msub><mi>C</mi><mrow><mi>f</mi><mi>c</mi></mrow></msub><msub><mi>s</mi><mi>c</mi></msub></mfrac><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>A</mi><mi>f</mi></msub><mo>=</mo><mfrac><mn>1</mn><mi>N</mi></mfrac><munderover><mo>∑</mo><mrow><mi>c</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></munderover><mfrac><msub><mi>C</mi><mrow><mi>f</mi><mi>c</mi></mrow></msub><msub><mi>s</mi><mi>c</mi></msub></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
-s_c=\frac{L_c}{\operatorname{median}_{c&#39;}L_{c&#39;}},
-\qquad
-A_{kf}=\frac{1}{N_k}\sum_{c\in\mathcal{C}_k}\frac{C_{fc}}{s_c},
-\qquad
-A_f=\frac{1}{N}\sum_{c=1}^{N}\frac{C_{fc}}{s_c}.
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>c</mi></msub><mo>=</mo><mfrac><msub><mi>L</mi><mi>c</mi></msub><mrow><msub><mrow><mi mathvariant="normal">median</mi><mo>⁡</mo></mrow><msup><mi>c</mi><mo>′</mo></msup></msub><msub><mi>L</mi><msup><mi>c</mi><mo>′</mo></msup></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
+s_c=\frac{L_c}{\operatorname{median}_{c&#39;}L_{c&#39;}}.
 </annotation></semantics></math></p>
-<p><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>C</mi><mrow><mi>f</mi><mi>c</mi></mrow></msub><annotation encoding="application/x-tex">C_{fc}</annotation></semantics></math>
-is the count for feature
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>f</mi><annotation encoding="application/x-tex">f</annotation></semantics></math>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mtable><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><msub><mi>A</mi><mrow><mi>k</mi><mi>j</mi></mrow></msub></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><mfrac><mn>1</mn><msub><mi>N</mi><mi>k</mi></msub></mfrac><munder><mo>∑</mo><mrow><mi>c</mi><mo>∈</mo><msub><mi mathvariant="script">𝒞</mi><mi>k</mi></msub></mrow></munder><mfrac><msub><mi>C</mi><mrow><mi>j</mi><mi>c</mi></mrow></msub><msub><mi>s</mi><mi>c</mi></msub></mfrac><mo>,</mo></mtd><mtd columnalign="right" style="text-align: right; padding-right: 0"><msub><mi>A</mi><mi>j</mi></msub></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><mfrac><mn>1</mn><mi>N</mi></mfrac><munderover><mo>∑</mo><mrow><mi>c</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></munderover><mfrac><msub><mi>C</mi><mrow><mi>j</mi><mi>c</mi></mrow></msub><msub><mi>s</mi><mi>c</mi></msub></mfrac><mo>,</mo></mtd></mtr><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><msub><mi>A</mi><mrow><mi>k</mi><mi>p</mi></mrow></msub></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><mfrac><mn>1</mn><msub><mi>N</mi><mi>k</mi></msub></mfrac><munder><mo>∑</mo><mrow><mi>c</mi><mo>∈</mo><msub><mi mathvariant="script">𝒞</mi><mi>k</mi></msub></mrow></munder><mfrac><msub><mi>C</mi><mrow><mi>p</mi><mi>c</mi></mrow></msub><msub><mi>s</mi><mi>c</mi></msub></mfrac><mo>,</mo></mtd><mtd columnalign="right" style="text-align: right; padding-right: 0"><msub><mi>A</mi><mi>p</mi></msub></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><mfrac><mn>1</mn><mi>N</mi></mfrac><munderover><mo>∑</mo><mrow><mi>c</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></munderover><mfrac><msub><mi>C</mi><mrow><mi>p</mi><mi>c</mi></mrow></msub><msub><mi>s</mi><mi>c</mi></msub></mfrac><mi>.</mi></mtd></mtr></mtable><annotation encoding="application/x-tex">
+\begin{aligned}
+A_{kj}&amp;=\frac{1}{N_k}\sum_{c\in\mathcal{C}_k}\frac{C_{jc}}{s_c},
+&amp; A_j&amp;=\frac{1}{N}\sum_{c=1}^{N}\frac{C_{jc}}{s_c},\\
+A_{kp}&amp;=\frac{1}{N_k}\sum_{c\in\mathcal{C}_k}\frac{C_{pc}}{s_c},
+&amp; A_p&amp;=\frac{1}{N}\sum_{c=1}^{N}\frac{C_{pc}}{s_c}.
+\end{aligned}
+</annotation></semantics></math></p>
+<p><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>C</mi><mrow><mi>j</mi><mi>c</mi></mrow></msub><annotation encoding="application/x-tex">C_{jc}</annotation></semantics></math>
+is the number of ATAC fragments overlapping SNP position
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>
+in cell
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math>,
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>C</mi><mrow><mi>p</mi><mi>c</mi></mrow></msub><annotation encoding="application/x-tex">C_{pc}</annotation></semantics></math>
+is the ATAC count for peak
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>
 in cell
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math>;
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>L</mi><mi>c</mi></msub><annotation encoding="application/x-tex">L_c</annotation></semantics></math>
@@ -3245,16 +3265,15 @@ baseline; WRS scores are not divided by group cell counts.</strong></p>
 <p><strong>Enrichment test.</strong> Each component is fitted separately
 for each cell group
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Y</mi><mi>f</mi></msub><mo>=</mo><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mi>k</mi></msub><msub><mi>X</mi><mrow><mi>k</mi><mi>f</mi></mrow></msub><mo>+</mo><msub><mi>γ</mi><mi>k</mi></msub><msub><mi>A</mi><mi>f</mi></msub><mo>+</mo><msub><mi>ϵ</mi><mi>f</mi></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
-Y_f=\beta_0+\beta_k X_{kf}+\gamma_k A_f+\epsilon_f.
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mtable><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><msub><mi>Y</mi><mi>j</mi></msub></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mi>k</mi></msub><msub><mi>A</mi><mrow><mi>k</mi><mi>j</mi></mrow></msub><mo>+</mo><msub><mi>γ</mi><mi>k</mi></msub><msub><mi>A</mi><mi>j</mi></msub><mo>+</mo><msub><mi>ϵ</mi><mi>j</mi></msub><mo>,</mo></mtd></mtr><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><msub><mi>Y</mi><mi>j</mi></msub></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mi>k</mi></msub><msubsup><mi>Z</mi><mrow><mi>k</mi><mi>j</mi></mrow><mrow><mi mathvariant="normal">W</mi><mi mathvariant="normal">R</mi><mi mathvariant="normal">S</mi></mrow></msubsup><mo>+</mo><msub><mi>γ</mi><mi>k</mi></msub><msub><mi>A</mi><mi>j</mi></msub><mo>+</mo><msub><mi>ϵ</mi><mi>j</mi></msub><mo>,</mo></mtd></mtr><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><msub><mi>Y</mi><mi>p</mi></msub></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mi>k</mi></msub><msub><mi>A</mi><mrow><mi>k</mi><mi>p</mi></mrow></msub><mo>+</mo><msub><mi>γ</mi><mi>k</mi></msub><msub><mi>A</mi><mi>p</mi></msub><mo>+</mo><msub><mi>ϵ</mi><mi>p</mi></msub><mo>,</mo></mtd></mtr><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><msub><mi>Y</mi><mi>p</mi></msub></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mi>k</mi></msub><msubsup><mi>Z</mi><mrow><mi>k</mi><mi>p</mi></mrow><mrow><mi mathvariant="normal">W</mi><mi mathvariant="normal">R</mi><mi mathvariant="normal">S</mi></mrow></msubsup><mo>+</mo><msub><mi>γ</mi><mi>k</mi></msub><msub><mi>A</mi><mi>p</mi></msub><mo>+</mo><msub><mi>ϵ</mi><mi>p</mi></msub><mi>.</mi></mtd></mtr></mtable><annotation encoding="application/x-tex">
+\begin{aligned}
+Y_j&amp;=\beta_0+\beta_k A_{kj}+\gamma_k A_j+\epsilon_j,\\
+Y_j&amp;=\beta_0+\beta_k Z^{\mathrm{WRS}}_{kj}+\gamma_k A_j+\epsilon_j,\\
+Y_p&amp;=\beta_0+\beta_k A_{kp}+\gamma_k A_p+\epsilon_p,\\
+Y_p&amp;=\beta_0+\beta_k Z^{\mathrm{WRS}}_{kp}+\gamma_k A_p+\epsilon_p.
+\end{aligned}
 </annotation></semantics></math></p>
-<p><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>X</mi><mrow><mi>k</mi><mi>f</mi></mrow></msub><annotation encoding="application/x-tex">X_{kf}</annotation></semantics></math>
-is the focal predictor for group
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>
-and feature
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>f</mi><annotation encoding="application/x-tex">f</annotation></semantics></math>
-in the table.
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>β</mi><mn>0</mn></msub><annotation encoding="application/x-tex">\beta_0</annotation></semantics></math>
+<p><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>β</mi><mn>0</mn></msub><annotation encoding="application/x-tex">\beta_0</annotation></semantics></math>
 is the intercept;
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>β</mi><mi>k</mi></msub><annotation encoding="application/x-tex">\beta_k</annotation></semantics></math>
 and
@@ -3262,10 +3281,11 @@ and
 are the focal and baseline coefficients for group
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>,
 respectively;
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ϵ</mi><mi>f</mi></msub><annotation encoding="application/x-tex">\epsilon_f</annotation></semantics></math>
-is the residual for feature
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>f</mi><annotation encoding="application/x-tex">f</annotation></semantics></math>.
-Test
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ϵ</mi><mi>j</mi></msub><annotation encoding="application/x-tex">\epsilon_j</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ϵ</mi><mi>p</mi></msub><annotation encoding="application/x-tex">\epsilon_p</annotation></semantics></math>
+are the SNP- and peak-level residuals. Coefficients are estimated
+separately for each specification. Test
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>H</mi><mn>0</mn></msub><mo>:</mo><msub><mi>β</mi><mi>k</mi></msub><mo>≤</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">H_0:\beta_k\leq0</annotation></semantics></math>
 against
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>H</mi><mn>1</mn></msub><mo>:</mo><msub><mi>β</mi><mi>k</mi></msub><mo>&gt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">H_1:\beta_k&gt;0</annotation></semantics></math>
@@ -4946,7 +4966,7 @@ filename stem has both PNG and PDF versions.</p>
 <td align="left"><code>TC.snp.tissue_cell_type.onesided_pvalue_hist</code><br><code>TC.peak.tissue_cell_type.onesided_pvalue_hist</code></td>
 </tr>
 <tr class="odd">
-<td align="left">Truncated-score histograms</td>
+<td align="left">Winsorized-score histograms</td>
 <td align="left"><code>plot_wrs_histogram()</code></td>
 <td align="left"><code>TC.snp.tissue_cell_type.truncated_z_hist</code><br><code>TC.peak.tissue_cell_type.truncated_z_hist</code></td>
 </tr>

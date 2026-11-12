@@ -552,7 +552,7 @@ Run the preparation step first, then choose either the single-command route or t
 
 Use separate output directories for independent or concurrent analyses. See [Methods](https://github.com/LingxuanZ/EPIC2/blob/main/METHODS.md#saved-results-and-reproducibility) for saved-result checks and recovery, and the [configuration reference](https://github.com/LingxuanZ/EPIC2/blob/main/CONFIGURATION.md) for parallelism and LD memory settings.
 
-The completed outputs are included in `output/`. The single-command example is an alternative and is not executed automatically.
+Running the workflow generates the analysis outputs in `output/`. The single-command example is an alternative and is not executed automatically.
 
 ## Prepare the shared inputs
 
@@ -640,7 +640,7 @@ Configuration, completion records and a partial-run example
 
 **Keep completion records and their associated files**
 
-The supplied results include `*.receipt.rds` completion records. Downstream stages validate recorded file paths, checksums, software versions and relevant settings. These checks may require files beyond the direct inputs listed at each stage:
+Completion records (`*.receipt.rds`) are generated when the corresponding stages complete successfully. Downstream stages validate recorded file paths, checksums, software versions and relevant settings. These checks may require files beyond the direct inputs listed at each stage:
 
 - GWAS records include the original GWAS and reference-genotype files as well as their processed outputs.
 - Accessibility records include the ATAC checkpoint, processed GWAS and genotypes, accessibility matrices, SNP–peak mapping and aligned genotypes.
@@ -1011,7 +1011,7 @@ data.frame(
 
 ### 2.4 Local LD and inverse square roots
 
-Construct SNP covariance and peak LD models, including inverse-square-root transformations. This is the most time-consuming stage in this example; the completed LD files are supplied for inspection. [LD script](scripts/03_ld.R).
+Construct SNP covariance and peak LD models, including inverse-square-root transformations. This is the most time-consuming stage in this example; the resulting LD files are saved for subsequent inspection. [LD script](scripts/03_ld.R).
 
 LD-based working matrices account for dependence between GWAS statistics:
 
@@ -1022,11 +1022,11 @@ For each connected LD component $`b`$, let $`\Sigma_b=U_b\operatorname{diag}(d_b
 
 ``` math
 W_b=U_b\operatorname{diag}\!\left[
-\{\max(d_{bi},\epsilon)+\lambda\}^{-1/2}
+\{\max(d_{bi},10^{-8})+10^{-2}\}^{-1/2}
 \right]U_b^\mathsf{T}.
 ```
 
-Here, $`\epsilon`$ is the eigenvalue floor (`ld.eigen_tolerance`, $`10^{-8}`$ in this tutorial), and $`\lambda`$ is the ridge parameter (`ld.ridge`, $`0.01`$). These settings stabilize the transformation when eigenvalues are small or non-positive.
+Here, $`10^{-8}`$ is the eigenvalue floor (`ld.eigen_tolerance`), and $`10^{-2}`$ is the ridge term (`ld.ridge`). These settings stabilize the transformation when eigenvalues are small or non-positive.
 
 The ridge-stabilized inverse square root transforms the **response and full design matrix (intercept, focal predictor and baseline)** before ordinary least-squares fitting.
 
@@ -1163,7 +1163,7 @@ data.frame(
 
 ### 2.5 Wilcoxon rank-sum scores
 
-Calculate SNP and peak WRS statistics for each selected metadata grouping, then construct and truncate one-sided enrichment scores. [WRS script](scripts/04_wrs.R).
+Calculate SNP and peak WRS statistics for each selected metadata grouping, then construct and winsorize one-sided enrichment scores. [WRS script](scripts/04_wrs.R).
 
 For each feature, WRS compares the focal group with all other labelled cells. For example, `liver_Hepatoblasts` is compared with cells pooled from the other 23 groups. **This measures accessibility specificity, not TC association.**
 
@@ -1172,19 +1172,19 @@ For each SNP or peak, the one-sided WRS test uses:
 - **$`H_0`$:** Accessibility counts have the same distribution in the focal group and the remaining labelled cells.
 - **$`H_1`$:** Accessibility counts tend to be higher in the focal group than in the remaining labelled cells.
 
-For each feature–group comparison (indices omitted), let $`p_2`$ denote the two-sided WRS P-value and AUC the area under the receiver operating characteristic curve:
+For SNP $`j`$ and cell group $`k`$, let $`p_{2,kj}`$ denote the two-sided WRS P-value and $`\mathrm{AUC}_{kj}`$ the area under the receiver operating characteristic curve:
 
 ``` math
-p^{(+)} =
+p^{(+)}_{kj} =
 \begin{cases}
-p_2/2, & \mathrm{AUC}\geq 0.5,\\
-1-p_2/2, & \mathrm{AUC}<0.5,
+p_{2,kj}/2, & \mathrm{AUC}_{kj}\geq 0.5,\\
+1-p_{2,kj}/2, & \mathrm{AUC}_{kj}<0.5,
 \end{cases}
 \qquad
-Z^{\mathrm{WRS}}=\Phi^{-1}\!\left(1-p^{(+)}\right).
+Z^{\mathrm{WRS}}_{kj}=\Phi^{-1}\!\left(1-p^{(+)}_{kj}\right).
 ```
 
-Here, $`p^{(+)}`$ is the one-sided P-value for greater accessibility in the focal group, and $`\Phi`$ is the standard normal CDF. Within each trait, resolution and annotation grouping, scores are capped at the 2nd/98th percentiles of finite scores pooled across feature–group pairs, then used as predictors.
+Here, $`p^{(+)}_{kj}`$ is the one-sided P-value for greater accessibility in the focal group, and $`\Phi`$ is the standard normal CDF. At peak resolution, the same procedure is applied with $`j`$ replaced by the peak index $`p`$. Within each trait, resolution and annotation grouping, scores are winsorized at the 2nd and 98th percentiles of finite scores pooled across feature–group pairs. In the association models, $`Z^{\mathrm{WRS}}_{kj}`$ and $`Z^{\mathrm{WRS}}_{kp}`$ denote the winsorized SNP- and peak-level scores, respectively.
 
 #### Required inputs
 
@@ -1269,7 +1269,7 @@ write.table(readRDS(path), sub("\\.rds$", ".tsv", path),
 
 Balanced WRS summaries and stability TSVs, when enabled separately, are not controlled by `wrs.write_tsv`.
 
-`pval_one_sided_enriched` is $`p^{(+)}`$; `z_one_sided_enriched_trunc` is the capped WRS score used for model fitting.
+`pval_one_sided_enriched` is $`p^{(+)}_{kj}`$ for SNPs and $`p^{(+)}_{kp}`$ for peaks; `z_one_sided_enriched_trunc` is the winsorized WRS score used for model fitting.
 
 ``` r
 # Read
@@ -1318,25 +1318,35 @@ $`Z_j`$ is the GWAS Z-score for SNP $`j`$; $`\mathbf{Z}_p`$ contains the $`n_p`$
 | Peak-count | $`Y_p`$  | $`A_{kp}`$                | $`A_p`$  |
 | Peak-WRS   | $`Y_p`$  | $`Z^{\mathrm{WRS}}_{kp}`$ | $`A_p`$  |
 
-**Count predictors and baseline.** Let $`f`$ index features (SNPs or peaks) and $`c,c'`$ index cells; $`c'`$ runs over cells in the median below:
+**Count predictors and baseline.** Let $`c,c'`$ index cells; $`c'`$ runs over cells in the median below:
 
 ``` math
-s_c=\frac{L_c}{\operatorname{median}_{c'}L_{c'}},
-\qquad
-A_{kf}=\frac{1}{N_k}\sum_{c\in\mathcal{C}_k}\frac{C_{fc}}{s_c},
-\qquad
-A_f=\frac{1}{N}\sum_{c=1}^{N}\frac{C_{fc}}{s_c}.
+s_c=\frac{L_c}{\operatorname{median}_{c'}L_{c'}}.
 ```
 
-$`C_{fc}`$ is the count for feature $`f`$ in cell $`c`$; $`L_c`$ is that cell’s total count across retained autosomal peaks; $`s_c`$ is its library-size factor. $`\mathcal{C}_k`$ denotes the set of cells in group $`k`$, $`N_k=|\mathcal{C}_k|`$ is its cell count, and $`N`$ is the total number of retained cells. Library-size-adjusted accessibility is **averaged within each group**. The baseline is the **mean across all retained cells**. Cells with missing group labels or nonfinite/nonpositive scaling factors are excluded; cells with zero counts at a feature remain in the denominators. **Both count and WRS models use this count-based baseline; WRS scores are not divided by group cell counts.**
+``` math
+\begin{aligned}
+A_{kj}&=\frac{1}{N_k}\sum_{c\in\mathcal{C}_k}\frac{C_{jc}}{s_c},
+& A_j&=\frac{1}{N}\sum_{c=1}^{N}\frac{C_{jc}}{s_c},\\
+A_{kp}&=\frac{1}{N_k}\sum_{c\in\mathcal{C}_k}\frac{C_{pc}}{s_c},
+& A_p&=\frac{1}{N}\sum_{c=1}^{N}\frac{C_{pc}}{s_c}.
+\end{aligned}
+```
+
+$`C_{jc}`$ is the number of ATAC fragments overlapping SNP position $`j`$ in cell $`c`$, and $`C_{pc}`$ is the ATAC count for peak $`p`$ in cell $`c`$; $`L_c`$ is that cell’s total count across retained autosomal peaks; $`s_c`$ is its library-size factor. $`\mathcal{C}_k`$ denotes the set of cells in group $`k`$, $`N_k=|\mathcal{C}_k|`$ is its cell count, and $`N`$ is the total number of retained cells. Library-size-adjusted accessibility is **averaged within each group**. The baseline is the **mean across all retained cells**. Cells with missing group labels or nonfinite/nonpositive scaling factors are excluded; cells with zero counts at a feature remain in the denominators. **Both count and WRS models use this count-based baseline; WRS scores are not divided by group cell counts.**
 
 **Enrichment test.** Each component is fitted separately for each cell group $`k`$:
 
 ``` math
-Y_f=\beta_0+\beta_k X_{kf}+\gamma_k A_f+\epsilon_f.
+\begin{aligned}
+Y_j&=\beta_0+\beta_k A_{kj}+\gamma_k A_j+\epsilon_j,\\
+Y_j&=\beta_0+\beta_k Z^{\mathrm{WRS}}_{kj}+\gamma_k A_j+\epsilon_j,\\
+Y_p&=\beta_0+\beta_k A_{kp}+\gamma_k A_p+\epsilon_p,\\
+Y_p&=\beta_0+\beta_k Z^{\mathrm{WRS}}_{kp}+\gamma_k A_p+\epsilon_p.
+\end{aligned}
 ```
 
-$`X_{kf}`$ is the focal predictor for group $`k`$ and feature $`f`$ in the table. $`\beta_0`$ is the intercept; $`\beta_k`$ and $`\gamma_k`$ are the focal and baseline coefficients for group $`k`$, respectively; $`\epsilon_f`$ is the residual for feature $`f`$. Test $`H_0:\beta_k\leq0`$ against $`H_1:\beta_k>0`$ using a one-sided t-test with the whitened fit’s residual degrees of freedom. A positive coefficient associates greater group accessibility or specificity with stronger GWAS signals, adjusting for baseline accessibility and LD.
+$`\beta_0`$ is the intercept; $`\beta_k`$ and $`\gamma_k`$ are the focal and baseline coefficients for group $`k`$, respectively; $`\epsilon_j`$ and $`\epsilon_p`$ are the SNP- and peak-level residuals. Coefficients are estimated separately for each specification. Test $`H_0:\beta_k\leq0`$ against $`H_1:\beta_k>0`$ using a one-sided t-test with the whitened fit’s residual degrees of freedom. A positive coefficient associates greater group accessibility or specificity with stronger GWAS signals, adjusting for baseline accessibility and LD.
 
 **ACAT and multiple testing**
 
@@ -2864,7 +2874,7 @@ Files listed in the same row use the same drawing function; each filename stem h
 |:---|:---|:---|
 | Group summaries | `plot_wrs_group_summary()` | `wrs_group_summary.tissue_cell_type` |
 | One-sided P-value histograms | `plot_wrs_histogram()` | `TC.snp.tissue_cell_type.onesided_pvalue_hist`<br>`TC.peak.tissue_cell_type.onesided_pvalue_hist` |
-| Truncated-score histograms | `plot_wrs_histogram()` | `TC.snp.tissue_cell_type.truncated_z_hist`<br>`TC.peak.tissue_cell_type.truncated_z_hist` |
+| Winsorized-score histograms | `plot_wrs_histogram()` | `TC.snp.tissue_cell_type.truncated_z_hist`<br>`TC.peak.tissue_cell_type.truncated_z_hist` |
 | Top-ranked feature dotplots | `plot_top_wrs_dotplot()` | `all_traits.top3_per_group_topSNP_wilcoxon_DotPlot`<br>`all_traits.top3_per_group_topPeak_wilcoxon_DotPlot` |
 
 ###### Association models
